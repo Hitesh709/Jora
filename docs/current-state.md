@@ -219,3 +219,8 @@ Jora v0.20.0 protects the operator dashboard with the same bearer authentication
 ## Identity, RBAC and tenant isolation
 
 Jora v0.21.0 adds an access-control layer for operator actions. Principals can carry an identity, tenant ID, and roles; read, execute, and operate permissions are enforced at the operator API boundary. Runtime configuration can supply token principals using JORA_API_ACCESS_TOKENS entries in the form token:tenant:role+role. Local unauthenticated operation remains available only when the API is configured without an auth token; remote binding still requires authentication.
+
+
+## Tenant isolation
+
+Jora v0.22.0 propagates authenticated tenant identity into operator-submitted execution and queue context and filters operator-visible executions, jobs, and observability events by tenant. This establishes the control-plane boundary for multi-tenant operation while keeping workers shared at the execution layer.
