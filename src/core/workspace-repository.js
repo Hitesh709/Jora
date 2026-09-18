@@ -40,7 +40,10 @@ export class WorkspaceRepository {
     if(status) await this.git.runner.run("git",["reset","--hard","HEAD"],{cwd:this.root});
     const branch=`jora/candidate-${String(id).replace(/[^a-zA-Z0-9._-]/g,"-")}`;
     const existing=await this.git.runner.run("git",["rev-parse","--verify",branch],{cwd:this.root});
-    if(existing.ok) await this.git.checkout(base);
+    if(existing.ok) {
+      await this.git.checkout(base);
+      await this.git.deleteBranch(branch,true);
+    }
     await this.git.createBranch(branch,base);
     this.candidateBranch=branch;
     this.candidateBase=await this.git.currentCommit();
