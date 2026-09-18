@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {MultiGenerationEngine} from "../src/core/multi-generation-engine.js";
+test("generates isolated candidate population",async()=>{let n=0;const e=new MultiGenerationEngine({delivery:{deliver:async()=>({project:{version:String(++n),evaluation:{score:n/10}}})},maxCandidates:3});const r=await e.generate({command:"x"});assert.equal(r.candidates.length,3);assert.equal(r.best.candidate.version,"3");});
