@@ -106,7 +106,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     securityCouncil,
     promotion,
     championStore,
-    maxCycles:1
+    maxCycles:config.autonomous?.maxCycles??4
   });
   const runtime=new JoraRuntime({builder,controller,executionStore,repository});
   return {
