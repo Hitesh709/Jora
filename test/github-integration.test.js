@@ -9,7 +9,7 @@ test("GitHub candidate publication builds an atomic commit from the target tree"
     constructor(){super({token:"test-token",owner:"owner",repo:"repo"});}
     async request(path,options={}) {
       calls.push({path,options});
-      if(path.includes("/git/ref/heads/jora/candidate-1")) throw new Error("GitHub request failed: 404");
+      if(path.includes("/git/ref/heads/jora%2Fcandidate-1")) throw new Error("GitHub request failed: 404");
       if(path.includes("/git/ref/heads/main")) return {object:{sha:"base-sha"}};
       if(path.includes("/git/commits/base-sha")) return {tree:{sha:"base-tree"}};
       if(path.includes("/git/trees")) return {sha:"candidate-tree"};
@@ -40,11 +40,11 @@ test("GitHub candidate publication advances an existing candidate branch without
     constructor(){super({token:"test-token",owner:"owner",repo:"repo"});}
     async request(path,options={}) {
       calls.push({path,options});
-      if(path.includes("/git/ref/heads/jora/candidate-1")) return {object:{sha:"old-candidate"}};
+      if(path.includes("/git/ref/heads/jora%2Fcandidate-1")) return {object:{sha:"old-candidate"}};
       if(path.includes("/git/commits/old-candidate")) return {tree:{sha:"old-tree"}};
       if(path.includes("/git/trees")) return {sha:"new-tree"};
       if(path.includes("/git/commits") && options.method==="POST") return {sha:"new-candidate"};
-      if(path.includes("/git/refs/heads/jora/candidate-1") && options.method==="PATCH") return {ref:"refs/heads/jora/candidate-1",object:{sha:"new-candidate"}};
+      if(path.includes("/git/refs/heads/jora%2Fcandidate-1") && options.method==="PATCH") return {ref:"refs/heads/jora/candidate-1",object:{sha:"new-candidate"}};
       throw new Error("unexpected request: "+path);
     }
   }
