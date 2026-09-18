@@ -31,3 +31,8 @@ export { BenchmarkStore } from "./core/benchmark-store.js";
 export { ChampionStore } from "./core/champion-store.js";
 export { RollbackManager } from "./core/rollback-manager.js";
 export { JoraRuntime } from "./core/jora-runtime.js";
+export { OpenAICompatibleProvider } from "./core/openai-compatible-provider.js";
+export { GitHubRestRepository } from "./core/github-rest-repository.js";
+export { JsonStore } from "./core/json-store.js";
+export { PersistentExecutionStore } from "./core/persistent-execution-store.js";
+export { DeploymentAdapter } from "./core/deployment-adapter.js";
