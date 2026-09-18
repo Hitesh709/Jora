@@ -84,3 +84,8 @@ export { RegressionAnalyzer } from "./core/regression-analyzer.js";
 
 export { ChampionSelector } from "./core/champion-selector.js";
 \nexport { CandidatePopulation } from "./core/candidate-population.js";\nexport { LineageStore } from "./core/lineage-store.js";\nexport { MutationStrategyEngine } from "./core/mutation-strategy-engine.js";\nexport { EvolutionScheduler } from "./core/evolution-scheduler.js";\nexport { ResearchLoop } from "./core/research-loop.js";
+export { MultiGenerationEngine } from "./core/multi-generation-engine.js";
+export { ParallelCandidateRunner } from "./core/parallel-candidate-runner.js";
+export { ExperimentEngine } from "./core/experiment-engine.js";
+export { LearningMemory } from "./core/learning-memory.js";
+export { AutonomousEvolutionController } from "./core/autonomous-evolution-controller.js";
