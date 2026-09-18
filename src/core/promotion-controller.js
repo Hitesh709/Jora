@@ -1,5 +1,5 @@
 export class PromotionController {
-  constructor({evaluator, repository, targetBranch="main", ciGate=null,policyEngine=null,regressionAnalyzer=null,benchmarkStore=null}={}) {
+  constructor({evaluator, repository, targetBranch="main", ciGate=null,policyEngine=null,regressionAnalyzer=null,benchmarkStore=null,championSelector=null}={}) {
     if (!evaluator || !repository) throw new Error("evaluator and repository are required");
     this.evaluator=evaluator;
     this.repository=repository;
@@ -8,6 +8,7 @@ export class PromotionController {
     this.policyEngine=policyEngine;
     this.regressionAnalyzer=regressionAnalyzer;
     this.benchmarkStore=benchmarkStore;
+    this.championSelector=championSelector;
   }
 
   async promote({candidate, champion, metrics={},context={}}={}) {
@@ -20,6 +21,8 @@ export class PromotionController {
     });
     if (!decision.passed) return {status:"REJECTED", decision, candidate, champion};
     const regression=this.regressionAnalyzer?.compare(candidate,champion,this.benchmarkStore?.list?.()??[]);
+    const championSelection=this.championSelector?.select({candidate,champion});
+    if(championSelection && !championSelection.selected) return {status:"CHAMPION_BLOCKED",decision,regression,championSelection,candidate,champion};
     if(regression && !regression.passed) return {status:"REGRESSION_BLOCKED",decision,regression,candidate,champion};
 
     const commit=await this.repository.commit?.(
