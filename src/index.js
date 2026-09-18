@@ -38,3 +38,6 @@ export { PersistentExecutionStore } from "./core/persistent-execution-store.js";
 export { DeploymentAdapter } from "./core/deployment-adapter.js";
 export { runtimeConfig } from "./core/runtime-config.js";
 export { createJoraRuntime } from "./core/runtime-composer.js";
+export { ModelProjectBuilder } from "./core/model-project-builder.js";
+export { createProjectTestRunner } from "./core/project-test-runner.js";
+export { AutonomousBuildPipeline } from "./core/autonomous-build-pipeline.js";
