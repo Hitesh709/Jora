@@ -45,6 +45,7 @@
 - CLI command entry point
 - Authenticated operator API with health, status, execution, observability, and worker-control endpoints
 - PostgreSQL-backed distributed worker lease coordination with atomic acquisition, heartbeat renewal, expiry recovery, and release
+- PostgreSQL-backed persistent distributed task queue with SKIP LOCKED claiming, retries, completion, expiry recovery, and operator API job endpoints
 
 ## Autonomous production loop
 
@@ -157,3 +158,15 @@ Configuration:
 - `JORA_WORKER_ID`: unique worker owner identifier; use a stable unique value per worker/node.
 
 The PostgreSQL adapter creates its lease table automatically. The `pg` package is loaded only when distributed coordination is enabled, so the default local runtime remains dependency-light. The lease prevents concurrent workers from owning the same Jora worker slot, but it does not provide exactly-once execution; cycles must remain idempotent and the existing promotion gates remain authoritative.
+
+
+## Persistent distributed task queue
+
+Jora v0.12.0 adds a PostgreSQL-backed job queue so multiple Jora workers can share a durable work stream. Jobs are created as `QUEUED`, claimed with PostgreSQL row locking and `SKIP LOCKED`, executed by a worker, and marked `SUCCEEDED` or returned to `QUEUED` on retryable failure. Expired running jobs can be recovered.
+
+The operator API now supports:
+- `POST /v1/jobs` — enqueue a durable Jora command.
+- `GET /v1/jobs` — inspect queued/running/completed jobs.
+- `GET /v1/jobs/:id` — inspect one job.
+
+When distributed coordination is enabled, `POST /v1/worker/start` queues work instead of directly coupling the HTTP request to execution. Workers consume queued jobs while retaining the external PostgreSQL worker lease. This separates job submission from execution and provides the foundation for horizontal worker scaling.
