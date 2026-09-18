@@ -214,3 +214,8 @@ Jora v0.19.0 adds an incident lifecycle around operational alerts. Alerts are de
 ## Operator API security hardening
 
 Jora v0.20.0 protects the operator dashboard with the same bearer authentication as the control API when an auth token is configured. The liveness endpoint GET /health remains public for infrastructure probes. Operator traffic now has an in-process per-client rate limit, configurable with JORA_API_RATE_LIMIT_PER_MINUTE (default 120). Excess requests receive HTTP 429. Remote operator API binding continues to require an auth token.
+
+
+## Identity, RBAC and tenant isolation
+
+Jora v0.21.0 adds an access-control layer for operator actions. Principals can carry an identity, tenant ID, and roles; read, execute, and operate permissions are enforced at the operator API boundary. Runtime configuration can supply token principals using JORA_API_ACCESS_TOKENS entries in the form token:tenant:role+role. Local unauthenticated operation remains available only when the API is configured without an auth token; remote binding still requires authentication.
