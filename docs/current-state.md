@@ -46,6 +46,7 @@
 - Authenticated operator API with health, status, execution, observability, and worker-control endpoints
 - PostgreSQL-backed distributed worker lease coordination with atomic acquisition, heartbeat renewal, expiry recovery, and release
 - PostgreSQL-backed persistent distributed task queue with SKIP LOCKED claiming, retries, completion, expiry recovery, and operator API job endpoints
+- PostgreSQL-backed persistent execution store for distributed execution history and traces
 
 ## Autonomous production loop
 
@@ -170,3 +171,8 @@ The operator API now supports:
 - `GET /v1/jobs/:id` — inspect one job.
 
 When distributed coordination is enabled, `POST /v1/worker/start` queues work instead of directly coupling the HTTP request to execution. Workers consume queued jobs while retaining the external PostgreSQL worker lease. This separates job submission from execution and provides the foundation for horizontal worker scaling.
+
+
+## Persistent distributed execution state
+
+Jora v0.13.0 adds PostgreSQL-backed execution persistence when distributed mode is enabled. Execution records, status, inputs, results, and bounded trace history survive process restarts and are shared by the production control plane. Local deployments continue using the existing JSON execution store when distributed mode is disabled.
