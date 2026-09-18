@@ -1,0 +1,2 @@
+import test from "node:test"; import assert from "node:assert/strict"; import {CandidatePopulation} from "../src/core/candidate-population.js";
+test("maintains bounded candidate population",()=>{const p=new CandidatePopulation({maxSize:2});p.add({evaluation:{score:.7}});p.add({evaluation:{score:.8}});p.add({evaluation:{score:.9}});assert.equal(p.list().length,2);assert.equal(p.best(x=>x.evaluation.score).candidate.evaluation.score,.9);});
