@@ -1,6 +1,6 @@
 {
   "name": "jora-ai-evolution-os",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "description": "AI software-production, agent-factory, and controlled self-evolution platform.",
   "type": "module",
