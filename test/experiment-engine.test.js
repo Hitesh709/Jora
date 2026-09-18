@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {ExperimentEngine} from "../src/core/experiment-engine.js";
+test("records reproducible candidate experiments",async()=>{const records=[];const r=new ExperimentEngine({benchmarkStore:{record:async x=>records.push(x)}});const out=await r.run({candidates:[{version:"a",evaluation:{score:.8}},{version:"b",evaluation:{score:.9}}]});assert.equal(out.results.length,2);assert.equal(records.length,2);});
