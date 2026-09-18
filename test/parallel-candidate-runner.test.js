@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {ParallelCandidateRunner} from "../src/core/parallel-candidate-runner.js";
+test("runs candidates with bounded concurrency",async()=>{let active=0,max=0;const r=new ParallelCandidateRunner({concurrency:2,runner:async x=>{active++;max=Math.max(max,active);await new Promise(r=>setTimeout(r,5));active--;return x*2;}});const out=await r.run([1,2,3,4]);assert.deepEqual(out.map(x=>x.result),[2,4,6,8]);assert.ok(max<=2);});
