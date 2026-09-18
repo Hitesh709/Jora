@@ -7,7 +7,8 @@ export class DurableWorker {
     staleAfterMs=120_000,
     maxCycles=Infinity,
     workerId="jora-worker",
-    leaseStore=null
+    leaseStore=null,
+    queueStore=null
   }={}) {
     if(!cycle) throw new Error("cycle is required");
     if(!store?.read || !store?.write) throw new Error("store with read/write is required");
@@ -20,6 +21,7 @@ export class DurableWorker {
     this.workerId=workerId;
     this.leaseStore=leaseStore;
     this.leaseToken=null;
+    this.queueStore=queueStore;
     this.running=false;
     this.stopRequested=false;
     this.jobId=null;
@@ -120,8 +122,8 @@ export class DurableWorker {
     return state;
   }
 
-  async run({command,context={}}={}){
-    if(!command) throw new Error("command is required");
+  async run({command,context={}}={}) {
+    if(!command && !this.queueStore) throw new Error("command is required");
     if(this.running) throw new Error("worker already running");
 
     this.running=true;
@@ -132,6 +134,16 @@ export class DurableWorker {
       this._startHeartbeat();
 
       while(!this.stopRequested && state.job.cycles<this.maxCycles){
+        let queuedJob=null;
+        if(!command && this.queueStore) {
+          queuedJob=await this.queueStore.claim({workerId:this.workerId});
+          if(!queuedJob) {
+            await new Promise(resolve=>setTimeout(resolve,Math.min(this.intervalMs,5000)));
+            continue;
+          }
+          command=queuedJob.command;
+          context={...context,...(queuedJob.context??{}),queueJobId:queuedJob.id,constraints:queuedJob.constraints??{}};
+        }
         const cycleNumber=state.job.cycles+1;
         state=await this._read();
         state.job={
@@ -144,7 +156,9 @@ export class DurableWorker {
         await this._write(state);
 
         try {
-          await this.cycle({cycle:cycleNumber,command,context});
+          const result=await this.cycle({cycle:cycleNumber,command,context});
+          if(queuedJob) await this.queueStore.complete({id:queuedJob.id,workerId:this.workerId,result});
+          if(queuedJob) await this.queueStore.fail({id:queuedJob.id,workerId:this.workerId,error:error.message,retry:true}).catch(()=>{});
           state=await this._read();
           state.job={
             ...(state.job??{}),
