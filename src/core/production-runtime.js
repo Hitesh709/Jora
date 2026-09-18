@@ -165,8 +165,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     promotion,
     championStore,
     maxCycles:config.autonomous?.maxCycles??4,
-    policyEngine,
-    auditLog
+    policyEngine
   });
 
   const metrics=new MetricsCollector();
@@ -177,6 +176,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
 
   auditLog.observability=observability;
+  policyEngine.auditLog=observability;
   const deploymentConfig=config.deployment??{};
   const productionConfig=deploymentConfig.production??deploymentConfig;
   const productionDeployment=deploymentConfig.enabled
