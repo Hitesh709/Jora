@@ -79,3 +79,5 @@ export { PolicyRegistry } from "./core/policy-registry.js";
 export { GovernanceStateMachine } from "./core/governance-state-machine.js";
 
 export { SecurityIntelligence } from "./core/security-intelligence.js";
+
+export { RegressionAnalyzer } from "./core/regression-analyzer.js";
