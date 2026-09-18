@@ -10,6 +10,9 @@ export function runtimeConfig(env=process.env){
       timeoutMs:Number(env.JORA_CI_TIMEOUT_MS||600000),
       pollMs:Number(env.JORA_CI_POLL_MS||5000)
     },
+    autonomous:{
+      maxCycles:Number(env.JORA_AUTONOMOUS_MAX_CYCLES||4)
+    },
     worker:{intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),maxCycles:env.JORA_MAX_CYCLES?Number(env.JORA_MAX_CYCLES):Infinity}
   };
 }
