@@ -36,6 +36,10 @@
 - Autonomous CI diagnosis and repair loop
 - Re-publication of repaired candidates to the same isolated GitHub branch without force updates
 - Durable worker with persisted state, single-worker lease, heartbeat, stale-job recovery, interrupted-cycle retry, and graceful stop
+- Deployment controller with health-gated release and automatic adapter rollback
+- Health-check retry boundary
+- Persistent observability event store
+- Secret configuration, required-secret validation, and runtime redaction helpers
 - Continuous worker runtime wiring and worker CLI
 - CLI command entry point
 
@@ -79,6 +83,6 @@ The control plane and several concrete runtime boundaries now exist, but full au
 7. API/operator UI
 8. Secrets management and observability
 
-The durable worker provides restart recovery at the worker/job control-plane level; it does not yet provide distributed multi-node scheduling, external lease coordination, or exactly-once execution semantics. A recovered cycle can execute again, so candidate operations must remain idempotent and promotion gates remain authoritative.
+The durable worker provides restart recovery at the worker/job control-plane level; it does not yet provide distributed multi-node scheduling, external lease coordination, or exactly-once execution semantics. Deployment is adapter-driven: Jora will only perform a real deployment when a deployment adapter is explicitly configured. Health failure can trigger adapter rollback before a release is considered deployed. A recovered cycle can execute again, so candidate operations must remain idempotent and promotion gates remain authoritative.
 
 The architecture is deliberately adapter-based so these can be connected without redesigning the core orchestration model.
