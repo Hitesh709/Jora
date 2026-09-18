@@ -15,15 +15,19 @@ export { ProjectFactory } from "./core/project-factory.js";
 export { AgentSpecPlanner } from "./core/agent-spec-planner.js";
 export { AutonomousDelivery } from "./core/autonomous-delivery.js";
 export { ProcessSandbox } from "./core/real-sandbox.js";
+export { DockerSandbox } from "./core/docker-sandbox.js";
+export { CommandRunner } from "./core/command-runner.js";
+export { LocalGitRepository } from "./core/local-git.js";
 export { GitRepositoryAdapter } from "./core/git-repository.js";
 export { PromotionController } from "./core/promotion-controller.js";
 export { ContinuousWorker } from "./core/continuous-worker.js";
-
 export { SecurityGate } from "./core/security-gate.js";
 export { SecurityCouncil } from "./core/security-council.js";
 export { AutonomousController } from "./core/autonomous-controller.js";
-
 export { ProviderRegistry } from "./core/provider-registry.js";
 export { ProductionAgentBuilder } from "./core/production-agent-builder.js";
+export { ProductionEvaluator } from "./core/production-evaluator.js";
 export { BenchmarkStore } from "./core/benchmark-store.js";
+export { ChampionStore } from "./core/champion-store.js";
 export { RollbackManager } from "./core/rollback-manager.js";
+export { JoraRuntime } from "./core/jora-runtime.js";
