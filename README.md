@@ -37,3 +37,7 @@ The current bootstrap executor is intentionally a safety stub until a real isola
 No AI-generated change is automatically considered production-ready.
 
 See `docs/AI_EVOLUTION_OS.md`, `docs/TASK_EXECUTION_PROTOCOL.md`, `TASKS.md`, and `docs/current-state.md`.
+
+## Autonomous runtime milestone
+
+The platform now includes adapter boundaries for process isolation, Git-backed repository operations, candidate promotion/rollback, and continuous worker execution. These components are deliberately dependency-injected so production deployments can supply hardened infrastructure without granting the model unrestricted host access.
