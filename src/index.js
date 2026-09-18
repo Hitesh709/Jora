@@ -72,3 +72,6 @@ export { IncidentManager } from "./core/incident-manager.js";
 export { AccessController } from "./core/access-controller.js";
 
 export { AuditLog } from "./core/audit-log.js";
+
+export { PolicyEngine } from "./core/policy-engine.js";
+export { PolicyRegistry } from "./core/policy-registry.js";
