@@ -242,6 +242,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         executionStore,
         observability,
         worker,
+        queue:queueStore,
         host:config.api.host,
         port:config.api.port,
         authToken:config.api.authToken,
