@@ -1,6 +1,8 @@
 import http from "node:http";
 import {randomUUID} from "node:crypto";
 import {URL} from "node:url";
+import fs from "node:fs/promises";
+import path from "node:path";
 
 function json(res,status,payload,headers={}) {
   const body=JSON.stringify(payload);
@@ -47,7 +49,8 @@ export class OperatorApi {
     host="127.0.0.1",
     port=8787,
     authToken=null,
-    maxBodyBytes=1_000_000
+    maxBodyBytes=1_000_000,
+    dashboardPath=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -60,6 +63,7 @@ export class OperatorApi {
     this.port=port;
     this.authToken=authToken;
     this.maxBodyBytes=maxBodyBytes;
+    this.dashboardPath=dashboardPath;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
     this.server=null;
@@ -90,6 +94,15 @@ export class OperatorApi {
     const url=new URL(req.url??"/",`http://${this.host}`);
     const method=req.method??"GET";
     const path=url.pathname;
+
+    if(method==="GET" && (path==="/" || path==="/dashboard")) {
+      if(!this.dashboardPath) return json(res,404,{error:"dashboard_not_configured"});
+      try {
+        const body=await fs.readFile(this.dashboardPath,"utf8");
+        res.writeHead(200,{"content-type":"text/html; charset=utf-8","cache-control":"no-store"});
+        res.end(body); return;
+      } catch { return json(res,404,{error:"dashboard_not_found"}); }
+    }
 
     if(method==="GET" && path==="/health") {
       return json(res,200,{status:"ok",service:"jora",timestamp:new Date().toISOString()});
