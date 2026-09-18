@@ -42,6 +42,7 @@ export class OperatorApi {
     executionStore,
     observability=null,
     worker=null,
+    queue=null,
     host="127.0.0.1",
     port=8787,
     authToken=null,
@@ -52,6 +53,7 @@ export class OperatorApi {
     this.executionStore=executionStore;
     this.observability=observability;
     this.worker=worker;
+    this.queue=queue;
     this.host=host;
     this.port=port;
     this.authToken=authToken;
@@ -112,6 +114,33 @@ export class OperatorApi {
       return json(res,200,{execution:safeExecution(execution)});
     }
 
+    if(method==="GET" && path==="/v1/jobs") {
+      if(!this.queue?.list) return json(res,503,{error:"queue_not_configured"});
+      const limit=Math.min(200,Math.max(1,Number(url.searchParams.get("limit")||50)));
+      const status=url.searchParams.get("status")||undefined;
+      return json(res,200,{jobs:await this.queue.list({limit,status})});
+    }
+
+    const jobMatch=path.match(/^\\/v1\\/jobs\\/([^/]+)$/);
+    if(method==="GET" && jobMatch) {
+      if(!this.queue?.get) return json(res,503,{error:"queue_not_configured"});
+      const job=await this.queue.get(jobMatch[1]);
+      if(!job) return json(res,404,{error:"job_not_found"});
+      return json(res,200,{job});
+    }
+
+    if(method==="POST" && path==="/v1/jobs") {
+      if(!this.queue?.enqueue) return json(res,503,{error:"queue_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(typeof body.command!=="string" || !body.command.trim()) return json(res,400,{error:"command is required"});
+      const job=await this.queue.enqueue({
+        command:body.command.trim(),
+        constraints:body.constraints??{},
+        context:body.context??{}
+      });
+      return json(res,202,{accepted:true,status:"QUEUED",job});
+    }
+
     if(method==="GET" && path==="/v1/observability") {
       const events=this.observability?.list ? await this.observability.list() : [];
       const limit=Math.min(200,Math.max(1,Number(url.searchParams.get("limit")||50)));
@@ -143,9 +172,11 @@ export class OperatorApi {
         ? body.command.trim()
         : "Improve Jora continuously";
       try {
-        const promise=this.worker.run({command,context:body.context??{}});
+        const promise=this.queue?.enqueue
+          ? this.queue.enqueue({command,context:body.context??{}})
+          : this.worker.run({command,context:body.context??{}});
         promise.catch(()=>{});
-        return json(res,202,{accepted:true,command,status:"STARTED"});
+        return json(res,202,{accepted:true,command,status:this.queue?"QUEUED":"STARTED"});
       } catch(error) {
         return json(res,409,{accepted:false,status:"REJECTED",error:error.message});
       }
