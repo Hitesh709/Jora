@@ -22,3 +22,8 @@ export { ContinuousWorker } from "./core/continuous-worker.js";
 export { SecurityGate } from "./core/security-gate.js";
 export { SecurityCouncil } from "./core/security-council.js";
 export { AutonomousController } from "./core/autonomous-controller.js";
+
+export { ProviderRegistry } from "./core/provider-registry.js";
+export { ProductionAgentBuilder } from "./core/production-agent-builder.js";
+export { BenchmarkStore } from "./core/benchmark-store.js";
+export { RollbackManager } from "./core/rollback-manager.js";
