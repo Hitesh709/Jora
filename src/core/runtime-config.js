@@ -46,6 +46,7 @@ export function runtimeConfig(env=process.env){
       enabled:env.JORA_DISTRIBUTED_ENABLED==="true",
       databaseUrl:env.JORA_DATABASE_URL||env.DATABASE_URL,
       leaseNamespace:env.JORA_LEASE_NAMESPACE||"jora-worker",
+      queueNamespace:env.JORA_QUEUE_NAMESPACE||"jora",
       leaseTtlMs:Number(env.JORA_LEASE_TTL_MS||120000),
       maxConnections:Number(env.JORA_DATABASE_MAX_CONNECTIONS||5),
       owner:env.JORA_WORKER_ID||"jora-worker"
