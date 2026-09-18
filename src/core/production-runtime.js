@@ -55,6 +55,10 @@ import {RefactorPlanner} from "./refactor-planner.js";
 import {ChangeImpactAnalyzer} from "./change-impact-analyzer.js";
 import {CodeMaster} from "./code-master.js";
 import {LineageStore} from "./lineage-store.js";
+import {AgentMemory} from "./agent-memory.js";
+import {KnowledgeStore} from "./knowledge-store.js";
+import {KnowledgeRetriever} from "./knowledge-retriever.js";
+import {SharedTeamMemory} from "./shared-team-memory.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -164,6 +168,12 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   const planner=new AgentSpecPlanner();
   const agentRegistry=new AgentRegistry();
+  const agentMemory=new AgentMemory({store:new JsonStore({file:config.memory?.agentStateFile||"./.jora/agent-memory.json"}),maxRecords:config.memory?.maxRecords??5000});
+  await agentMemory.load();
+  const knowledgeStore=new KnowledgeStore({store:new JsonStore({file:config.memory?.knowledgeStateFile||"./.jora/knowledge.json"}),maxRecords:config.memory?.knowledgeRecords??10000});
+  await knowledgeStore.load();
+  const knowledgeRetriever=new KnowledgeRetriever({knowledgeStore,agentMemory});
+  const sharedTeamMemory=new SharedTeamMemory({memory:agentMemory});
   const agentFactory=new AgentFactory({planner,projectFactory:factory,registry:agentRegistry});
   const evolution=new EvolutionEngine({evaluator});
   const delivery=new AutonomousDelivery({agentFactory,evolution,maxRepairCycles:3});
@@ -185,7 +195,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const researchLoop=new ResearchLoop({strategyEngine:mutationStrategy,scheduler:evolutionScheduler});
   const candidateRunner=new ParallelCandidateRunner({concurrency:config.evolution?.concurrency??4,runner:async candidate=>candidate});
   const experimentEngine=new ExperimentEngine({benchmarkStore});
-  const learningMemory=new LearningMemory({maxRecords:config.evolution?.learningRecords??10000});
+  const learningMemory=new LearningMemory({maxRecords:config.evolution?.learningRecords??10000,store:new JsonStore({file:config.evolution?.learningStateFile||"./.jora/learning.json"})});
+  await learningMemory.load();
   const populationEngine=new MultiGenerationEngine({delivery,population,maxCandidates:config.evolution?.populationSize??8});
   const autonomousEvolution=new AutonomousEvolutionController({generationEngine:populationEngine,experimentEngine,learningMemory,scheduler:evolutionScheduler,selector:championSelector,maxGenerations:config.evolution?.maxGenerations??10});
 
@@ -344,6 +355,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,lineageStore,agentRegistry,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,agentRegistry,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
