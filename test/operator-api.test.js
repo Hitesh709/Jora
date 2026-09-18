@@ -108,3 +108,24 @@ test("operator api starts and stops durable worker",async()=>{
     await api.stop();
   }
 });
+
+
+test("operator api protects dashboard and enforces rate limit",async()=>{
+  const api=new OperatorApi({
+    runtime:{execute:async()=>({status:"OK"})},
+    executionStore:store(),
+    authToken:"secret",
+    rateLimitPerMinute:2,
+    port:0,
+    dashboardPath:new URL("../src/operator/dashboard.html",import.meta.url).pathname
+  });
+  const address=await api.start();
+  try {
+    const denied=await fetch("http://"+address.host+":"+address.port+"/dashboard");
+    assert.equal(denied.status,401);
+    const first=await fetch("http://"+address.host+":"+address.port+"/dashboard",{headers:{authorization:"Bearer secret"}});
+    assert.equal(first.status,200);
+    const second=await fetch("http://"+address.host+":"+address.port+"/v1/status",{headers:{authorization:"Bearer secret"}});
+    assert.equal(second.status,429);
+  } finally { await api.stop(); }
+});
