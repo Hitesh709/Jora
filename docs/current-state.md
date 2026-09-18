@@ -192,3 +192,10 @@ Jora v0.15.0 adds a lightweight browser dashboard at `/` and `/dashboard` when t
 ## Operational telemetry
 
 Jora v0.16.0 extends runtime metrics with worker starts, worker cycle outcomes and durations, queue-claim activity, execution failure rate, and successful release counts. These metrics are available through the authenticated `/v1/metrics` endpoint and are intended to support automated operational health decisions.
+
+
+## Autonomous operational health
+
+Jora v0.17.0 adds an optional operational health monitor. It periodically evaluates execution failure rate, average execution latency, worker heartbeat freshness, and distributed queue backlog. Detected conditions are recorded as operational alerts and exposed through `GET /v1/health`; a non-healthy result returns HTTP 503. The monitor is disabled by default and uses configurable thresholds.
+
+Configuration: `JORA_OPERATIONAL_HEALTH_ENABLED`, `JORA_OPERATIONAL_HEALTH_INTERVAL_MS`, `JORA_ALERT_FAILURE_RATE`, `JORA_ALERT_QUEUE_DEPTH`, `JORA_ALERT_STALE_WORKER_MS`, and `JORA_ALERT_LATENCY_MS`.
