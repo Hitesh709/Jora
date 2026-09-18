@@ -1,30 +1,43 @@
 # Current State
 
-## Repository
+## Implemented
 
-Jora — AI coding agent.
-
-## Evolution target
-
-Controlled AI software-production and self-evolution platform.
+- Task lifecycle and dependency registry
+- Orchestrator foundation
+- Evaluation gates
+- Controlled evolution proposal model
+- Agent registry
+- Tool registry with permission gates
+- Provider-independent model gateway
+- Agent runtime with bounded tool loop
+- Sandbox abstraction with timeout/output limits
+- Execution persistence abstraction
+- Code Master repository abstraction with conflict protection
+- Production pipeline
+- Self-inspection engine
+- Autonomous task-generation adapter
+- Automatic repair/evaluation loop
+- Bootstrap command for self-development mode
+- Automated runtime tests and CI
 
 ## Current milestone
 
-Production vertical slice.
+**Self-development control plane**
 
-## Known constraints
+Inspect → Generate Task → Implement → Test → Diagnose → Repair → Evaluate → Promote/Reject
 
-- Existing repository is currently minimal.
-- Architecture must be discovered before major implementation.
-- Production autonomy must remain sandboxed and governed.
+## Important limitation
 
-## Next actions
+The bootstrap executor is intentionally a safety stub. Jora is not yet allowed to modify and execute its own production code autonomously. The next milestone is to connect:
 
-1. Establish repository architecture and development conventions.
-2. Implement task registry.
-3. Implement core domain models.
-4. Implement orchestrator foundation.
-5. Implement agent runtime foundation.
-6. Implement sandbox boundary.
-7. Implement evaluator foundation.
-8. Add automated tests and CI.
+1. Real model-provider adapters
+2. Real Git/GitHub repository operations
+3. Real isolated container/OS sandbox
+4. Persistent benchmark/evaluation store
+5. Promotion and rollback controller
+6. Continuous worker/24×7 scheduler
+7. API and operator UI
+
+## Definition of autonomy
+
+Jora should only promote a self-generated change after reproducible evidence shows that the candidate satisfies tests, security gates, regression benchmarks, and rollback requirements.
