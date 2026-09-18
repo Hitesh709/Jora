@@ -374,6 +374,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         dashboardPath:path.resolve(process.cwd(),"src/operator/dashboard.html"),
         healthMonitor,
         incidentManager,
+        programManager,
         accessController,
         auditLog
       })
