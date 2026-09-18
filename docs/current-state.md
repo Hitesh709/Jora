@@ -43,6 +43,7 @@
 - Secret configuration, required-secret validation, and runtime redaction helpers
 - Continuous worker runtime wiring and worker CLI
 - CLI command entry point
+- Authenticated operator API with health, status, execution, observability, and worker-control endpoints
 
 ## Autonomous production loop
 
@@ -109,3 +110,34 @@ Environment configuration:
 - `JORA_DEPLOYMENT_TIMEOUT_MS`: deployment webhook timeout.
 
 The default remains safe: deployment is disabled unless explicitly enabled, and staging is not enabled unless its staging configuration is supplied.
+
+
+## Operator API
+
+Jora now has an optional operator control plane exposed by `OperatorApi`. It is disabled by default and can be started with:
+
+`JORA_API_ENABLED=true npm run jora:api`
+
+Available endpoints:
+- `GET /health` — unauthenticated process/liveness check.
+- `GET /v1/status` — worker and recent execution status.
+- `GET /v1/executions` — recent execution records.
+- `GET /v1/executions/:id` — one execution and trace.
+- `GET /v1/observability` — recent deployment/observability events.
+- `POST /v1/execute` — submit a high-level Jora command.
+- `POST /v1/worker/start` — start the durable worker asynchronously.
+- `POST /v1/worker/stop` — request worker shutdown.
+
+Security defaults:
+- The API defaults to `127.0.0.1`.
+- A bearer token can be configured with `JORA_API_AUTH_TOKEN`.
+- If the API is bound to a non-local address, an auth token is mandatory.
+- Request bodies are bounded by `JORA_API_MAX_BODY_BYTES` (default 1 MB).
+- `/health` is intentionally public for liveness checks; control endpoints require the bearer token when configured.
+
+API configuration:
+- `JORA_API_ENABLED`
+- `JORA_API_HOST` (default `127.0.0.1`)
+- `JORA_API_PORT` (default `8787`)
+- `JORA_API_AUTH_TOKEN`
+- `JORA_API_MAX_BODY_BYTES`
