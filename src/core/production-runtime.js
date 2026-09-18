@@ -31,6 +31,7 @@ import {OperatorApi} from "./operator-api.js";
 import {createPostgresLeaseStore} from "./postgres-lease-store.js";
 import {createPostgresTaskQueue} from "./postgres-task-queue.js";
 import {createPostgresExecutionStore} from "./postgres-execution-store.js";
+import {MetricsCollector} from "./metrics-collector.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -155,6 +156,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     maxCycles:config.autonomous?.maxCycles??4
   });
 
+  const metrics=new MetricsCollector();
+
   const observability=new ObservabilityStore({
     store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})
   });
@@ -215,7 +218,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     controller,
     executionStore,
     repository,
-    deploymentController
+    deploymentController,
+    metrics
   });
   const worker=new DurableWorker({
     store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
@@ -255,6 +259,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,leaseStore,queueStore,observability,deploymentController,api,modelGateway,config
+    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,deploymentController,api,modelGateway,config
   };
 }
