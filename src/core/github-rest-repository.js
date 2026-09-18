@@ -20,7 +20,7 @@ export class GitHubRestRepository {
 
   pathFor(path){return encodeURIComponent(path).replace(/%2F/g,"/");}
 
-  async read(path){ 
+  async read(path){
     const d=await this.request("/repos/"+this.owner+"/"+this.repo+"/contents/"+this.pathFor(path)+"?ref="+encodeURIComponent(this.branch));
     return {path,sha:d.sha,content:Buffer.from(d.content.replace(/\n/g,""),"base64").toString("utf8")};
   }
@@ -85,8 +85,15 @@ export class GitHubRestRepository {
 
   async publishCandidate({branch,targetBranch=this.branch,files=[],message="Jora candidate"}={}){
     if(!branch) throw new Error("candidate branch is required");
-    const target=await this.ref(targetBranch);
-    const parentSha=target.object.sha;
+    let parentSha;
+    let branchExists=true;
+    try {
+      parentSha=(await this.ref(branch)).object.sha;
+    } catch(error) {
+      if(!/404/.test(error.message)) throw error;
+      branchExists=false;
+      parentSha=(await this.ref(targetBranch)).object.sha;
+    }
     const parentCommit=await this.getCommit(parentSha);
     const tree=await this.createTree(
       files.map(file=>{
@@ -98,7 +105,9 @@ export class GitHubRestRepository {
       parentCommit.tree.sha
     );
     const commit=await this.createCommit(message,tree.sha,parentSha);
-    const created=await this.createBranchAtSha(branch,commit.sha);
+    const refResult=branchExists
+      ? await this.updateRef(branch,commit.sha,false)
+      : await this.createBranchAtSha(branch,commit.sha);
     return {
       published:true,
       branch,
@@ -106,7 +115,8 @@ export class GitHubRestRepository {
       parent:parentSha,
       tree:tree.sha,
       commit:commit.sha,
-      ref:created.ref
+      ref:refResult.ref,
+      updatedExisting:branchExists
     };
   }
 
@@ -144,6 +154,30 @@ export class GitHubRestRepository {
     return data.workflow_runs??[];
   }
 
+  async workflowFailureEvidence(run){
+    const jobsData=await this.request("/repos/"+this.owner+"/"+this.repo+"/actions/runs/"+run.id+"/jobs?per_page=100");
+    const jobs=jobsData.jobs??[];
+    const failedJobs=[];
+    for(const job of jobs.filter(item=>item.conclusion==="failure"||item.conclusion==="timed_out"||item.conclusion==="cancelled")) {
+      const logsResponse=await fetch(this.apiBase+"/repos/"+this.owner+"/"+this.repo+"/actions/jobs/"+job.id+"/logs",{
+        headers:{
+          "accept":"application/vnd.github+json",
+          "authorization":"Bearer "+this.token,
+          "X-GitHub-Api-Version":"2026-03-10"
+        }
+      });
+      const logs=logsResponse.ok?await logsResponse.text():"";
+      failedJobs.push({
+        id:job.id,
+        name:job.name,
+        conclusion:job.conclusion,
+        steps:job.steps??[],
+        logs:logs.slice(-12000)
+      });
+    }
+    return {run,failedJobs};
+  }
+
   async waitForWorkflow({branch=null,headSha,timeoutMs=600000,pollMs=5000}={}){
     if(!headSha) throw new Error("headSha is required");
     const deadline=Date.now()+timeoutMs;
@@ -162,7 +196,8 @@ export class GitHubRestRepository {
         const runs=[...latestByWorkflow.values()];
         const failed=runs.find(run=>run.status==="completed" && run.conclusion!=="success");
         if(failed) {
-          return {passed:false,status:"FAILED",headSha,branch,runs,evidence:failed};
+          const evidence=await this.workflowFailureEvidence(failed);
+          return {passed:false,status:"FAILED",headSha,branch,runs,evidence};
         }
         if(runs.length && runs.every(run=>run.status==="completed" && run.conclusion==="success")) {
           return {passed:true,status:"PASSED",headSha,branch,runs};
