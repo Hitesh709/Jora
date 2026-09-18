@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {CodebaseIndex} from "../src/core/codebase-index.js";import {InMemoryRepository} from "../src/core/repository.js";
+test("indexes files symbols and imports",async()=>{const r=new InMemoryRepository({"a.js":"import x from './b.js'; export function run(){}","b.js":"export const x=1"});const i=new CodebaseIndex({repository:r});const s=await i.build();assert.ok(s.symbols["a.js"].includes("run"));assert.deepEqual(s.dependencies["a.js"],["./b.js"]);});
