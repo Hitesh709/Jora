@@ -1,0 +1,2 @@
+import test from "node:test"; import assert from "node:assert/strict"; import {EvolutionScheduler} from "../src/core/evolution-scheduler.js";
+test("plans next generation",()=>{const r=new EvolutionScheduler({maxGenerations:5}).plan({generation:2,populationSize:4});assert.equal(r.generation,3);assert.equal(r.candidateCount,4);});
