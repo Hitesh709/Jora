@@ -224,3 +224,8 @@ Jora v0.21.0 adds an access-control layer for operator actions. Principals can c
 ## Tenant isolation
 
 Jora v0.22.0 propagates authenticated tenant identity into operator-submitted execution and queue context and filters operator-visible executions, jobs, and observability events by tenant. This establishes the control-plane boundary for multi-tenant operation while keeping workers shared at the execution layer.
+
+
+## Audit and governance
+
+Jora v0.23.0 adds an immutable hash-chained AuditLog. Audit records include actor, tenant, action, resource, metadata, timestamp, and the previous record hash. The operator API exposes tenant-scoped audit records with an integrity verification result at GET /v1/audit. Authentication denials and API access are attributed to the authenticated principal where available.
