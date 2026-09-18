@@ -1,11 +1,12 @@
 {
   "name": "jora-ai-evolution-os",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Controlled AI software-production and self-evolution platform.",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/**/*.js"
+    "check": "node --check src/core/*.js test/*.js",
+    "jora:self-build": "node src/bootstrap.js"
   },
   "engines": { "node": ">=20" }
 }
