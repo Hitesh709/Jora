@@ -46,7 +46,12 @@ export function runtimeConfig(env=process.env){
       }
     },
     recovery:{
-      policy:{
+      security:{
+      enabled:env.JORA_SECURITY_ENABLED!=="false",
+      maxFindings:Number(env.JORA_SECURITY_MAX_FINDINGS||100),
+      scanCode:env.JORA_SECURITY_SCAN_CODE!=="false"
+    },
+    policy:{
         HIGH_FAILURE_RATE:env.JORA_RECOVERY_FAILURE_RATE_ACTION||"REPAIR",
         HIGH_LATENCY:env.JORA_RECOVERY_LATENCY_ACTION||"REPAIR",
         STALE_WORKER:env.JORA_RECOVERY_STALE_WORKER_ACTION||"WORKER_RECOVERY",
