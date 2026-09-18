@@ -1,5 +1,3 @@
-import {JsonStore} from "./json-store.js";
-
 export class ChampionStore {
   constructor({store=null}={}) {
     this.store=store;
@@ -19,8 +17,7 @@ export class ChampionStore {
 
   get(){return this.champion;}
 
-  async promote(candidate,metrics={}) {
-    await this.load();
+  promote(candidate,metrics={}) {
     const record={
       candidate,
       metrics,
@@ -29,19 +26,19 @@ export class ChampionStore {
     };
     this.history.push(record);
     this.champion=candidate;
-    await this.persist();
-    return record;
+    this.loaded=true;
+    if (!this.store) return record;
+    return this.persist().then(()=>record);
   }
 
-  async rollback() {
-    await this.load();
+  rollback() {
     if (!this.history.length) return null;
     this.history.pop();
     this.champion=this.history.length
       ? this.history[this.history.length-1].candidate
       : null;
-    await this.persist();
-    return this.champion;
+    if (!this.store) return this.champion;
+    return this.persist().then(()=>this.champion);
   }
 
   list(){return [...this.history];}
