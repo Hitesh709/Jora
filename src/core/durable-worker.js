@@ -8,7 +8,8 @@ export class DurableWorker {
     maxCycles=Infinity,
     workerId="jora-worker",
     leaseStore=null,
-    queueStore=null
+    queueStore=null,
+    metrics=null
   }={}) {
     if(!cycle) throw new Error("cycle is required");
     if(!store?.read || !store?.write) throw new Error("store with read/write is required");
@@ -22,6 +23,7 @@ export class DurableWorker {
     this.leaseStore=leaseStore;
     this.leaseToken=null;
     this.queueStore=queueStore;
+    this.metrics=metrics;
     this.running=false;
     this.stopRequested=false;
     this.jobId=null;
@@ -128,6 +130,7 @@ export class DurableWorker {
 
     this.running=true;
     this.stopRequested=false;
+    this.metrics?.increment("jora_worker_starts_total");
     let state;
     try {
       state=await this._acquire({command});
@@ -138,6 +141,7 @@ export class DurableWorker {
         let queuedJob=null;
         if(queueMode) {
           queuedJob=await this.queueStore.claim({workerId:this.workerId});
+          this.metrics?.setGauge("jora_worker_queue_claimed",queuedJob?1:0);
           if(!queuedJob) {
             await new Promise(resolve=>setTimeout(resolve,Math.min(this.intervalMs,5000)));
             continue;
@@ -157,7 +161,10 @@ export class DurableWorker {
         await this._write(state);
 
         try {
+          const cycleStartedAt=Date.now();
           const result=await this.cycle({cycle:cycleNumber,command,context});
+          this.metrics?.increment("jora_worker_cycles_total",{status:"SUCCEEDED"});
+          this.metrics?.observe("jora_worker_cycle_duration_ms",Date.now()-cycleStartedAt);
           if(queuedJob) await this.queueStore.complete({id:queuedJob.id,workerId:this.workerId,result});
           state=await this._read();
           state.job={
@@ -172,6 +179,7 @@ export class DurableWorker {
           };
           await this._write(state);
         } catch(error) {
+          this.metrics?.increment("jora_worker_cycles_total",1,{status:"FAILED"});
           if(queuedJob) await this.queueStore.fail({id:queuedJob.id,workerId:this.workerId,error:error.message,retry:true}).catch(()=>{});
           state=await this._read();
           state.job={
