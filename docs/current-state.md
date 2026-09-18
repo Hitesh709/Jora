@@ -187,3 +187,8 @@ Jora v0.14.0 adds lightweight operational metrics. Every runtime execution recor
 ## Operator Control Center
 
 Jora v0.15.0 adds a lightweight browser dashboard at `/` and `/dashboard` when the operator API is enabled. It consumes the existing authenticated control-plane endpoints and displays system/worker status, execution activity, runtime metrics, distributed queue jobs, and observability events. It refreshes every 10 seconds and stores no credentials in source code.
+
+
+## Operational telemetry
+
+Jora v0.16.0 extends runtime metrics with worker starts, worker cycle outcomes and durations, queue-claim activity, execution failure rate, and successful release counts. These metrics are available through the authenticated `/v1/metrics` endpoint and are intended to support automated operational health decisions.
