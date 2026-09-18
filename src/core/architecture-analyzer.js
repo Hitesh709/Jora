@@ -1,0 +1,3 @@
+export class ArchitectureAnalyzer {
+  analyze(index={}){const deps=index.dependencies??{};const nodes=Object.keys(deps);const edges=nodes.flatMap(from=>(deps[from]??[]).map(to=>({from,to})));const internal=edges.filter(e=>e.to.startsWith("."));const fanOut=Object.fromEntries(nodes.map(n=>[n,(deps[n]??[]).length]));const incoming=Object.fromEntries(nodes.map(n=>[n,0]));for(const e of internal){const resolved=e.to;for(const n of nodes)if(n===resolved||n.endsWith(resolved.replace(/^\.\//,""))||n.endsWith(resolved.replace(/^\.\//,"")+".js"))incoming[n]=(incoming[n]??0)+1;}const hotspots=nodes.map(n=>({file:n,fanOut:fanOut[n]??0,fanIn:incoming[n]??0})).sort((a,b)=>(b.fanOut+b.fanIn)-(a.fanOut+a.fanIn));return {nodes,edges,fanOut,fanIn:incoming,hotspots};}
+}
