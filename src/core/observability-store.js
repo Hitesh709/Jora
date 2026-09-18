@@ -17,8 +17,9 @@ export class ObservabilityStore {
     return entry;
   }
 
-  async list() {
-    if(this.store?.read) return (await this.store.read({events:[]})).events??[];
-    return [...this.events];
+  async list({tenantId=null,limit=null}={}) {
+    const events=this.store?.read ? ((await this.store.read({events:[]})).events??[]) : [...this.events];
+    const filtered=tenantId ? events.filter(e=>e.tenantId===tenantId) : events;
+    return limit ? filtered.slice(-Math.min(this.maxEvents,Math.max(1,Number(limit)||100))) : filtered;
   }
 }
