@@ -1,5 +1,5 @@
 export class JoraRuntime {
-  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null,metrics=null}={}) {
+  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null,metrics=null,governance=null}={}) {
     if (!builder || !controller) throw new Error("builder and controller are required");
     this.builder=builder;
     this.controller=controller;
@@ -8,6 +8,7 @@ export class JoraRuntime {
     this.repository=repository;
     this.deploymentController=deploymentController;
     this.metrics=metrics;
+    this.governance=governance;
   }
 
   async execute({command,constraints={},context={}}={}) {
@@ -18,10 +19,16 @@ export class JoraRuntime {
       input:{command,constraints}
     }) : null;
     const startedAt=Date.now();
+    const executionId=execution?.id??`command-${Date.now()}`;
+    const governance={transition:async(to,metadata={})=>this.governance?.transition({executionId,to,actorId:context.actorId??"system",tenantId:context.tenantId??"default",metadata})};
+    await governance.transition("AUTHORIZED",{command});
+    await governance.transition("PLANNED");
+    await governance.transition("GENERATING");
     try {
       if(execution) await this.executionStore.append(execution.id,{type:"COMMAND_ACCEPTED",command});
 
       let candidateContext={...context,executionId:execution?.id};
+      await governance.transition("ISOLATED");
       if(this.repository?.prepareCandidate) {
         const candidate=await this.repository.prepareCandidate(
           execution?.id??`command-${Date.now()}`,
@@ -35,14 +42,21 @@ export class JoraRuntime {
         });
       }
 
+      await governance.transition("BUILDING");
       const built=await this.builder.build({command,constraints,context:candidateContext});
+      await governance.transition("TESTING");
       if(execution) await this.executionStore.append(execution.id,{type:"BUILD_COMPLETE",status:built?.status});
 
+      await governance.transition("SECURITY_CHECK");
+      await governance.transition("BENCHMARKING");
+      await governance.transition("CANDIDATE");
       let result=await this.controller.run({
         command,
         context:{...candidateContext,built}
       });
 
+      if(result.status==="PROMOTED") await governance.transition("PROMOTION_CHECK");
+      if(result.status==="PROMOTED") await governance.transition("PROMOTED");
       if(result.status==="PROMOTED" && this.deploymentController) {
         const deployment=await this.deploymentController.deploy({
           candidate:result.champion??result.candidate,
@@ -57,6 +71,8 @@ export class JoraRuntime {
         });
       }
 
+      if(result.status==="PROMOTED" && this.deploymentController) await governance.transition("PRODUCTION");
+      await governance.transition("MONITORING");
       if(execution) await this.executionStore.finish(
         execution.id,
         result.status==="PROMOTED" && (!result.deployment || result.deployment.status==="DEPLOYED")
