@@ -1,5 +1,6 @@
 import {SecurityGate} from "./security-gate.js";
 import {SecurityCouncil} from "./security-council.js";
+import {SecurityIntelligence} from "./security-intelligence.js";
 
 const SECRET_PATTERNS=[
   /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/,
@@ -32,5 +33,13 @@ export function createWorkspaceSecurityCouncil({repository}={}) {
     }
     return {passed:findings.length===0,findings};
   },"name",{value:"package-install-script-policy"})]});
-  return new SecurityCouncil({gates:[secrets,paths,scripts],quorum:3});
+  const intelligence=new SecurityGate({checks:[Object.defineProperty(async context=>{
+    const scanner=new SecurityIntelligence({repository,config:context.securityConfig??{}});
+    return scanner.scan({files:context.files});
+  },"name",{value:"security-intelligence-scan"})]});
+  const runtime=new SecurityGate({checks:[Object.defineProperty(async context=>{
+    const scanner=new SecurityIntelligence({repository});
+    return scanner.checkRuntime({sandbox:context.sandbox,network:context.network??"none"});
+  },"name",{value:"runtime-isolation-policy"})]});
+  return new SecurityCouncil({gates:[secrets,paths,scripts,intelligence,runtime],quorum:5});
 }
