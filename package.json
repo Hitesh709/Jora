@@ -1,6 +1,6 @@
 {
   "name": "jora-ai-evolution-os",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "description": "AI software-production, agent-factory, and controlled self-evolution platform.",
   "type": "module",
@@ -9,7 +9,8 @@
     "check": "node --check src/core/*.js src/*.js test/*.js",
     "jora:self-build": "node src/bootstrap.js",
     "jora:command": "node src/cli.js",
-    "jora:worker": "node src/worker-cli.js"
+    "jora:worker": "node src/worker-cli.js",
+    "jora:api": "node src/api-cli.js"
   },
   "engines": {
     "node": ">=20"
