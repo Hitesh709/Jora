@@ -55,6 +55,7 @@ export class OperatorApi {
     dashboardPath=null,
     healthMonitor=null,
     incidentManager=null,
+    programManager=null,
     rateLimitPerMinute=120,
     accessController=null,
     auditLog=null
@@ -73,6 +74,7 @@ export class OperatorApi {
     this.dashboardPath=dashboardPath;
     this.healthMonitor=healthMonitor;
     this.incidentManager=incidentManager;
+    this.programManager=programManager;
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
@@ -161,6 +163,28 @@ export class OperatorApi {
       const incident=this.incidentManager?.get(incidentMatch[1]);
       if(!incident) return json(res,404,{error:"incident_not_found"});
       return json(res,200,{incident});
+    }
+
+    if(method==="GET" && path==="/v1/mission") {
+      if(!this.programManager) return json(res,503,{error:"program_manager_not_configured"});
+      return json(res,200,await this.programManager.status());
+    }
+
+    if(method==="POST" && path==="/v1/mission/start") {
+      if(!this.programManager) return json(res,503,{error:"program_manager_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      const objective=typeof body.objective==="string"&&body.objective.trim()
+        ? body.objective.trim()
+        : "Complete Jora roadmap autonomously";
+      const promise=this.programManager.run({objective,context:{...(body.context??{}),tenantId}});
+      promise.catch(()=>{});
+      return json(res,202,{accepted:true,status:"STARTED",objective});
+    }
+
+    if(method==="POST" && path==="/v1/mission/stop") {
+      if(!this.programManager) return json(res,503,{error:"program_manager_not_configured"});
+      this.programManager.stop();
+      return json(res,200,{accepted:true,status:"STOP_REQUESTED"});
     }
 
     if(method==="GET" && path==="/v1/health") {
