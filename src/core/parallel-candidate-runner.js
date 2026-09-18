@@ -1,0 +1,4 @@
+export class ParallelCandidateRunner {
+  constructor({runner,concurrency=4}={}){if(!runner)throw new Error("runner is required");this.runner=runner;this.concurrency=Math.max(1,concurrency);}
+  async run(items,context={}){const results=new Array(items.length);let cursor=0;const worker=async()=>{while(true){const i=cursor++;if(i>=items.length)return;try{results[i]={index:i,status:"COMPLETED",result:await this.runner(items[i],context)};}catch(error){results[i]={index:i,status:"FAILED",error:error.message};}}};await Promise.all(Array.from({length:Math.min(this.concurrency,items.length)},worker));return results;}
+}
