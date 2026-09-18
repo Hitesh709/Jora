@@ -16,7 +16,7 @@ export class JoraRuntime {
     const execution=this.executionStore ? await this.executionStore.create({
       taskId:context.taskId??"command",
       agentId:context.agentId??"jora-master",
-      input:{command,constraints}
+      input:{command,constraints,tenantId:context.tenantId??"default"}
     }) : null;
     const startedAt=Date.now();
     const executionId=execution?.id??`command-${Date.now()}`;
@@ -55,8 +55,9 @@ export class JoraRuntime {
         context:{...candidateContext,built}
       });
 
-      if(result.status==="PROMOTED") await governance.transition("PROMOTION_CHECK");
+      await governance.transition("PROMOTION_CHECK",{status:result.status});
       if(result.status==="PROMOTED") await governance.transition("PROMOTED");
+      else await governance.transition("REJECTED",{status:result.status});
       if(result.status==="PROMOTED" && this.deploymentController) {
         const deployment=await this.deploymentController.deploy({
           candidate:result.champion??result.candidate,
@@ -72,7 +73,7 @@ export class JoraRuntime {
       }
 
       if(result.status==="PROMOTED" && this.deploymentController) await governance.transition("PRODUCTION");
-      await governance.transition("MONITORING");
+      if(result.status==="PROMOTED") await governance.transition("MONITORING");
       if(execution) await this.executionStore.finish(
         execution.id,
         result.status==="PROMOTED" && (!result.deployment || result.deployment.status==="DEPLOYED")
