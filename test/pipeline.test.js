@@ -1,0 +1,7 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {TaskRegistry,Orchestrator,ModelGateway,ToolRegistry,AgentRuntime,ExecutionStore,InMemoryRepository,CodeMaster,ProductionPipeline} from "../src/index.js";
+
+test("execution store persists trace and status",()=>{const s=new ExecutionStore();const e=s.create({taskId:"T1",agentId:"a",input:"x"});s.append(e.id,{type:"TEST"});const done=s.finish(e.id,"SUCCEEDED");assert.equal(done.trace.length,1);assert.equal(s.get(e.id).status,"SUCCEEDED")});
+test("code master safely handles repository conflicts",async()=>{const repo=new InMemoryRepository({"a.txt":"hello"});const c=new CodeMaster({repository:repo});const f=await c.read("a.txt");await assert.rejects(()=>c.write("a.txt","new","wrong"),/SHA mismatch/);assert.deepEqual(await c.search("hello"),["a.txt"])});
+test("production pipeline connects planning, runtime and persistence",async()=>{const registry=new TaskRegistry();const orch=new Orchestrator({registry});const tools=new ToolRegistry();let n=0;const gateway=new ModelGateway({defaultModel:"mock"});gateway.register("mock",{complete:async()=>{n++;return {content:"done"}}});const runtime=new AgentRuntime({toolRegistry:tools,modelGateway:gateway});const store=new ExecutionStore();const p=new ProductionPipeline({orchestrator:orch,runtime,store});const out=await p.execute({taskId:"T1",agent:{id:"coder"},input:"build"});assert.equal(out.status,"SUCCEEDED");assert.equal(out.result.output,"done");assert.equal(store.list().length,1);assert.equal(n,1)});
