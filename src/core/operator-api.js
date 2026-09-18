@@ -56,6 +56,8 @@ export class OperatorApi {
     this.port=port;
     this.authToken=authToken;
     this.maxBodyBytes=maxBodyBytes;
+    const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
+    if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
     this.server=null;
     this.startedAt=null;
   }
