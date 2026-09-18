@@ -1,5 +1,5 @@
 export class ChampionStore {
-  constructor({store=null,maxHistory=1000}={}) { this.store=store; this.maxHistory=maxHistory; this.champion=null; this.history=[]; this.loaded=false; }
+  constructor({store=null,maxHistory=1000,lineageStore=null}={}) { this.store=store; this.maxHistory=maxHistory; this.champion=null; this.history=[]; this.loaded=false; this.lineageStore=lineageStore; }
   async load() {
     if(this.loaded) return this;
     const state=this.store?await this.store.read({champion:null,history:[]}):{champion:null,history:[]};
@@ -11,6 +11,7 @@ export class ChampionStore {
     const record={candidate,metrics,promotedAt:new Date().toISOString(),previous, lineage:{parentVersion:previous?.version??null,version:candidate?.version??null}};
     this.history.push(record); if(this.history.length>this.maxHistory) this.history=this.history.slice(-this.maxHistory);
     this.champion=candidate; this.loaded=true;
+    this.lineageStore?.record?.({candidateId:candidate?.id??candidate?.version??`candidate-${Date.now()}`,version:candidate?.version??null,parentVersion:previous?.version??null,generation:metrics.generation??0,metadata:metrics});
     if(!this.store) return record;
     return this.persist().then(()=>record);
   }
