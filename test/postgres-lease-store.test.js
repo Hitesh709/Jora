@@ -51,10 +51,10 @@ test("postgres lease store prevents concurrent owners and supports renewal",asyn
 
 test("expired lease can be recovered",async()=>{
   const pool=fakePool();
-  const a=new PostgresLeaseStore({pool,namespace:"recover",ttlMs:1});
-  const b=new PostgresLeaseStore({pool,namespace:"recover",ttlMs:1});
+  const a=new PostgresLeaseStore({pool,namespace:"recover",ttlMs:25});
+  const b=new PostgresLeaseStore({pool,namespace:"recover",ttlMs:25});
   const first=await a.acquire({owner:"a"});
-  await new Promise(r=>setTimeout(r,5));
+  await new Promise(r=>setTimeout(r,40));
   const second=await b.acquire({owner:"b"});
   assert.ok(second?.token);
   assert.notEqual(second.token,first.token);
