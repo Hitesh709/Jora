@@ -1,9 +1,10 @@
 export class PromotionController {
-  constructor({evaluator, repository, targetBranch="main"}={}) {
+  constructor({evaluator, repository, targetBranch="main", ciGate=null}={}) {
     if (!evaluator || !repository) throw new Error("evaluator and repository are required");
     this.evaluator=evaluator;
     this.repository=repository;
     this.targetBranch=targetBranch;
+    this.ciGate=ciGate;
   }
 
   async promote({candidate, champion, metrics={}}={}) {
@@ -18,6 +19,25 @@ export class PromotionController {
       `Candidate validation ${candidate.version ?? "unknown"}`
     );
 
+    let ci=null;
+    const ciCommit=commit?.remote?.commit;
+    if(this.ciGate) {
+      ci=await this.ciGate.review({
+        branch:commit?.remote?.branch??commit?.branch,
+        commit:ciCommit
+      });
+      if(!ci.passed) {
+        return {
+          status:"CI_BLOCKED",
+          decision,
+          ci,
+          commit,
+          candidate,
+          champion
+        };
+      }
+    }
+
     let promotion=null;
     if (typeof this.repository.promoteCandidate==="function") {
       promotion=await this.repository.promoteCandidate({
@@ -28,18 +48,21 @@ export class PromotionController {
 
     const promotedCandidate={
       ...candidate,
-      version:promotion?.commit??commit?.commit??candidate.version,
+      version:promotion?.remote?.commit??promotion?.commit??commit?.remote?.commit??commit?.commit??candidate.version,
       git:{
         branch:commit?.branch,
-        commit:promotion?.commit??commit?.commit,
-        previous:promotion?.previous,
+        commit:promotion?.remote?.commit??promotion?.commit??commit?.remote?.commit??commit?.commit,
+        localCommit:promotion?.commit??commit?.commit,
+        previous:promotion?.remote?.previous??promotion?.previous,
         targetBranch:this.targetBranch
-      }
+      },
+      ci
     };
 
     return {
       status:"PROMOTED",
       decision,
+      ci,
       version:promotedCandidate.version,
       commit,
       promotion,
