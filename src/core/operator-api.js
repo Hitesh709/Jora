@@ -50,7 +50,8 @@ export class OperatorApi {
     port=8787,
     authToken=null,
     maxBodyBytes=1_000_000,
-    dashboardPath=null
+    dashboardPath=null,
+    healthMonitor=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -64,6 +65,7 @@ export class OperatorApi {
     this.authToken=authToken;
     this.maxBodyBytes=maxBodyBytes;
     this.dashboardPath=dashboardPath;
+    this.healthMonitor=healthMonitor;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
     this.server=null;
@@ -110,6 +112,11 @@ export class OperatorApi {
 
     if(!this._authorized(req)) {
       return json(res,401,{error:"unauthorized"});
+    }
+
+    if(method==="GET" && path==="/v1/health") {
+      const result=this.healthMonitor?.check ? await this.healthMonitor.check() : {healthy:true,alerts:[]};
+      return json(res,result.healthy?200:503,result);
     }
 
     if(method==="GET" && path==="/v1/metrics") {
