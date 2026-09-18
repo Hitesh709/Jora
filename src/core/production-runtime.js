@@ -21,6 +21,10 @@ import {PersistentExecutionStore} from "./persistent-execution-store.js";
 import {BenchmarkStore} from "./benchmark-store.js";
 import {ChampionStore} from "./champion-store.js";
 import {DurableWorker} from "./durable-worker.js";
+import {DeploymentController} from "./deployment-controller.js";
+import {HttpDeploymentAdapter} from "./http-deployment-adapter.js";
+import {HttpHealthCheck} from "./http-health-check.js";
+import {ObservabilityStore} from "./observability-store.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -109,6 +113,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     championStore,
     maxCycles:config.autonomous?.maxCycles??4
   });
+  const observability=new ObservabilityStore({store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})});
+  const deploymentController=config.deployment?.enabled && config.deployment?.webhookUrl
+    ? new DeploymentController({
+        adapter:new HttpDeploymentAdapter({deployUrl:config.deployment.webhookUrl}),
+        healthCheck:config.deployment.healthUrl
+          ? new HttpHealthCheck({url:config.deployment.healthUrl})
+          : null,
+        store:observability
+      })
+    : null;
   const runtime=new JoraRuntime({
     builder,
     controller,
@@ -137,6 +151,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   runtime.continuousWorker=worker;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,modelGateway,config
+    executionStore,championStore,worker,observability,deploymentController,modelGateway,config
   };
 }
