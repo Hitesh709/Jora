@@ -6,6 +6,7 @@ export function runtimeConfig(env=process.env){
     docker:{image:env.JORA_DOCKER_IMAGE||"node:20-bookworm-slim",network:env.JORA_DOCKER_NETWORK||"none"},
     persistence:env.JORA_STATE_FILE||"./.jora/executions.json",
     championStateFile:env.JORA_CHAMPION_STATE_FILE||"./.jora/champion.json",
+    benchmarkStateFile:env.JORA_BENCHMARK_STATE_FILE||"./.jora/benchmarks.json",
     observabilityStateFile:env.JORA_OBSERVABILITY_STATE_FILE||"./.jora/observability.json",
     ci:{
       timeoutMs:Number(env.JORA_CI_TIMEOUT_MS||600000),
