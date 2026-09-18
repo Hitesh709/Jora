@@ -1,5 +1,5 @@
 export class AutonomousController {
-  constructor({delivery,securityCouncil,promotion,championStore=null,maxCycles=Infinity,policyEngine=null,auditLog=null}={}) {
+  constructor({delivery,securityCouncil,promotion,championStore=null,maxCycles=Infinity,policyEngine=null,auditLog=null,population=null,researchLoop=null}={}) {
     if(!delivery||!securityCouncil||!promotion) throw new Error("delivery, securityCouncil and promotion are required");
     this.delivery=delivery;
     this.securityCouncil=securityCouncil;
@@ -9,6 +9,8 @@ export class AutonomousController {
     this.stopRequested=false;
     this.policyEngine=policyEngine;
     this.auditLog=auditLog;
+    this.population=population;
+    this.researchLoop=researchLoop;
   }
 
   stop(){this.stopRequested=true;}
@@ -51,6 +53,7 @@ export class AutonomousController {
       }
 
       const candidate=project?.project ?? project;
+      this.population?.add?.(candidate,{cycle,command});
       const security=await this.securityCouncil.review({
         command,
         context:{...context,champion,repairFeedback,sandbox:context.sandbox,network:context.network??"none",securityConfig:context.securityConfig},
