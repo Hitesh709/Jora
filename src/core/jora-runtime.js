@@ -22,7 +22,7 @@ export class JoraRuntime {
       if(this.repository?.prepareCandidate) {
         const candidate=await this.repository.prepareCandidate(
           execution?.id??`command-${Date.now()}`,
-          "main"
+          this.repository.baseBranch??"main"
         );
         candidateContext={...candidateContext,candidate};
         if(execution) await this.executionStore.append(execution.id,{
