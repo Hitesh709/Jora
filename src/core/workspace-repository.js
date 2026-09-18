@@ -33,9 +33,10 @@ export class WorkspaceRepository {
         await this.git.runner.run("git",["commit","--allow-empty","-m","Initialize Jora workspace"],{cwd:this.root});
       }
     }
+    this.baseBranch=await this.git.branch();
     this.ready=true;
   }
-  async prepareCandidate(id=`1789753054122`,base="HEAD") {
+  async prepareCandidate(id=Date.now(),base=this.baseBranch||"HEAD") {
     await this.ensureReady();
     const status=await this.git.status().catch(()=>"");
     if(status) await this.git.runner.run("git",["reset","--hard","HEAD"],{cwd:this.root});
