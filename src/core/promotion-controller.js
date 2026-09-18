@@ -1,13 +1,16 @@
 export class PromotionController {
-  constructor({evaluator, repository, targetBranch="main", ciGate=null}={}) {
+  constructor({evaluator, repository, targetBranch="main", ciGate=null,policyEngine=null}={}) {
     if (!evaluator || !repository) throw new Error("evaluator and repository are required");
     this.evaluator=evaluator;
     this.repository=repository;
     this.targetBranch=targetBranch;
     this.ciGate=ciGate;
+    this.policyEngine=policyEngine;
   }
 
-  async promote({candidate, champion, metrics={}}={}) {
+  async promote({candidate, champion, metrics={},context={}}={}) {
+    const policy=await this.policyEngine?.evaluate({action:"PROMOTE",tenantId:context.tenantId??"default",actorId:context.actorId??"system",context,metrics:{...metrics,benchmarkScore:metrics.benchmarkScore??candidate?.evaluation?.benchmarkScore,qualityScore:metrics.qualityScore??candidate?.evaluation?.qualityScore,securityPassed:metrics.security?.passed}});
+    if(policy && !policy.allowed) return {status:"POLICY_BLOCKED",policy,candidate,champion};
     const decision=await this.evaluator.evaluate({
       candidate,
       champion,
