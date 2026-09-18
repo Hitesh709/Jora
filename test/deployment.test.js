@@ -51,3 +51,33 @@ test("secret controls require values and redact secret material",()=>{
   assert.equal(redactSecrets("token=abc123",["abc123"]),"token=[REDACTED]");
   assert.equal(isSecretName("OPENAI_API_KEY"),true);
 });
+
+test("staged deployment blocks production when staging health gate fails",async()=>{
+  const calls=[];
+  const {StagedDeploymentController}=await import("../src/core/staged-deployment-controller.js");
+  const staging={
+    async deploy(args){calls.push(["staging",args.context.environment]);return {status:"ROLLED_BACK"};}
+  };
+  const production={
+    async deploy(args){calls.push(["production",args.context.environment]);return {status:"DEPLOYED"};}
+  };
+  const controller=new StagedDeploymentController({staging,production});
+  const result=await controller.deploy({candidate:{version:"v3"},version:"v3"});
+  assert.equal(result.status,"STAGING_FAILED");
+  assert.deepEqual(calls,[["staging","staging"]]);
+});
+
+test("staged deployment promotes to production only after staging succeeds",async()=>{
+  const calls=[];
+  const {StagedDeploymentController}=await import("../src/core/staged-deployment-controller.js");
+  const staging={
+    async deploy(args){calls.push(["staging",args.context.environment]);return {status:"DEPLOYED",ref:"staging-v4"};}
+  };
+  const production={
+    async deploy(args){calls.push(["production",args.context.environment,args.context.staging.ref]);return {status:"DEPLOYED",ref:"prod-v4"};}
+  };
+  const controller=new StagedDeploymentController({staging,production});
+  const result=await controller.deploy({candidate:{version:"v4"},version:"v4"});
+  assert.equal(result.status,"DEPLOYED");
+  assert.deepEqual(calls,[["staging","staging"],["production","production","staging-v4"]]);
+});
