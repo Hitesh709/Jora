@@ -71,7 +71,9 @@ export class DurableWorker {
 
     const recovered=state.job?.status==="RUNNING";
     const now=new Date().toISOString();
-    const jobId=state.job?.id && recovered ? state.job.id : "job_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
+    const jobId=state.job?.id && recovered
+      ? state.job.id
+      : "job_"+Date.now()+"_"+Math.random().toString(36).slice(2,8);
     const attempts=Number(state.job?.attempts??0)+(recovered?1:0);
     const history=Array.isArray(state.history)?state.history:[];
     if(recovered) {
@@ -90,6 +92,7 @@ export class DurableWorker {
       status:"RUNNING",
       attempts:attempts||1,
       cycles:Number(state.job?.cycles??0),
+      activeCycle:null,
       startedAt:recovered ? state.job.startedAt??now : now,
       resumedAt:recovered ? now : null,
       heartbeatAt:now,
@@ -116,17 +119,41 @@ export class DurableWorker {
       while(!this.stopRequested && state.job.cycles<this.maxCycles){
         const cycleNumber=state.job.cycles+1;
         state=await this._read();
-        state.job={...(state.job??{}),status:"RUNNING",cycles:cycleNumber,heartbeatAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+        state.job={
+          ...(state.job??{}),
+          status:"RUNNING",
+          activeCycle:cycleNumber,
+          heartbeatAt:new Date().toISOString(),
+          updatedAt:new Date().toISOString()
+        };
         await this._write(state);
 
         try {
           await this.cycle({cycle:cycleNumber,command,context});
           state=await this._read();
-          state.job={...(state.job??{}),status:"RUNNING",lastCycleStatus:"SUCCEEDED",lastError:null,heartbeatAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+          state.job={
+            ...(state.job??{}),
+            status:"RUNNING",
+            cycles:cycleNumber,
+            activeCycle:null,
+            lastCycleStatus:"SUCCEEDED",
+            lastError:null,
+            heartbeatAt:new Date().toISOString(),
+            updatedAt:new Date().toISOString()
+          };
           await this._write(state);
         } catch(error) {
           state=await this._read();
-          state.job={...(state.job??{}),status:"RUNNING",lastCycleStatus:"FAILED",lastError:error.message,heartbeatAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+          state.job={
+            ...(state.job??{}),
+            status:"RUNNING",
+            cycles:cycleNumber,
+            activeCycle:null,
+            lastCycleStatus:"FAILED",
+            lastError:error.message,
+            heartbeatAt:new Date().toISOString(),
+            updatedAt:new Date().toISOString()
+          };
           state.history=[...(state.history??[]),{
             type:"CYCLE_FAILED",
             jobId:this.jobId,
@@ -145,7 +172,7 @@ export class DurableWorker {
       state=await this._read();
       const finalStatus=this.stopRequested?"STOPPED":"COMPLETED";
       state.worker={...(state.worker??{}),id:this.workerId,status:"IDLE",heartbeatAt:null,stoppedAt:new Date().toISOString()};
-      state.job={...(state.job??{}),status:finalStatus,finishedAt:new Date().toISOString(),heartbeatAt:null,updatedAt:new Date().toISOString()};
+      state.job={...(state.job??{}),status:finalStatus,activeCycle:null,finishedAt:new Date().toISOString(),heartbeatAt:null,updatedAt:new Date().toISOString()};
       state.history=[...(state.history??[]),{
         type:"WORKER_FINISHED",
         jobId:this.jobId,
