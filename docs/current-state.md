@@ -17,30 +17,41 @@
 - Autonomous delivery controller
 - Bootstrap self-development command
 - Automated tests and CI
+- Multi-gate Security Council and autonomous controller
+- Provider registry
+- Production agent builder
+- Benchmark store
+- Rollback manager
+- Command runner
+- Docker sandbox boundary
+- Local Git repository adapter
+- Production evaluator
+- Champion store
+- Unified Jora runtime
+- CLI command entry point
 
 ## Target product
 
-Jora is intended to become:
-
 **Master AI Agent + Autonomous Software Factory + Agent Factory + Controlled Self-Evolution Engine**
 
-A user should eventually be able to issue one high-level command such as:
+A user should eventually be able to issue one high-level command:
 
 `Build a production-ready AI coding agent.`
 
-Jora should then derive requirements, create the project, implement it, test it, repair failures, evaluate security and quality, package/deploy it, and return the completed agent without requiring step-by-step user intervention.
+Jora should derive requirements, create the project, implement it, test it, diagnose and repair failures, run independent automated security gates, benchmark the candidate, compare it with the champion, promote or roll back, deploy, monitor, and continue improving without step-by-step user intervention.
 
 ## Current limitations
 
-The factory is currently a control-plane implementation. Real autonomous production requires the following adapters:
+The control plane and several concrete runtime boundaries now exist, but full autonomous production still requires deployment-specific adapters:
 
-1. Real model-provider adapters
-2. Real Git/GitHub repository operations
-3. Real isolated container/OS sandbox
-4. Persistent benchmark/evaluation storage
-5. Candidate/champion promotion and rollback
-6. Continuous worker/24×7 scheduler
-7. Production deployment adapters
-8. API and operator UI
+1. Real model-provider implementation and credentials
+2. Real GitHub/Git workspace provisioning and branch/worktree lifecycle
+3. Production container runtime and host hardening
+4. Persistent task/execution/benchmark/champion storage
+5. Production test, security, and benchmark suites
+6. Deployment adapters
+7. Durable 24×7 scheduler/worker with restart and heartbeat
+8. API/operator UI
+9. Secrets management and observability
 
-These must be connected behind explicit permission and safety boundaries.
+The architecture is deliberately adapter-based so these can be connected without redesigning the core orchestration model.
