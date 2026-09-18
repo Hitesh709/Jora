@@ -29,6 +29,24 @@ test("promotion controller rejects failed candidates", async()=>{
   assert.equal(result.status,"REJECTED");
 });
 
+test("promotion controller commits and atomically promotes a validated candidate", async()=>{
+  const calls=[];
+  const controller=new PromotionController({
+    evaluator:{evaluate:async()=>({passed:true,benchmarkScore:0.95,qualityScore:0.9})},
+    repository:{
+      async commit(message){calls.push(["commit",message]);return {committed:true,commit:"candidate-sha",branch:"jora/candidate-1"};},
+      async promoteCandidate(input){calls.push(["promote",input]);return {promoted:true,commit:"promoted-sha",previous:"champion-sha",...input};}
+    }
+  });
+  const result=await controller.promote({candidate:{version:"candidate-1",evaluation:{passed:true}},champion:{version:"champion"}});
+  assert.equal(result.status,"PROMOTED");
+  assert.equal(result.version,"promoted-sha");
+  assert.deepEqual(calls,[
+    ["commit","Candidate validation candidate-1"],
+    ["promote",{branch:"jora/candidate-1",targetBranch:"main"}]
+  ]);
+});
+
 test("champion store persists and restores the best promoted version", async()=>{
   let state={champion:null,history:[]};
   const store={
