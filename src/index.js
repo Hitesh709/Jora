@@ -105,3 +105,8 @@ export { AgentMemory } from "./core/agent-memory.js";
 export { KnowledgeStore } from "./core/knowledge-store.js";
 export { KnowledgeRetriever } from "./core/knowledge-retriever.js";
 export { SharedTeamMemory } from "./core/shared-team-memory.js";
+
+export { RoadmapEngine } from "./core/roadmap-engine.js";
+export { MissionManager } from "./core/mission-manager.js";
+export { AutonomousMissionRunner } from "./core/autonomous-mission-runner.js";
+export { JORA_1_00_ROADMAP } from "./core/jora-1.00-roadmap.js";
