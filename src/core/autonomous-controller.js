@@ -53,7 +53,7 @@ export class AutonomousController {
       const candidate=project?.project ?? project;
       const security=await this.securityCouncil.review({
         command,
-        context:{...context,champion,repairFeedback},
+        context:{...context,champion,repairFeedback,sandbox:context.sandbox,network:context.network??"none",securityConfig:context.securityConfig},
         project:candidate
       });
 
