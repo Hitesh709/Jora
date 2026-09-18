@@ -80,7 +80,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const evolution=new EvolutionEngine({evaluator});
   const delivery=new AutonomousDelivery({agentFactory,evolution,maxRepairCycles:3});
   const builder=new ProductionAgentBuilder({planner,factory,delivery});
-  const promotion=new PromotionController({evaluator:new CandidateEvaluator(),repository});
+  const promotion=new PromotionController({
+    evaluator:new CandidateEvaluator(),
+    repository,
+    targetBranch:repository.baseBranch??"main"
+  });
   const controller=new AutonomousController({
     delivery,
     securityCouncil,
