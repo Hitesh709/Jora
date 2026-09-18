@@ -9,6 +9,8 @@ export class WorkspaceRepository {
     this.root=path.resolve(root);
     this.git=git ?? new LocalGitRepository({root:this.root});
     this.ready=false;
+    this.candidateBranch=null;
+    this.candidateBase=null;
   }
   safePath(relativePath) {
     if (!relativePath || path.isAbsolute(relativePath)) throw new Error("relative file path is required");
@@ -25,17 +27,24 @@ export class WorkspaceRepository {
       if(!init.ok) throw new Error(init.stderr||"git init failed");
       await this.git.runner.run("git",["config","user.name","Jora"],{cwd:this.root});
       await this.git.runner.run("git",["config","user.email","jora@local.invalid"],{cwd:this.root});
+      const status=await this.git.status();
+      if(!status) {
+        await this.git.runner.run("git",["commit","--allow-empty","-m","Initialize Jora workspace"],{cwd:this.root});
+      }
     }
     this.ready=true;
   }
-  async prepareCandidate(id=`${Date.now()}`) {
+  async prepareCandidate(id=`1789753054122`,base="HEAD") {
     await this.ensureReady();
     const status=await this.git.status().catch(()=>"");
     if(status) await this.git.runner.run("git",["reset","--hard","HEAD"],{cwd:this.root});
     const branch=`jora/candidate-${String(id).replace(/[^a-zA-Z0-9._-]/g,"-")}`;
-    const result=await this.git.runner.run("git",["checkout","-b",branch],{cwd:this.root});
-    if(!result.ok) throw new Error(result.stderr||"failed to create candidate branch");
-    return {branch};
+    const existing=await this.git.runner.run("git",["rev-parse","--verify",branch],{cwd:this.root});
+    if(existing.ok) await this.git.checkout(base);
+    await this.git.createBranch(branch,base);
+    this.candidateBranch=branch;
+    this.candidateBase=await this.git.currentCommit();
+    return {branch,base:this.candidateBase};
   }
   async write(relativePath,content) {
     await this.ensureReady();
@@ -65,7 +74,27 @@ export class WorkspaceRepository {
     await walk(root);
     return result;
   }
-  async commit(message="Jora candidate promotion") { await this.ensureReady(); return this.git.commit(message); }
-  async rollback(ref) { await this.ensureReady(); return this.git.rollback(ref); }
+  async commit(message="Jora candidate promotion") {
+    await this.ensureReady();
+    const result=await this.git.commit(message);
+    return {...result,branch:this.candidateBranch??await this.git.branch(),base:this.candidateBase};
+  }
+  async promoteCandidate({branch=this.candidateBranch,targetBranch="main",deleteCandidate=false}={}) {
+    await this.ensureReady();
+    if(!branch) throw new Error("candidate branch is required");
+    const current=await this.git.branch();
+    const candidateCommit=await this.git.currentCommit();
+    if(current!==targetBranch) await this.git.checkout(targetBranch);
+    const previous=await this.git.currentCommit();
+    const merge=await this.git.mergeFastForward(branch);
+    if(deleteCandidate) await this.git.deleteBranch(branch);
+    if(current!==targetBranch) await this.git.checkout(targetBranch);
+    return {promoted:true,branch,targetBranch,previous,candidateCommit,commit:merge.commit};
+  }
+  async rollbackTo(ref,{branch="main"}={}) {
+    await this.ensureReady();
+    return this.git.rollbackBranch(branch,ref);
+  }
+  async rollback(ref) { return this.rollbackTo(ref,{branch:await this.git.branch()}); }
   async branch() { await this.ensureReady(); return this.git.branch(); }
 }
