@@ -55,7 +55,7 @@ test("Jora runtime creates an isolated candidate before each execution",async()=
   const result=await runtime.execute({command:"build agent",context:{taskId:"t1"}});
   assert.equal(result.status,"PROMOTED");
   assert.equal(calls[0][0],"build");
-  assert.match(calls[0][1],/^jora\/candidate-t1$/);
+  assert.match(calls[0][1],/^jora\/candidate-command-\d+$/);
 });
 
 test("Jora runtime connects build and autonomous controller",async()=> {
