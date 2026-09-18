@@ -182,3 +182,8 @@ Jora v0.13.0 adds PostgreSQL-backed execution persistence when distributed mode 
 ## Production metrics
 
 Jora v0.14.0 adds lightweight operational metrics. Every runtime execution records a status counter and execution-duration histogram. The authenticated operator API exposes GET /v1/metrics for current counters, counts, sums, averages, minimums, maximums, and process uptime.
+
+
+## Operator Control Center
+
+Jora v0.15.0 adds a lightweight browser dashboard at `/` and `/dashboard` when the operator API is enabled. It consumes the existing authenticated control-plane endpoints and displays system/worker status, execution activity, runtime metrics, distributed queue jobs, and observability events. It refreshes every 10 seconds and stores no credentials in source code.
