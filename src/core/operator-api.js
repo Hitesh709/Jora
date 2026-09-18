@@ -128,6 +128,8 @@ export class OperatorApi {
 
     if(this._rateLimited(req)) return json(res,429,{error:"rate_limit_exceeded",retryAfterSeconds:60});
 
+    const principal=this._principal(req);
+    const tenantId=this.accessController?.tenant(principal)||"default";
     const action=method==="GET"?"read":(path==="/v1/execute"||path==="/v1/jobs"||path.startsWith("/v1/worker")?"execute":"operate");
     if(!this._authorized(req,action)) {
       return json(res,401,{error:"unauthorized"});
@@ -201,7 +203,7 @@ export class OperatorApi {
       const job=await this.queue.enqueue({
         command:body.command.trim(),
         constraints:body.constraints??{},
-        context:body.context??{}
+        context:{...(body.context??{}),tenantId}
       });
       return json(res,202,{accepted:true,status:"QUEUED",job});
     }
@@ -209,7 +211,7 @@ export class OperatorApi {
     if(method==="GET" && path==="/v1/observability") {
       const events=this.observability?.list ? await this.observability.list() : [];
       const limit=Math.min(200,Math.max(1,Number(url.searchParams.get("limit")||50)));
-      return json(res,200,{events:events.slice(-limit)});
+      return json(res,200,{events:events.filter(e=>!e.tenantId||e.tenantId===tenantId).slice(-limit)});
     }
 
     if(method==="POST" && path==="/v1/execute") {
@@ -222,7 +224,7 @@ export class OperatorApi {
         const result=await this.runtime.execute({
           command:body.command.trim(),
           constraints:body.constraints??{},
-          context:{...(body.context??{}),apiRequestId:requestId}
+          context:{...(body.context??{}),apiRequestId:requestId,tenantId}
         });
         return json(res,200,{requestId,accepted:true,status:result.status,result});
       } catch(error) {
@@ -238,7 +240,7 @@ export class OperatorApi {
         : "Improve Jora continuously";
       try {
         if(this.queue) {
-          await this.queue.enqueue({command,context:body.context??{}});
+          await this.queue.enqueue({command,context:{...(body.context??{}),tenantId}});
           if(!this.worker.running) {
             const promise=this.worker.run({context:body.context??{}});
             promise.catch(()=>{});
