@@ -1,7 +1,7 @@
 export class RecoveryOrchestrator {
   constructor({worker=null,queue=null,deploymentController=null,observability=null,controller=null,policy={}}={}) {
     this.worker=worker; this.queue=queue; this.deploymentController=deploymentController; this.observability=observability; this.controller=controller;
-    this.policy={highFailureRate:"REPAIR",highLatency:"REPAIR",staleWorker:"WORKER_RECOVERY",queueBacklog:"QUEUE_RECOVERY",...policy};
+    this.policy={HIGH_FAILURE_RATE:"REPAIR",HIGH_LATENCY:"REPAIR",STALE_WORKER:"WORKER_RECOVERY",QUEUE_BACKLOG:"QUEUE_RECOVERY",...policy};
     this.cooldowns=new Map();
     this.cooldownMs=30000;
   }
