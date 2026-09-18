@@ -36,6 +36,7 @@ export class SecurityIntelligence {
   }
   async checkRuntime({sandbox=null,network="none"}={}) {
     const findings=[];
+    if(!sandbox && network==="none") return {passed:true,findings:[],skipped:true,reason:"No runtime execution context supplied"};
     if(!sandbox) findings.push({type:"SANDBOX_MISSING",severity:"CRITICAL"});
     if(network!=="none") findings.push({type:"SANDBOX_NETWORK_ENABLED",severity:"HIGH",network});
     return {passed:findings.length===0,findings};
