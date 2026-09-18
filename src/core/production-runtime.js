@@ -39,6 +39,7 @@ import {IncidentManager} from "./incident-manager.js";
 import {AccessController} from "./access-controller.js";
 import {AuditLog} from "./audit-log.js";
 import {PolicyEngine} from "./policy-engine.js";
+import {GovernanceStateMachine} from "./governance-state-machine.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -227,13 +228,15 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       })
     : null;
 
+  const governance=new GovernanceStateMachine({store:executionStore,auditLog});
   const runtime=new JoraRuntime({
     builder,
     controller,
     executionStore,
     repository,
     deploymentController,
-    metrics
+    metrics,
+    governance
   });
   const worker=new DurableWorker({
     store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
