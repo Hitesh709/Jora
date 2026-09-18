@@ -229,3 +229,10 @@ Jora v0.22.0 propagates authenticated tenant identity into operator-submitted ex
 ## Audit and governance
 
 Jora v0.23.0 adds an immutable hash-chained AuditLog. Audit records include actor, tenant, action, resource, metadata, timestamp, and the previous record hash. The operator API exposes tenant-scoped audit records with an integrity verification result at GET /v1/audit. Authentication denials and API access are attributed to the authenticated principal where available.
+
+
+## v0.24.0 — Policy Engine
+
+Jora now has a machine-enforced PolicyEngine and PolicyRegistry. Autonomous execution and promotion are policy-gated, policy decisions carry tenant/actor context, and policy decisions are written to the audit stream. Runtime policy configuration supports action denials, tenant allowlists, minimum benchmark/quality thresholds, security requirements, and policy versioning.
+
+Environment controls include JORA_POLICY_ENABLED, JORA_POLICY_VERSION, JORA_POLICY_DENY_ACTIONS, JORA_POLICY_ALLOWED_TENANTS, JORA_POLICY_MIN_BENCHMARK, JORA_POLICY_MIN_QUALITY, and JORA_POLICY_REQUIRE_SECURITY.
