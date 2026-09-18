@@ -1,0 +1,2 @@
+import test from "node:test"; import assert from "node:assert/strict"; import {AccessController} from "../src/core/access-controller.js";
+test("access controller authenticates tenant principals",()=>{const a=new AccessController({tokens:{secret:{id:"u1",tenantId:"t1",roles:["operate"]}}});const p=a.authenticate("secret");assert.equal(p.tenantId,"t1");assert.equal(a.authorize(p,"execute"),true);assert.equal(a.authorize(null,"execute"),false);});
