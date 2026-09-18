@@ -75,3 +75,5 @@ export { AuditLog } from "./core/audit-log.js";
 
 export { PolicyEngine } from "./core/policy-engine.js";
 export { PolicyRegistry } from "./core/policy-registry.js";
+
+export { GovernanceStateMachine } from "./core/governance-state-machine.js";
