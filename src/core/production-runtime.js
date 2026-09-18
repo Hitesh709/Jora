@@ -37,6 +37,7 @@ import {OperationalHealthMonitor} from "./operational-health-monitor.js";
 import {RecoveryOrchestrator} from "./recovery-orchestrator.js";
 import {IncidentManager} from "./incident-manager.js";
 import {AccessController} from "./access-controller.js";
+import {AuditLog} from "./audit-log.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -162,11 +163,13 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
 
   const metrics=new MetricsCollector();
+  const auditLog=new AuditLog({observability:null});
 
   const observability=new ObservabilityStore({
     store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})
   });
 
+  auditLog.observability=observability;
   const deploymentConfig=config.deployment??{};
   const productionConfig=deploymentConfig.production??deploymentConfig;
   const productionDeployment=deploymentConfig.enabled
@@ -282,11 +285,12 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         dashboardPath:path.resolve(process.cwd(),"src/operator/dashboard.html"),
         healthMonitor,
         incidentManager,
-        accessController
+        accessController,
+        auditLog
       })
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
