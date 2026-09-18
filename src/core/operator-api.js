@@ -121,7 +121,7 @@ export class OperatorApi {
       return json(res,200,{jobs:await this.queue.list({limit,status})});
     }
 
-    const jobMatch=path.match(/^\\/v1\\/jobs\\/([^/]+)$/);
+    const jobMatch=path.match(/^\/v1\/jobs\/([^/]+)$/);
     if(method==="GET" && jobMatch) {
       if(!this.queue?.get) return json(res,503,{error:"queue_not_configured"});
       const job=await this.queue.get(jobMatch[1]);
@@ -172,11 +172,17 @@ export class OperatorApi {
         ? body.command.trim()
         : "Improve Jora continuously";
       try {
-        const promise=this.queue?.enqueue
-          ? this.queue.enqueue({command,context:body.context??{}})
-          : this.worker.run({command,context:body.context??{}});
+        if(this.queue) {
+          await this.queue.enqueue({command,context:body.context??{}});
+          if(!this.worker.running) {
+            const promise=this.worker.run({context:body.context??{}});
+            promise.catch(()=>{});
+          }
+          return json(res,202,{accepted:true,command,status:"QUEUED"});
+        }
+        const promise=this.worker.run({command,context:body.context??{}});
         promise.catch(()=>{});
-        return json(res,202,{accepted:true,command,status:this.queue?"QUEUED":"STARTED"});
+        return json(res,202,{accepted:true,command,status:"STARTED"});
       } catch(error) {
         return json(res,409,{accepted:false,status:"REJECTED",error:error.message});
       }
