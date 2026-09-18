@@ -13,6 +13,7 @@ export class AutonomousController {
 
   async run({command,context={}}={}) {
     if(!command) throw new Error("command is required");
+    this.stopRequested=false;
     const results=[];
     const championStore=this.championStore??context.championStore;
     if(championStore?.load) await championStore.load();
