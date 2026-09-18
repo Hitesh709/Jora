@@ -1,8 +1,11 @@
+let AGENT_SEQUENCE=0;
+let TEAM_SEQUENCE=0;
+
 export class AgentFactory {
   constructor({planner,projectFactory,registry=null}={}){if(!planner||!projectFactory)throw new Error("planner and projectFactory are required");this.planner=planner;this.projectFactory=projectFactory;this.registry=registry;}
-  async build(request={}){if(!request.command)throw new Error("command is required");const specification=await this.planner.specify(request);const project=await this.projectFactory.create({type:"ai-agent",request,specification});const agent={id:request.id??`agent-${Date.now()}`,name:request.name??specification.objective,version:1,capabilities:[...(request.capabilities??[])],permissions:[...(request.permissions??[])],specialization:specification.specialization};this.registry?.register?.(agent);return {...project,agent,specification};}
+  async build(request={}){if(!request.command)throw new Error("command is required");const specification=await this.planner.specify(request);const project=await this.projectFactory.create({type:"ai-agent",request,specification});const agent={id:request.id??`agent-${Date.now()}-${++AGENT_SEQUENCE}`,name:request.name??specification.objective,version:1,capabilities:[...(request.capabilities??[])],permissions:[...(request.permissions??[])],specialization:specification.specialization};this.registry?.register?.(agent);return {...project,agent,specification};}
   async buildSpecialist({role,capabilities=[],command,constraints={},context={}}={}){if(!role||!command)throw new Error("role and command are required");return this.build({command,constraints:{...constraints,role,capabilities},context,name:role,capabilities});}
-  async buildTeam({command,roles=[],context={}}={}){if(!command)throw new Error("command is required");const members=[];for(const role of roles){members.push(await this.buildSpecialist({role:role.name??role,capabilities:role.capabilities??[],command,context}));}return {teamId:`team-${Date.now()}`,command,members};}
+  async buildTeam({command,roles=[],context={}}={}){if(!command)throw new Error("command is required");const members=[];for(const role of roles){members.push(await this.buildSpecialist({role:role.name??role,capabilities:role.capabilities??[],command,context}));}return {teamId:`team-${Date.now()}-${++TEAM_SEQUENCE}`,command,members};}
 }
 export class AgentTeamCoordinator {
   constructor({registry}={}){this.registry=registry;}
