@@ -36,3 +36,5 @@ export { GitHubRestRepository } from "./core/github-rest-repository.js";
 export { JsonStore } from "./core/json-store.js";
 export { PersistentExecutionStore } from "./core/persistent-execution-store.js";
 export { DeploymentAdapter } from "./core/deployment-adapter.js";
+export { runtimeConfig } from "./core/runtime-config.js";
+export { createJoraRuntime } from "./core/runtime-composer.js";
