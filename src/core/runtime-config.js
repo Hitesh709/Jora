@@ -45,6 +45,14 @@ export function runtimeConfig(env=process.env){
         latencyMs:Number(env.JORA_ALERT_LATENCY_MS||120000)
       }
     },
+    recovery:{
+      policy:{
+        HIGH_FAILURE_RATE:env.JORA_RECOVERY_FAILURE_RATE_ACTION||"REPAIR",
+        HIGH_LATENCY:env.JORA_RECOVERY_LATENCY_ACTION||"REPAIR",
+        STALE_WORKER:env.JORA_RECOVERY_STALE_WORKER_ACTION||"WORKER_RECOVERY",
+        QUEUE_BACKLOG:env.JORA_RECOVERY_QUEUE_ACTION||"QUEUE_RECOVERY"
+      }
+    },
     api:{
       enabled:env.JORA_API_ENABLED==="true",
       host:env.JORA_API_HOST||"127.0.0.1",
