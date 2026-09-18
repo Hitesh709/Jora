@@ -35,6 +35,16 @@ export function runtimeConfig(env=process.env){
         healthIntervalMs:Number(env.JORA_PRODUCTION_HEALTHCHECK_INTERVAL_MS||env.JORA_HEALTHCHECK_INTERVAL_MS||2000)
       }
     },
+    operationalHealth:{
+      enabled:env.JORA_OPERATIONAL_HEALTH_ENABLED==="true",
+      intervalMs:Number(env.JORA_OPERATIONAL_HEALTH_INTERVAL_MS||30000),
+      thresholds:{
+        failureRate:Number(env.JORA_ALERT_FAILURE_RATE||0.5),
+        queueDepth:Number(env.JORA_ALERT_QUEUE_DEPTH||100),
+        staleWorkerMs:Number(env.JORA_ALERT_STALE_WORKER_MS||120000),
+        latencyMs:Number(env.JORA_ALERT_LATENCY_MS||120000)
+      }
+    },
     api:{
       enabled:env.JORA_API_ENABLED==="true",
       host:env.JORA_API_HOST||"127.0.0.1",
