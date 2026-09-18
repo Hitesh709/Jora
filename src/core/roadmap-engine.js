@@ -14,9 +14,13 @@ export class RoadmapEngine {
     if(this.loaded) return this.state;
     const saved=await this.store?.read?.(this.state)??this.state;
     this.state={version:2,tasks:{},history:[],...saved};
+    const legacyCompleted=new Set(saved?.completed??[]);
+    const legacyFailed=new Set(saved?.failed??[]);
+    const legacyHistory=Array.isArray(saved?.history)?saved.history:[];
     for(const task of this.roadmap) {
       const persisted=this.state.tasks?.[task.id]??{};
-      const status=persisted.status??task.status??STATUS.BACKLOG;
+      const migratedStatus=legacyCompleted.has(task.id)?"DONE":legacyFailed.has(task.id)?"FAILED":null;
+      const status=persisted.status??migratedStatus??task.status??STATUS.BACKLOG;
       this.state.tasks[task.id]={...task,...persisted,status,attempts:Number(persisted.attempts??0),evidence:[...(persisted.evidence??[])]};
       const current=this.registry.get(task.id);
       if(current) {
@@ -24,7 +28,11 @@ export class RoadmapEngine {
         current.evidence=[...(persisted.evidence??[])];
       }
     }
+    if(!this.state.history.length && legacyHistory.length) this.state.history=legacyHistory;
+    delete this.state.completed;
+    delete this.state.failed;
     this.loaded=true;
+    await this.save();
     return this.state;
   }
 
