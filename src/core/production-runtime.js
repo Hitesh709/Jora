@@ -35,6 +35,7 @@ import {MetricsCollector} from "./metrics-collector.js";
 import path from "node:path";
 import {OperationalHealthMonitor} from "./operational-health-monitor.js";
 import {RecoveryOrchestrator} from "./recovery-orchestrator.js";
+import {IncidentManager} from "./incident-manager.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -248,12 +249,12 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     })
   });
   runtime.continuousWorker=worker;
-  recovery.worker=worker;
   const recoveryConfig=config.recovery??{};
-  const recovery=new RecoveryOrchestrator({observability,worker:null,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
+  const recovery=new RecoveryOrchestrator({observability,worker,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
+  const incidentManager=new IncidentManager({observability});
   const healthConfig=config.operationalHealth??{};
   const healthMonitor=healthConfig.enabled
-    ? new OperationalHealthMonitor({metrics,observability,worker,queue:queueStore,thresholds:healthConfig.thresholds,onAlert:alert=>recovery.handle(alert)})
+    ? new OperationalHealthMonitor({metrics,observability,worker,queue:queueStore,thresholds:healthConfig.thresholds,onAlert:async alert=>{const incident=await incidentManager.open(alert); await incidentManager.startRecovery(incident.id,{action:recovery.policy[alert.alertType]}); const result=await recovery.handle(alert); if(String(result.status).includes("FAILED")) await incidentManager.failRecovery(incident.id,result.error); else await incidentManager.resolve(incident.id,result); return result;}})
     : null;
   let healthTimer=null;
   if(healthMonitor) {
@@ -279,6 +280,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,healthMonitor,healthTimer,recovery,deploymentController,api,modelGateway,config
+    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
