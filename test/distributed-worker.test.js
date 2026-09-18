@@ -24,16 +24,21 @@ function leaseStore() {
 
 test("distributed worker acquires and releases a shared lease",async()=>{
   const calls=[];
+  let releaseRun;
+  const running=new Promise(resolve=>{releaseRun=resolve;});
   const worker={
-    async run(options){calls.push(options); return {status:"COMPLETED"};},
+    async run(options){calls.push(options); await running; return {status:"COMPLETED"};},
     stop(){calls.push({stopped:true});},
     async status(){return {status:"IDLE"};}
   };
   const leases=leaseStore();
   const a=new DistributedWorker({worker,leaseStore:leases,owner:"node-a"});
   const b=new DistributedWorker({worker,leaseStore:leases,owner:"node-b"});
-  assert.deepEqual(await a.run({command:"Improve Jora"}),{status:"COMPLETED"});
+  const first=a.run({command:"Improve Jora"});
+  await new Promise(r=>setTimeout(r,5));
   await assert.rejects(()=>b.run({command:"Improve Jora"}),/already held/);
+  releaseRun();
+  assert.deepEqual(await first,{status:"COMPLETED"});
   assert.equal(await leases.status(),null);
   assert.equal(calls[0].command,"Improve Jora");
 });
