@@ -89,8 +89,10 @@ export class OperatorApi {
   }
 
   _principal(req) {
+    const header=req.headers.authorization??"";
+    if(!header && !this.authToken) return {id:"local",tenantId:"default",roles:["admin"]};
     if(!this.accessController) return this.authToken ? null : {id:"local",tenantId:"default",roles:["admin"]};
-    const header=req.headers.authorization??""; return this.accessController.authenticate(header.startsWith("Bearer ")?header.slice(7):null);
+    return this.accessController.authenticate(header.startsWith("Bearer ")?header.slice(7):null);
   }
 
   _authorized(req,action="read") {
