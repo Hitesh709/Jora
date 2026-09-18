@@ -1,0 +1,2 @@
+import test from "node:test"; import assert from "node:assert/strict"; import {MutationStrategyEngine} from "../src/core/mutation-strategy-engine.js";
+test("selects strategy from weakest dimension",()=>{const r=new MutationStrategyEngine().choose({evaluation:{dimensions:{latency:.4,security:.9}}});assert.equal(r.strategy,"reduce-latency");});
