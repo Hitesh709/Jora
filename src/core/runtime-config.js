@@ -19,7 +19,21 @@ export function runtimeConfig(env=process.env){
       webhookUrl:env.JORA_DEPLOYMENT_WEBHOOK_URL,
       healthUrl:env.JORA_HEALTHCHECK_URL,
       healthAttempts:Number(env.JORA_HEALTHCHECK_ATTEMPTS||3),
-      healthIntervalMs:Number(env.JORA_HEALTHCHECK_INTERVAL_MS||2000)
+      healthIntervalMs:Number(env.JORA_HEALTHCHECK_INTERVAL_MS||2000),
+      timeoutMs:Number(env.JORA_DEPLOYMENT_TIMEOUT_MS||60000),
+      staging:{
+        enabled:env.JORA_STAGING_DEPLOYMENT_ENABLED==="true" || Boolean(env.JORA_STAGING_DEPLOYMENT_WEBHOOK_URL),
+        webhookUrl:env.JORA_STAGING_DEPLOYMENT_WEBHOOK_URL,
+        healthUrl:env.JORA_STAGING_HEALTHCHECK_URL,
+        healthAttempts:Number(env.JORA_STAGING_HEALTHCHECK_ATTEMPTS||3),
+        healthIntervalMs:Number(env.JORA_STAGING_HEALTHCHECK_INTERVAL_MS||2000)
+      },
+      production:{
+        webhookUrl:env.JORA_PRODUCTION_DEPLOYMENT_WEBHOOK_URL||env.JORA_DEPLOYMENT_WEBHOOK_URL,
+        healthUrl:env.JORA_PRODUCTION_HEALTHCHECK_URL||env.JORA_HEALTHCHECK_URL,
+        healthAttempts:Number(env.JORA_PRODUCTION_HEALTHCHECK_ATTEMPTS||env.JORA_HEALTHCHECK_ATTEMPTS||3),
+        healthIntervalMs:Number(env.JORA_PRODUCTION_HEALTHCHECK_INTERVAL_MS||env.JORA_HEALTHCHECK_INTERVAL_MS||2000)
+      }
     },
     worker:{
       intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),
