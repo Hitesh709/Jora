@@ -1,0 +1,2 @@
+import test from "node:test"; import assert from "node:assert/strict"; import {LineageStore} from "../src/core/lineage-store.js";
+test("tracks candidate ancestry",()=>{const l=new LineageStore();l.record({candidateId:"1",version:"v1"});l.record({candidateId:"2",version:"v2",parentVersion:"v1"});assert.deepEqual(l.ancestry("v2").map(x=>x.version),["v2","v1"]);});
