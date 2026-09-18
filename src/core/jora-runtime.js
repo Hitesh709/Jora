@@ -1,5 +1,5 @@
 export class JoraRuntime {
-  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null}={}) {
+  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null,metrics=null}={}) {
     if (!builder || !controller) throw new Error("builder and controller are required");
     this.builder=builder;
     this.controller=controller;
@@ -7,6 +7,7 @@ export class JoraRuntime {
     this.executionStore=executionStore;
     this.repository=repository;
     this.deploymentController=deploymentController;
+    this.metrics=metrics;
   }
 
   async execute({command,constraints={},context={}}={}) {
@@ -16,6 +17,7 @@ export class JoraRuntime {
       agentId:context.agentId??"jora-master",
       input:{command,constraints}
     }) : null;
+    const startedAt=Date.now();
     try {
       if(execution) await this.executionStore.append(execution.id,{type:"COMMAND_ACCEPTED",command});
 
@@ -62,8 +64,10 @@ export class JoraRuntime {
           :"COMPLETED",
         result
       );
+      await this.metrics?.recordExecution({status:result.status,durationMs:Date.now()-startedAt});
       return result;
     } catch(error) {
+      await this.metrics?.recordExecution({status:"FAILED",durationMs:Date.now()-startedAt});
       if(execution) await this.executionStore.finish(execution.id,"FAILED",{message:error.message});
       throw error;
     }
