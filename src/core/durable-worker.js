@@ -133,9 +133,10 @@ export class DurableWorker {
       state=await this._acquire({command});
       this._startHeartbeat();
 
+      const queueMode=!command && Boolean(this.queueStore);
       while(!this.stopRequested && state.job.cycles<this.maxCycles){
         let queuedJob=null;
-        if(!command && this.queueStore) {
+        if(queueMode) {
           queuedJob=await this.queueStore.claim({workerId:this.workerId});
           if(!queuedJob) {
             await new Promise(resolve=>setTimeout(resolve,Math.min(this.intervalMs,5000)));
@@ -158,7 +159,6 @@ export class DurableWorker {
         try {
           const result=await this.cycle({cycle:cycleNumber,command,context});
           if(queuedJob) await this.queueStore.complete({id:queuedJob.id,workerId:this.workerId,result});
-          if(queuedJob) await this.queueStore.fail({id:queuedJob.id,workerId:this.workerId,error:error.message,retry:true}).catch(()=>{});
           state=await this._read();
           state.job={
             ...(state.job??{}),
@@ -172,6 +172,7 @@ export class DurableWorker {
           };
           await this._write(state);
         } catch(error) {
+          if(queuedJob) await this.queueStore.fail({id:queuedJob.id,workerId:this.workerId,error:error.message,retry:true}).catch(()=>{});
           state=await this._read();
           state.job={
             ...(state.job??{}),
