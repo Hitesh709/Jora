@@ -4,7 +4,7 @@ export class PromotionController {
     this.evaluator=evaluator; this.repository=repository;
   }
 
-  async promote({candidate, champion, metrics}={}) {
+  async promote({candidate, champion, metrics={}}={}) {
     const decision=await this.evaluator.evaluate({
       candidate,
       champion,
@@ -15,7 +15,13 @@ export class PromotionController {
       `Promote candidate ${candidate.version ?? "unknown"}`,
       candidate.changes ?? []
     );
-    return {status:"PROMOTED", decision, version, candidate};
+    return {
+      status:"PROMOTED",
+      decision,
+      version,
+      candidate,
+      previousChampion:champion??null
+    };
   }
 
   async rollback(ref) {
