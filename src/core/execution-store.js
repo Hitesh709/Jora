@@ -15,5 +15,5 @@ export class ExecutionStore {
     r.status=status; r.result=result; r.updatedAt=new Date().toISOString(); return structuredClone(r);
   }
   get(id) { const r=this.executions.get(id); return r ? structuredClone(r) : undefined; }
-  list() { return [...this.executions.values()].map(structuredClone); }
+  list() { return [...this.executions.values()].map(value => structuredClone(value)); }
 }
