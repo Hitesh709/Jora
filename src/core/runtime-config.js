@@ -8,7 +8,8 @@ export function runtimeConfig(env=process.env){
     championStateFile:env.JORA_CHAMPION_STATE_FILE||"./.jora/champion.json",
     benchmarkStateFile:env.JORA_BENCHMARK_STATE_FILE||"./.jora/benchmarks.json",
     lineageStateFile:env.JORA_LINEAGE_STATE_FILE||"./.jora/lineage.json",
-    evolution:{populationSize:Number(env.JORA_EVOLUTION_POPULATION_SIZE||8),maxGenerations:Number(env.JORA_EVOLUTION_MAX_GENERATIONS||10),concurrency:Number(env.JORA_EVOLUTION_CONCURRENCY||4),learningRecords:Number(env.JORA_EVOLUTION_LEARNING_RECORDS||10000)},
+    evolution:{populationSize:Number(env.JORA_EVOLUTION_POPULATION_SIZE||8),maxGenerations:Number(env.JORA_EVOLUTION_MAX_GENERATIONS||10),concurrency:Number(env.JORA_EVOLUTION_CONCURRENCY||4),learningRecords:Number(env.JORA_EVOLUTION_LEARNING_RECORDS||10000),learningStateFile:env.JORA_LEARNING_STATE_FILE||"./.jora/learning.json"},
+    memory:{agentStateFile:env.JORA_AGENT_MEMORY_STATE_FILE||"./.jora/agent-memory.json",knowledgeStateFile:env.JORA_KNOWLEDGE_STATE_FILE||"./.jora/knowledge.json",maxRecords:Number(env.JORA_AGENT_MEMORY_MAX_RECORDS||5000),knowledgeRecords:Number(env.JORA_KNOWLEDGE_MAX_RECORDS||10000)},
     observabilityStateFile:env.JORA_OBSERVABILITY_STATE_FILE||"./.jora/observability.json",
     ci:{
       timeoutMs:Number(env.JORA_CI_TIMEOUT_MS||600000),
