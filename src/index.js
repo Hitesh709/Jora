@@ -98,3 +98,5 @@ export { CodebaseIndex } from "./core/codebase-index.js";
 export { ArchitectureAnalyzer } from "./core/architecture-analyzer.js";
 export { RefactorPlanner } from "./core/refactor-planner.js";
 export { ChangeImpactAnalyzer } from "./core/change-impact-analyzer.js";
+export { CodeQualityAssessor } from "./core/code-quality-assessor.js";
+export { RefactorSafetyGate } from "./core/refactor-safety-gate.js";
