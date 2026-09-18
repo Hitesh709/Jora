@@ -42,6 +42,11 @@ import {PolicyEngine} from "./policy-engine.js";
 import {GovernanceStateMachine} from "./governance-state-machine.js";
 import {RegressionAnalyzer} from "./regression-analyzer.js";
 import {ChampionSelector} from "./champion-selector.js";
+import {AutonomousEvolutionController} from "./autonomous-evolution-controller.js";
+import {LearningMemory} from "./learning-memory.js";
+import {ExperimentEngine} from "./experiment-engine.js";
+import {ParallelCandidateRunner} from "./parallel-candidate-runner.js";
+import {MultiGenerationEngine} from "./multi-generation-engine.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -174,6 +179,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     championStore,
     population,
     researchLoop,
+    autonomousEvolution,
     maxCycles:config.autonomous?.maxCycles??4,
     policyEngine
   });
