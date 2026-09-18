@@ -28,6 +28,7 @@ import {HttpHealthCheck} from "./http-health-check.js";
 import {HealthCheck} from "./health-check.js";
 import {ObservabilityStore} from "./observability-store.js";
 import {OperatorApi} from "./operator-api.js";
+import {createPostgresLeaseStore} from "./postgres-lease-store.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -186,6 +187,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     });
   }
 
+  const distributedConfig=config.distributed??{};
+  const leaseStore=distributedConfig.enabled
+    ? await createPostgresLeaseStore({
+        connectionString:distributedConfig.databaseUrl,
+        namespace:distributedConfig.leaseNamespace,
+        ttlMs:distributedConfig.leaseTtlMs,
+        maxConnections:distributedConfig.maxConnections
+      })
+    : null;
+
   const runtime=new JoraRuntime({
     builder,
     controller,
@@ -195,6 +206,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   const worker=new DurableWorker({
     store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
+    workerId:config.distributed?.owner||"jora-worker",
+    leaseStore,
     intervalMs:config.worker?.intervalMs??60000,
     heartbeatMs:config.worker?.heartbeatMs??10000,
     staleAfterMs:config.worker?.staleAfterMs??120000,
@@ -227,6 +240,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,observability,deploymentController,api,modelGateway,config
+    executionStore,championStore,worker,leaseStore,observability,deploymentController,api,modelGateway,config
   };
 }
