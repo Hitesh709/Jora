@@ -59,7 +59,8 @@ export function runtimeConfig(env=process.env){
       port:Number(env.JORA_API_PORT||8787),
       authToken:env.JORA_API_AUTH_TOKEN,
       maxBodyBytes:Number(env.JORA_API_MAX_BODY_BYTES||1000000),
-      rateLimitPerMinute:Number(env.JORA_API_RATE_LIMIT_PER_MINUTE||120)
+      rateLimitPerMinute:Number(env.JORA_API_RATE_LIMIT_PER_MINUTE||120),
+      accessTokens:env.JORA_API_ACCESS_TOKENS
     },
     distributed:{
       enabled:env.JORA_DISTRIBUTED_ENABLED==="true",
