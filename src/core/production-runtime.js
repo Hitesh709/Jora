@@ -117,7 +117,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     remoteRepository
   });
   await repository.prepareCandidate("startup-"+Date.now());
-  const benchmarkStore=new BenchmarkStore();
+  const benchmarkStore=new BenchmarkStore({store:new JsonStore({file:config.benchmarkStateFile||"./.jora/benchmarks.json"})});
+  await benchmarkStore.load();
   const distributedConfig=config.distributed??{};
   const executionStore=distributedConfig.enabled
     ? await createPostgresExecutionStore({connectionString:distributedConfig.databaseUrl,namespace:distributedConfig.queueNamespace||"jora",maxConnections:distributedConfig.maxConnections})
