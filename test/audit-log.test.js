@@ -1,0 +1,2 @@
+import test from "node:test"; import assert from "node:assert/strict"; import {AuditLog} from "../src/core/audit-log.js";
+test("audit log creates verifiable hash chain",async()=>{const a=new AuditLog();await a.record({action:"EXECUTE",actorId:"u1",tenantId:"t1"});await a.record({action:"PROMOTE",actorId:"u1",tenantId:"t1"});assert.equal(a.verify().valid,true);assert.equal(a.list({tenantId:"t2"}).length,0);});
