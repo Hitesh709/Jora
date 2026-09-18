@@ -13,6 +13,12 @@ export function runtimeConfig(env=process.env){
     autonomous:{
       maxCycles:Number(env.JORA_AUTONOMOUS_MAX_CYCLES||4)
     },
-    worker:{intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),maxCycles:env.JORA_MAX_CYCLES?Number(env.JORA_MAX_CYCLES):Infinity}
+    worker:{
+      intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),
+      maxCycles:env.JORA_MAX_CYCLES?Number(env.JORA_MAX_CYCLES):Infinity,
+      stateFile:env.JORA_WORKER_STATE_FILE||"./.jora/worker.json",
+      heartbeatMs:Number(env.JORA_WORKER_HEARTBEAT_MS||10000),
+      staleAfterMs:Number(env.JORA_WORKER_STALE_AFTER_MS||120000)
+    }
   };
 }
