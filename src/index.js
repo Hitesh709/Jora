@@ -6,6 +6,7 @@ export { ExecutionStore } from "./core/execution-store.js";
 export { CodeMaster } from "./core/code-master.js";
 export { InMemoryRepository } from "./core/repository.js";
 export { ProductionPipeline } from "./core/pipeline.js";
+export { ModelGateway } from "./core/model-gateway.js";
 export { AgentRuntime } from "./core/agent-runtime.js";
 export { AgentRegistry } from "./core/agent-registry.js";
 export { Sandbox } from "./core/sandbox.js";
