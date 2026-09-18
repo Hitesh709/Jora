@@ -6,12 +6,20 @@ export function runtimeConfig(env=process.env){
     docker:{image:env.JORA_DOCKER_IMAGE||"node:20-bookworm-slim",network:env.JORA_DOCKER_NETWORK||"none"},
     persistence:env.JORA_STATE_FILE||"./.jora/executions.json",
     championStateFile:env.JORA_CHAMPION_STATE_FILE||"./.jora/champion.json",
+    observabilityStateFile:env.JORA_OBSERVABILITY_STATE_FILE||"./.jora/observability.json",
     ci:{
       timeoutMs:Number(env.JORA_CI_TIMEOUT_MS||600000),
       pollMs:Number(env.JORA_CI_POLL_MS||5000)
     },
     autonomous:{
       maxCycles:Number(env.JORA_AUTONOMOUS_MAX_CYCLES||4)
+    },
+    deployment:{
+      enabled:env.JORA_DEPLOYMENT_ENABLED==="true",
+      webhookUrl:env.JORA_DEPLOYMENT_WEBHOOK_URL,
+      healthUrl:env.JORA_HEALTHCHECK_URL,
+      healthAttempts:Number(env.JORA_HEALTHCHECK_ATTEMPTS||3),
+      healthIntervalMs:Number(env.JORA_HEALTHCHECK_INTERVAL_MS||2000)
     },
     worker:{
       intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),
