@@ -109,4 +109,5 @@ export { SharedTeamMemory } from "./core/shared-team-memory.js";
 export { RoadmapEngine } from "./core/roadmap-engine.js";
 export { MissionManager } from "./core/mission-manager.js";
 export { AutonomousMissionRunner } from "./core/autonomous-mission-runner.js";
+export { AutonomousProgramManager } from "./core/autonomous-program-manager.js";
 export { JORA_1_00_ROADMAP } from "./core/jora-1.00-roadmap.js";
