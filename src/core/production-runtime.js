@@ -340,7 +340,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     missionManager,
     missionRunner,
     roadmap,
-    observability:null
+    observability
   });
   const recoveryConfig=config.recovery??{};
   const recovery=new RecoveryOrchestrator({observability,worker,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
