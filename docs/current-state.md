@@ -199,3 +199,8 @@ Jora v0.16.0 extends runtime metrics with worker starts, worker cycle outcomes a
 Jora v0.17.0 adds an optional operational health monitor. It periodically evaluates execution failure rate, average execution latency, worker heartbeat freshness, and distributed queue backlog. Detected conditions are recorded as operational alerts and exposed through `GET /v1/health`; a non-healthy result returns HTTP 503. The monitor is disabled by default and uses configurable thresholds.
 
 Configuration: `JORA_OPERATIONAL_HEALTH_ENABLED`, `JORA_OPERATIONAL_HEALTH_INTERVAL_MS`, `JORA_ALERT_FAILURE_RATE`, `JORA_ALERT_QUEUE_DEPTH`, `JORA_ALERT_STALE_WORKER_MS`, and `JORA_ALERT_LATENCY_MS`.
+
+
+## Autonomous recovery
+
+Jora v0.18.0 connects operational health alerts to a bounded recovery orchestrator. High failure rate and latency can queue a diagnostic/repair job; stale workers can trigger queue recovery and worker restart; queue backlog can recover expired jobs. Recovery actions are cooldown-limited, recorded in observability, and remain subject to the existing worker, security, CI, promotion, and deployment gates. Recovery policy is configurable through `JORA_RECOVERY_*_ACTION` variables.
