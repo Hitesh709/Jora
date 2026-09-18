@@ -163,7 +163,7 @@ export class DurableWorker {
         try {
           const cycleStartedAt=Date.now();
           const result=await this.cycle({cycle:cycleNumber,command,context});
-          this.metrics?.increment("jora_worker_cycles_total",{status:"SUCCEEDED"});
+          this.metrics?.increment("jora_worker_cycles_total",1,{status:"SUCCEEDED"});
           this.metrics?.observe("jora_worker_cycle_duration_ms",Date.now()-cycleStartedAt);
           if(queuedJob) await this.queueStore.complete({id:queuedJob.id,workerId:this.workerId,result});
           state=await this._read();
