@@ -47,6 +47,7 @@
 - PostgreSQL-backed distributed worker lease coordination with atomic acquisition, heartbeat renewal, expiry recovery, and release
 - PostgreSQL-backed persistent distributed task queue with SKIP LOCKED claiming, retries, completion, expiry recovery, and operator API job endpoints
 - PostgreSQL-backed persistent execution store for distributed execution history and traces
+- Runtime metrics collector with execution counters, latency histograms, and authenticated /v1/metrics endpoint
 
 ## Autonomous production loop
 
@@ -176,3 +177,8 @@ When distributed coordination is enabled, `POST /v1/worker/start` queues work in
 ## Persistent distributed execution state
 
 Jora v0.13.0 adds PostgreSQL-backed execution persistence when distributed mode is enabled. Execution records, status, inputs, results, and bounded trace history survive process restarts and are shared by the production control plane. Local deployments continue using the existing JSON execution store when distributed mode is disabled.
+
+
+## Production metrics
+
+Jora v0.14.0 adds lightweight operational metrics. Every runtime execution records a status counter and execution-duration histogram. The authenticated operator API exposes GET /v1/metrics for current counters, counts, sums, averages, minimums, maximums, and process uptime.
