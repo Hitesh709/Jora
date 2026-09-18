@@ -6,10 +6,10 @@ body{font-family:system-ui;margin:0;background:#0f1115;color:#eee}header{padding
 <section class="card"><h2>Runtime Metrics</h2><pre id="metrics">Loading…</pre></section>
 <section class="card"><h2>Recent Executions</h2><pre id="recent">Loading…</pre></section>
 <section class="card"><h2>Queue Jobs</h2><pre id="jobs">Loading…</pre></section>
-<section class="card"><h2>Observability Events</h2><pre id="events">Loading…</pre></section></main>
+<section class="card"><h2>Incidents</h2><pre id="incidents">Loading…</pre></section><section class="card"><h2>Observability Events</h2><pre id="events">Loading…</pre></section></main>
 <script>
 const h=()=>{const t=document.getElementById('token').value;return t?{Authorization:'Bearer '+t}:{}};
 async function get(p){const r=await fetch(p,{headers:h()});if(!r.ok)throw new Error(r.status+' '+await r.text());return r.json()}
-async function refresh(){try{const [s,m,e,j,o]=await Promise.all([get('/v1/status'),get('/v1/metrics'),get('/v1/executions?limit=10'),get('/v1/jobs?limit=10'),get('/v1/observability?limit=10')]);system.textContent=s.status;system.className='value '+(s.status==='OK'?'ok':'bad');worker.textContent=s.worker?.status||'OFF';executions.textContent=s.executions?.total??0;uptime.textContent=Math.round((s.uptimeMs||0)/1000)+'s';metrics.textContent=JSON.stringify(m,null,2);recent.textContent=JSON.stringify(e.executions,null,2);jobs.textContent=JSON.stringify(j.jobs,null,2);events.textContent=JSON.stringify(o.events,null,2)}catch(x){system.textContent='ERROR';system.className='value bad';metrics.textContent=x.message}}
+async function refresh(){try{const [s,m,e,j,o,inc]=await Promise.all([get('/v1/status'),get('/v1/metrics'),get('/v1/executions?limit=10'),get('/v1/jobs?limit=10'),get('/v1/observability?limit=10'),get('/v1/incidents?limit=20')]);system.textContent=s.status;system.className='value '+(s.status==='OK'?'ok':'bad');worker.textContent=s.worker?.status||'OFF';executions.textContent=s.executions?.total??0;uptime.textContent=Math.round((s.uptimeMs||0)/1000)+'s';metrics.textContent=JSON.stringify(m,null,2);recent.textContent=JSON.stringify(e.executions,null,2);jobs.textContent=JSON.stringify(j.jobs,null,2);events.textContent=JSON.stringify(o.events,null,2);incidents.textContent=JSON.stringify(inc.incidents,null,2)}catch(x){system.textContent='ERROR';system.className='value bad';metrics.textContent=x.message}}
 refresh();setInterval(refresh,10000);
 </script></body></html>
