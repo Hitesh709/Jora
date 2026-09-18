@@ -13,10 +13,15 @@ export class AgentSpecPlanner {
         sandbox: true,
         evaluation: true,
         observability: true,
-        deployment: true
+        deployment: true,
+        specialization: true,
+        capabilityDiscovery: true,
+        collaboration: true,
+        lifecycleManagement: true
       },
       constraints,
       context,
+      specialization: { role: constraints.role ?? "generalist", capabilities: [...(constraints.capabilities ?? [])], collaborationMode: constraints.collaborationMode ?? "solo" },
       acceptanceCriteria: [
         "Agent starts successfully",
         "Core task behavior is tested",
