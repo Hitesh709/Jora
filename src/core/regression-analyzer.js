@@ -14,7 +14,7 @@ export class RegressionAnalyzer {
     for(const dimension of dimensions) {
       const d=Number(cd.dimensions?.[dimension]??0)-Number(bd.dimensions?.[dimension]??0);
       if(d<this.thresholds.dimensionDelta) regressions.push({dimension,delta:d,threshold:this.thresholds.dimensionDelta});
-      if(d>Math.abs(this.thresholds.dimensionDelta)) improvements.push({dimension,delta:d});
+      if(d>0) improvements.push({dimension,delta:d});
     }
     const historicalScores=history.map(r=>Number(r.score??r.evaluation?.score)).filter(Number.isFinite);
     return {passed:regressions.length===0,baseline:"CHAMPION",scoreDelta:delta,regressions,improvements,historicalBest:historicalScores.length?Math.max(...historicalScores):null};
