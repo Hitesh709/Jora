@@ -37,6 +37,7 @@
 - Re-publication of repaired candidates to the same isolated GitHub branch without force updates
 - Durable worker with persisted state, single-worker lease, heartbeat, stale-job recovery, interrupted-cycle retry, and graceful stop
 - Deployment controller with health-gated release and automatic adapter rollback
+- Staging deployment gate that blocks production until staging deployment and health checks pass
 - Health-check retry boundary
 - Persistent observability event store
 - Secret configuration, required-secret validation, and runtime redaction helpers
@@ -79,10 +80,32 @@ The control plane and several concrete runtime boundaries now exist, but full au
 3. Production container runtime and host hardening
 4. Durable task/execution/benchmark storage beyond the current local JSON/in-memory boundaries
 5. Production test, security, and benchmark suites
-6. Deployment adapters
+6. Deployment adapters and environment-specific deployment targets
 7. API/operator UI
 8. Secrets management and observability
 
-The durable worker provides restart recovery at the worker/job control-plane level; it does not yet provide distributed multi-node scheduling, external lease coordination, or exactly-once execution semantics. Deployment is adapter-driven: Jora will only perform a real deployment when a deployment adapter is explicitly configured. Health failure can trigger adapter rollback before a release is considered deployed. A recovered cycle can execute again, so candidate operations must remain idempotent and promotion gates remain authoritative.
+The durable worker provides restart recovery at the worker/job control-plane level; it does not yet provide distributed multi-node scheduling, external lease coordination, or exactly-once execution semantics. Deployment is adapter-driven: Jora will only perform a real deployment when a deployment adapter is explicitly configured. When staging is enabled, production deployment is blocked unless staging reaches DEPLOYED after its health gate. Health failure can trigger adapter rollback before a release is considered deployed. A recovered cycle can execute again, so candidate operations must remain idempotent and promotion gates remain authoritative.
 
 The architecture is deliberately adapter-based so these can be connected without redesigning the core orchestration model.
+
+
+## Staging → production release gate
+
+Jora supports an optional two-environment release path:
+
+`PROMOTE → STAGING DEPLOY → STAGING HEALTH → PRODUCTION DEPLOY → PRODUCTION HEALTH → PRODUCTION`
+
+If staging deployment fails or its health check does not pass within the configured retry budget, production deployment is not attempted. Production health failure is handled by the production `DeploymentController`, which can invoke the configured production rollback adapter.
+
+Environment configuration:
+- `JORA_DEPLOYMENT_ENABLED=true`: enables deployment.
+- `JORA_STAGING_DEPLOYMENT_ENABLED=true` or `JORA_STAGING_DEPLOYMENT_WEBHOOK_URL`: enables the staging gate.
+- `JORA_STAGING_DEPLOYMENT_WEBHOOK_URL`: staging deployment endpoint.
+- `JORA_STAGING_HEALTHCHECK_URL`: staging health endpoint.
+- `JORA_PRODUCTION_DEPLOYMENT_WEBHOOK_URL`: production deployment endpoint; falls back to `JORA_DEPLOYMENT_WEBHOOK_URL`.
+- `JORA_PRODUCTION_HEALTHCHECK_URL`: production health endpoint; falls back to `JORA_HEALTHCHECK_URL`.
+- `JORA_STAGING_HEALTHCHECK_ATTEMPTS` / `JORA_STAGING_HEALTHCHECK_INTERVAL_MS`: staging health retry policy.
+- `JORA_PRODUCTION_HEALTHCHECK_ATTEMPTS` / `JORA_PRODUCTION_HEALTHCHECK_INTERVAL_MS`: production health retry policy.
+- `JORA_DEPLOYMENT_TIMEOUT_MS`: deployment webhook timeout.
+
+The default remains safe: deployment is disabled unless explicitly enabled, and staging is not enabled unless its staging configuration is supplied.
