@@ -58,3 +58,4 @@ export { WorkspaceRepository } from "./core/workspace-repository.js";
 export { createWorkspaceSecurityCouncil } from "./core/security-checks.js";
 export { createProductionJoraRuntime } from "./core/production-runtime.js";
 export { GitHubCIGate } from "./core/github-ci-gate.js";
+export { OperatorApi } from "./core/operator-api.js";
