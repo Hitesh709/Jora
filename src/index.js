@@ -10,3 +10,7 @@ export { SelfDevelopmentEngine, DEV_STATUS } from "./core/self-development.js";
 export { SelfInspector } from "./core/self-inspector.js";
 export { SelfTaskGenerator } from "./core/task-generator.js";
 export { SelfExecutor } from "./core/self-executor.js";
+export { AgentFactory } from "./core/agent-factory.js";
+export { ProjectFactory } from "./core/project-factory.js";
+export { AgentSpecPlanner } from "./core/agent-spec-planner.js";
+export { AutonomousDelivery } from "./core/autonomous-delivery.js";
