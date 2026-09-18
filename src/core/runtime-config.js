@@ -58,7 +58,8 @@ export function runtimeConfig(env=process.env){
       host:env.JORA_API_HOST||"127.0.0.1",
       port:Number(env.JORA_API_PORT||8787),
       authToken:env.JORA_API_AUTH_TOKEN,
-      maxBodyBytes:Number(env.JORA_API_MAX_BODY_BYTES||1000000)
+      maxBodyBytes:Number(env.JORA_API_MAX_BODY_BYTES||1000000),
+      rateLimitPerMinute:Number(env.JORA_API_RATE_LIMIT_PER_MINUTE||120)
     },
     distributed:{
       enabled:env.JORA_DISTRIBUTED_ENABLED==="true",
