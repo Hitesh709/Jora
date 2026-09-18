@@ -5,6 +5,7 @@ export class AgentRegistry {
   list({status=null}={}){return [...this.agents.values()].filter(a=>!status||a.status===status).map(a=>structuredClone(a));}
   discover(capability,{status="ACTIVE"}={}){return this.list({status}).filter(a=>a.capabilities.includes(capability)).sort((a,b)=>(b.metrics?.score??0)-(a.metrics?.score??0));}
   updateMetrics(id,metrics={}){const a=this.agents.get(id);if(!a)throw new Error(`Unknown agent: ${id}`);a.metrics={...a.metrics,...metrics};return this.get(id);}
+  evaluate(id,{minimumScore=0.8,minimumReliability=0.8}={}){const a=this.agents.get(id);if(!a)throw new Error(`Unknown agent: ${id}`);const score=Number(a.metrics?.score??0);const reliability=Number(a.metrics?.reliability??1);return {agentId:id,passed:score>=minimumScore&&reliability>=minimumReliability,score,reliability};}
   retire(id,reason="retired"){const a=this.agents.get(id);if(!a)throw new Error(`Unknown agent: ${id}`);a.status="RETIRED";a.retiredAt=new Date().toISOString();a.retirementReason=reason;return this.get(id);}
   activate(id){const a=this.agents.get(id);if(!a)throw new Error(`Unknown agent: ${id}`);a.status="ACTIVE";delete a.retiredAt;delete a.retirementReason;return this.get(id);}
 }
