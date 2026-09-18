@@ -38,6 +38,7 @@ import {RecoveryOrchestrator} from "./recovery-orchestrator.js";
 import {IncidentManager} from "./incident-manager.js";
 import {AccessController} from "./access-controller.js";
 import {AuditLog} from "./audit-log.js";
+import {PolicyEngine} from "./policy-engine.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -148,18 +149,24 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         pollMs:config.ci?.pollMs
       })
     : null;
+  const policyRules=config.policy??{};
+  const policyEngine=new PolicyEngine({rules:policyRules});
+
   const promotion=new PromotionController({
     evaluator:new CandidateEvaluator(),
     repository,
     targetBranch:repository.baseBranch??config.github?.branch??"main",
-    ciGate
+    ciGate,
+    policyEngine
   });
   const controller=new AutonomousController({
     delivery,
     securityCouncil,
     promotion,
     championStore,
-    maxCycles:config.autonomous?.maxCycles??4
+    maxCycles:config.autonomous?.maxCycles??4,
+    policyEngine,
+    auditLog
   });
 
   const metrics=new MetricsCollector();
