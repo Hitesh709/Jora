@@ -1,0 +1,1 @@
+import test from "node:test";import assert from "node:assert/strict";import {RefactorPlanner} from "../src/core/refactor-planner.js";test("creates safe refactor plan",()=>{const p=new RefactorPlanner().plan({issues:[{file:"src/a.js"}]});assert.deepEqual(p.targets,["src/a.js"]);assert.ok(p.safety.includes("require security gate"));});
