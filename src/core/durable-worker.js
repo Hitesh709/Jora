@@ -6,7 +6,8 @@ export class DurableWorker {
     heartbeatMs=10_000,
     staleAfterMs=120_000,
     maxCycles=Infinity,
-    workerId="jora-worker"
+    workerId="jora-worker",
+    leaseStore=null
   }={}) {
     if(!cycle) throw new Error("cycle is required");
     if(!store?.read || !store?.write) throw new Error("store with read/write is required");
@@ -17,6 +18,8 @@ export class DurableWorker {
     this.staleAfterMs=staleAfterMs;
     this.maxCycles=maxCycles;
     this.workerId=workerId;
+    this.leaseStore=leaseStore;
+    this.leaseToken=null;
     this.running=false;
     this.stopRequested=false;
     this.jobId=null;
@@ -43,6 +46,13 @@ export class DurableWorker {
 
   async _heartbeat(){
     if(!this.running || !this.jobId) return;
+    if(this.leaseStore && this.leaseToken) {
+      const fresh=await this.leaseStore.heartbeat({owner:this.workerId,token:this.leaseToken});
+      if(!fresh) {
+        this.stopRequested=true;
+        return;
+      }
+    }
     const state=await this._read();
     if(state.worker?.id!==this.workerId || state.job?.id!==this.jobId) return;
     const now=new Date().toISOString();
@@ -65,6 +75,11 @@ export class DurableWorker {
   }
 
   async _acquire({command}){
+    if(this.leaseStore) {
+      const lease=await this.leaseStore.acquire({owner:this.workerId,metadata:{command,pid:process.pid}});
+      if(!lease) throw new Error("worker lease is already active");
+      this.leaseToken=lease.token;
+    }
     const state=await this._read();
     const active=state.worker?.status==="RUNNING" && this._isFresh(state.worker?.heartbeatAt);
     if(active) throw new Error("worker lease is already active");
@@ -184,6 +199,10 @@ export class DurableWorker {
       return {jobId:this.jobId,cycles:state.job.cycles,status:finalStatus};
     } finally {
       this._stopHeartbeat();
+      if(this.leaseStore && this.leaseToken) {
+        await this.leaseStore.release({owner:this.workerId,token:this.leaseToken}).catch(()=>{});
+      }
+      this.leaseToken=null;
       this.running=false;
       this.jobId=null;
     }
