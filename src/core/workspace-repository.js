@@ -11,6 +11,7 @@ export class WorkspaceRepository {
     this.ready=false;
     this.candidateBranch=null;
     this.candidateBase=null;
+    this.baseBranch=null;
   }
   safePath(relativePath) {
     if (!relativePath || path.isAbsolute(relativePath)) throw new Error("relative file path is required");
