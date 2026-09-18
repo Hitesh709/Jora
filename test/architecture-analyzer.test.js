@@ -1,0 +1,2 @@
+import test from "node:test";import assert from "node:assert/strict";import {ArchitectureAnalyzer} from "../src/core/architecture-analyzer.js";
+test("builds dependency architecture",()=>{const a=new ArchitectureAnalyzer().analyze({dependencies:{"a.js":["./b.js"],"b.js":[]}});assert.equal(a.edges.length,1);assert.equal(a.hotspots[0].file,"a.js");});
