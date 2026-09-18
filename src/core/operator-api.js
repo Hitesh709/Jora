@@ -52,7 +52,8 @@ export class OperatorApi {
     maxBodyBytes=1_000_000,
     dashboardPath=null,
     healthMonitor=null,
-    incidentManager=null
+    incidentManager=null,
+    rateLimitPerMinute=120
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -68,10 +69,20 @@ export class OperatorApi {
     this.dashboardPath=dashboardPath;
     this.healthMonitor=healthMonitor;
     this.incidentManager=incidentManager;
+    this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
+    this.rateBuckets=new Map();
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
     this.server=null;
     this.startedAt=null;
+  }
+
+  _rateLimited(req) {
+    const now=Date.now(); const key=req.socket?.remoteAddress||"unknown";
+    const bucket=this.rateBuckets.get(key);
+    if(!bucket || now-bucket.startedAt>=60000){ this.rateBuckets.set(key,{startedAt:now,count:1}); return false; }
+    bucket.count++;
+    return bucket.count>this.rateLimitPerMinute;
   }
 
   _authorized(req) {
@@ -99,6 +110,16 @@ export class OperatorApi {
     const method=req.method??"GET";
     const path=url.pathname;
 
+    if(method==="GET" && path==="/health") {
+      return json(res,200,{status:"ok",service:"jora",timestamp:new Date().toISOString()});
+    }
+
+    if(this._rateLimited(req)) return json(res,429,{error:"rate_limit_exceeded",retryAfterSeconds:60});
+
+    if(!this._authorized(req)) {
+      return json(res,401,{error:"unauthorized"});
+    }
+
     if(method==="GET" && (path==="/" || path==="/dashboard")) {
       if(!this.dashboardPath) return json(res,404,{error:"dashboard_not_configured"});
       try {
@@ -106,14 +127,6 @@ export class OperatorApi {
         res.writeHead(200,{"content-type":"text/html; charset=utf-8","cache-control":"no-store"});
         res.end(body); return;
       } catch { return json(res,404,{error:"dashboard_not_found"}); }
-    }
-
-    if(method==="GET" && path==="/health") {
-      return json(res,200,{status:"ok",service:"jora",timestamp:new Date().toISOString()});
-    }
-
-    if(!this._authorized(req)) {
-      return json(res,401,{error:"unauthorized"});
     }
 
     if(method==="GET" && path==="/v1/incidents") {
