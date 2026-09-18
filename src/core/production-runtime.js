@@ -192,6 +192,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     });
   }
 
+  const distributedConfig=config.distributed??{};
   const queueStore=distributedConfig.enabled
     ? await createPostgresTaskQueue({
         connectionString:distributedConfig.databaseUrl,
