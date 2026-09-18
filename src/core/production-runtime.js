@@ -20,19 +20,32 @@ import {BenchmarkStore} from "./benchmark-store.js";
 import {ChampionStore} from "./champion-store.js";
 
 class CandidateEvaluator {
-  async evaluate({candidate,champion,security}={}) {
+  async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
     const evaluation=candidate?.evaluation??{};
-    const benchmarkScore=evaluation.benchmarkScore??0;
-    const qualityScore=evaluation.qualityScore??0;
-    const championScore=champion?.evaluation?.benchmarkScore??-Infinity;
-    const passed=Boolean(evaluation.passed && security?.passed && benchmarkScore>=championScore);
+    const candidateBenchmark=benchmarkScore??evaluation.benchmarkScore??0;
+    const candidateQuality=qualityScore??evaluation.qualityScore??0;
+    const championBenchmark=champion?.evaluation?.benchmarkScore??-Infinity;
+    const championQuality=champion?.evaluation?.qualityScore??-Infinity;
+    const passed=Boolean(
+      evaluation.passed &&
+      security?.passed &&
+      candidateBenchmark>=0.8 &&
+      candidateQuality>=0.8 &&
+      (championBenchmark===-Infinity ||
+        candidateBenchmark>=championBenchmark)
+    );
     return {
       passed,
-      benchmarkScore,
-      qualityScore,
-      comparedToChampion:championScore===-Infinity?"NO_CHAMPION":benchmarkScore-championScore,
+      benchmarkScore:candidateBenchmark,
+      qualityScore:candidateQuality,
+      comparedToChampion:championBenchmark===-Infinity
+        ? "NO_CHAMPION"
+        : {
+            benchmarkDelta:candidateBenchmark-championBenchmark,
+            qualityDelta:candidateQuality-championQuality
+          },
       reasons:passed
-        ? ["Candidate passed tests, security and benchmark comparison"]
+        ? ["Candidate passed tests, security, quality and champion benchmark gates"]
         : ["Candidate failed a promotion gate or did not meet the champion benchmark"]
     };
   }
@@ -46,6 +59,10 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   await repository.prepareCandidate(`startup-${Date.now()}`);
   const benchmarkStore=new BenchmarkStore();
   const executionStore=new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
+  const championStore=new ChampionStore({
+    store:new JsonStore({file:config.championStateFile})
+  });
+  await championStore.load();
   const securityCouncil=createWorkspaceSecurityCouncil({repository});
   const sandbox=new DockerSandbox({image:config.docker.image,network:config.docker.network});
   const testRunner=createProjectTestRunner({sandbox});
@@ -61,11 +78,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const planner=new AgentSpecPlanner();
   const agentFactory=new AgentFactory({planner,projectFactory:factory});
   const evolution=new EvolutionEngine({evaluator});
-  const delivery=new AutonomousDelivery({agentFactory,evolution,maxRepairCycles:1});
+  const delivery=new AutonomousDelivery({agentFactory,evolution,maxRepairCycles:3});
   const builder=new ProductionAgentBuilder({planner,factory,delivery});
   const promotion=new PromotionController({evaluator:new CandidateEvaluator(),repository});
-  const championStore=new ChampionStore();
-  const controller=new AutonomousController({delivery,securityCouncil,promotion,maxCycles:1});
+  const controller=new AutonomousController({
+    delivery,
+    securityCouncil,
+    promotion,
+    championStore,
+    maxCycles:1
+  });
   const runtime=new JoraRuntime({builder,controller,executionStore});
   return {
     runtime,repository,securityCouncil,sandbox,testRunner,benchmarkStore,
