@@ -44,6 +44,7 @@
 - Continuous worker runtime wiring and worker CLI
 - CLI command entry point
 - Authenticated operator API with health, status, execution, observability, and worker-control endpoints
+- PostgreSQL-backed distributed worker lease coordination with atomic acquisition, heartbeat renewal, expiry recovery, and release
 
 ## Autonomous production loop
 
@@ -141,3 +142,18 @@ API configuration:
 - `JORA_API_PORT` (default `8787`)
 - `JORA_API_AUTH_TOKEN`
 - `JORA_API_MAX_BODY_BYTES`
+
+
+## Distributed production coordination
+
+Jora v0.11.0 adds an external PostgreSQL lease boundary for multi-process and multi-node worker coordination. When enabled, the durable worker acquires an atomic database lease before starting, renews it with heartbeats, and releases it when finished. A fresh lease held by another worker blocks startup; an expired lease can be recovered by another worker.
+
+Configuration:
+- `JORA_DISTRIBUTED_ENABLED=true`: enable the external lease coordinator.
+- `JORA_DATABASE_URL` or `DATABASE_URL`: PostgreSQL connection string.
+- `JORA_LEASE_NAMESPACE`: shared lease name, default `jora-worker`.
+- `JORA_LEASE_TTL_MS`: lease expiry window, default 120000.
+- `JORA_DATABASE_MAX_CONNECTIONS`: PostgreSQL pool size, default 5.
+- `JORA_WORKER_ID`: unique worker owner identifier; use a stable unique value per worker/node.
+
+The PostgreSQL adapter creates its lease table automatically. The `pg` package is loaded only when distributed coordination is enabled, so the default local runtime remains dependency-light. The lease prevents concurrent workers from owning the same Jora worker slot, but it does not provide exactly-once execution; cycles must remain idempotent and the existing promotion gates remain authoritative.
