@@ -5,7 +5,7 @@ import {SecurityCouncil} from "../src/core/security-council.js";
 import {AutonomousController} from "../src/core/autonomous-controller.js";
 
 test("security council requires its configured quorum", async()=>{
-  const gate = (name, passed) => new SecurityGate({checks:[Object.assign(async()=>({passed}),{name})]});
+  const gate = (name, passed) => new SecurityGate({checks:[Object.defineProperty(async()=>({passed}),"name",{value:name})]});
   const council = new SecurityCouncil({gates:[gate("static",true),gate("dependency",true),gate("policy",false)],quorum:2});
   const report=await council.review();
   assert.equal(report.passed,true);
