@@ -1,5 +1,3 @@
-import {HealthCheck} from "./health-check.js";
-
 export class StagedDeploymentController {
   constructor({staging,production,store=null}={}) {
     if(!staging || typeof staging.deploy!=="function") throw new Error("staging deployment controller is required");
@@ -25,13 +23,13 @@ export class StagedDeploymentController {
     await this._record({type:"STAGING_DEPLOYMENT_RESULT",version,status:staging.status,result:staging});
 
     if(staging.status!=="DEPLOYED") {
-      const result={
-        status:"STAGING_FAILED",
+      const result={status:"STAGING_FAILED",version,staging,production:null};
+      await this._record({
+        type:"STAGED_DEPLOYMENT_BLOCKED",
         version,
-        staging,
-        production:null
-      };
-      await this._record({type:"STAGED_DEPLOYMENT_BLOCKED",version,reason:"staging deployment or health gate failed",result});
+        reason:"staging deployment or health gate failed",
+        result
+      });
       return result;
     }
 
@@ -56,26 +54,4 @@ export class StagedDeploymentController {
     if(typeof this.production.rollback!=="function") throw new Error("production rollback is not configured");
     return this.production.rollback(ref,{...context,environment:"production"});
   }
-}
-
-export function createHealthGatedDeploymentController({
-  adapter,
-  healthCheck,
-  healthAttempts=3,
-  healthIntervalMs=2000,
-  store=null
-}={}) {
-  if(!adapter) throw new Error("adapter is required");
-  const gatedHealth=healthCheck
-    ? new HealthCheck({
-        checkFn:input=>healthCheck.check(input),
-        attempts:healthAttempts,
-        intervalMs:healthIntervalMs
-      })
-    : null;
-  return {
-    deploy:args=>adapter.deploy(args.candidate,{...args.context,version:args.version}),
-    rollback:(ref,context)=>adapter.rollback(ref,context),
-    _healthCheck:gatedHealth
-  };
 }
