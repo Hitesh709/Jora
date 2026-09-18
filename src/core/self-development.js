@@ -69,7 +69,7 @@ export class SelfDevelopmentEngine {
 
     while (attempt <= this.maxRepairAttempts) {
       if (this.stopRequested) {
-        return this.store.finish(execution.id, DEV_STATUS.STOPPED, {taskId: task.id, attempt});
+        return {...this.store.finish(execution.id, DEV_STATUS.STOPPED, {taskId: task.id, attempt}), attempts: attempt};
       }
 
       attempt += 1;
@@ -95,12 +95,12 @@ export class SelfDevelopmentEngine {
           attempt,
           evidence: metrics
         });
-        return this.store.finish(execution.id, "SUCCEEDED", {
+        return {...this.store.finish(execution.id, "SUCCEEDED", {
           taskId: task.id,
           attempts: attempt,
           metrics,
           result
-        });
+        }), attempts: attempt};
       }
 
       if (attempt <= this.maxRepairAttempts) {
@@ -120,11 +120,11 @@ export class SelfDevelopmentEngine {
       }
     }
 
-    return this.store.finish(execution.id, "FAILED", {
+    return {...this.store.finish(execution.id, "FAILED", {
       taskId: task.id,
       attempts: attempt,
       result
-    });
+    }), attempts: attempt};
   }
 
   async run({objective, context = {}, cycles = 1} = {}) {
