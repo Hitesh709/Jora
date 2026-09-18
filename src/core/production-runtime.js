@@ -227,6 +227,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     workerId:config.distributed?.owner||"jora-worker",
     leaseStore,
     queueStore,
+    metrics,
     intervalMs:config.worker?.intervalMs??60000,
     heartbeatMs:config.worker?.heartbeatMs??10000,
     staleAfterMs:config.worker?.staleAfterMs??120000,
