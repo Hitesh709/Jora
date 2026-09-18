@@ -4,10 +4,11 @@ import crypto from "node:crypto";
 import {LocalGitRepository} from "./local-git.js";
 
 export class WorkspaceRepository {
-  constructor({root,git=null}={}) {
+  constructor({root,git=null,remoteRepository=null}={}) {
     if (!root) throw new Error("workspace root is required");
     this.root=path.resolve(root);
     this.git=git ?? new LocalGitRepository({root:this.root});
+    this.remoteRepository=remoteRepository;
     this.ready=false;
     this.candidateBranch=null;
     this.candidateBase=null;
@@ -38,7 +39,7 @@ export class WorkspaceRepository {
   }
   async prepareCandidate(id=Date.now(),base=this.baseBranch||"HEAD") {
     await this.ensureReady();
-    const status=await this.git.status().catch(()=>"");
+    const status=await this.git.status().catch(()=> "");
     if(status) await this.git.runner.run("git",["reset","--hard","HEAD"],{cwd:this.root});
     const branch=`jora/candidate-${String(id).replace(/[^a-zA-Z0-9._-]/g,"-")}`;
     const existing=await this.git.runner.run("git",["rev-parse","--verify",branch],{cwd:this.root});
@@ -79,26 +80,60 @@ export class WorkspaceRepository {
     await walk(root);
     return result;
   }
+  async snapshot() {
+    const files=[];
+    for(const filePath of await this.list(".")) {
+      files.push({path:filePath,content:await this.read(filePath)});
+    }
+    return files;
+  }
   async commit(message="Jora candidate promotion") {
     await this.ensureReady();
     const result=await this.git.commit(message);
-    return {...result,branch:this.candidateBranch??await this.git.branch(),base:this.candidateBase};
+    const local={...result,branch:this.candidateBranch??await this.git.branch(),base:this.candidateBase};
+    if(!this.remoteRepository) return local;
+    const remote=await this.remoteRepository.publishCandidate({
+      branch:local.branch,
+      targetBranch:this.remoteRepository.branch,
+      files:await this.snapshot(),
+      message
+    });
+    return {...local,remote};
   }
-  async promoteCandidate({branch=this.candidateBranch,targetBranch="main",deleteCandidate=false}={}) {
+  async promoteCandidate({branch=this.candidateBranch,targetBranch=this.baseBranch??"main",deleteCandidate=false}={}) {
     await this.ensureReady();
     if(!branch) throw new Error("candidate branch is required");
+    let remote=null;
+    if(this.remoteRepository) {
+      remote=await this.remoteRepository.promoteBranch(
+        branch,
+        targetBranch
+      );
+    }
     const current=await this.git.branch();
     const candidateCommit=await this.git.currentCommit();
     if(current!==targetBranch) await this.git.checkout(targetBranch);
     const previous=await this.git.currentCommit();
     const merge=await this.git.mergeFastForward(branch);
     if(deleteCandidate) await this.git.deleteBranch(branch);
-    if(current!==targetBranch) await this.git.checkout(targetBranch);
-    return {promoted:true,branch,targetBranch,previous,candidateCommit,commit:merge.commit};
+    if(current!==targetBranch) await this.git.checkout(current);
+    return {
+      promoted:true,
+      branch,
+      targetBranch,
+      previous,
+      candidateCommit,
+      commit:merge.commit,
+      remote
+    };
   }
-  async rollbackTo(ref,{branch="main"}={}) {
+  async rollbackTo(ref,{branch=this.baseBranch??"main"}={}) {
     await this.ensureReady();
-    return this.git.rollbackBranch(branch,ref);
+    const local=await this.git.rollbackBranch(branch,ref);
+    const remote=this.remoteRepository
+      ? await this.remoteRepository.rollback(ref,branch)
+      : null;
+    return {...local,remote};
   }
   async rollback(ref) { return this.rollbackTo(ref,{branch:await this.git.branch()}); }
   async branch() { await this.ensureReady(); return this.git.branch(); }
