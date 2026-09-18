@@ -35,7 +35,8 @@ function safeExecution(execution) {
     createdAt:execution.createdAt,
     updatedAt:execution.updatedAt,
     result:execution.result??null,
-    trace:execution.trace??[]
+    trace:execution.trace??[],
+    tenantId:execution.input?.tenantId??execution.tenantId??"default"
   };
 }
 
@@ -171,13 +172,14 @@ export class OperatorApi {
     if(method==="GET" && path==="/v1/executions") {
       const executions=this.executionStore?.list ? await this.executionStore.list() : [];
       const limit=Math.min(100,Math.max(1,Number(url.searchParams.get("limit")||20)));
-      return json(res,200,{executions:executions.slice(-limit).map(safeExecution)});
+      return json(res,200,{executions:executions.filter(e=>(e.input?.tenantId??e.tenantId??"default")===tenantId).slice(-limit).map(safeExecution)});
     }
 
     const executionMatch=path.match(/^\/v1\/executions\/([^/]+)$/);
     if(method==="GET" && executionMatch) {
       const execution=this.executionStore?.get ? await this.executionStore.get(executionMatch[1]) : null;
       if(!execution) return json(res,404,{error:"execution_not_found"});
+      if((execution.input?.tenantId??execution.tenantId??"default")!==tenantId) return json(res,404,{error:"execution_not_found"});
       return json(res,200,{execution:safeExecution(execution)});
     }
 
@@ -185,14 +187,15 @@ export class OperatorApi {
       if(!this.queue?.list) return json(res,503,{error:"queue_not_configured"});
       const limit=Math.min(200,Math.max(1,Number(url.searchParams.get("limit")||50)));
       const status=url.searchParams.get("status")||undefined;
-      return json(res,200,{jobs:await this.queue.list({limit,status})});
+      const jobs=await this.queue.list({limit,status});
+      return json(res,200,{jobs:jobs.filter(job=>(job.context?.tenantId??"default")===tenantId)});
     }
 
     const jobMatch=path.match(/^\/v1\/jobs\/([^/]+)$/);
     if(method==="GET" && jobMatch) {
       if(!this.queue?.get) return json(res,503,{error:"queue_not_configured"});
       const job=await this.queue.get(jobMatch[1]);
-      if(!job) return json(res,404,{error:"job_not_found"});
+      if(!job || (job.context?.tenantId??"default")!==tenantId) return json(res,404,{error:"job_not_found"});
       return json(res,200,{job});
     }
 
