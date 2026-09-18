@@ -1,5 +1,5 @@
 export class AutonomousController {
-  constructor({delivery,securityCouncil,promotion,championStore=null,maxCycles=Infinity}={}) {
+  constructor({delivery,securityCouncil,promotion,championStore=null,maxCycles=Infinity,policyEngine=null,auditLog=null}={}) {
     if(!delivery||!securityCouncil||!promotion) throw new Error("delivery, securityCouncil and promotion are required");
     this.delivery=delivery;
     this.securityCouncil=securityCouncil;
@@ -7,6 +7,8 @@ export class AutonomousController {
     this.championStore=championStore;
     this.maxCycles=maxCycles;
     this.stopRequested=false;
+    this.policyEngine=policyEngine;
+    this.auditLog=auditLog;
   }
 
   stop(){this.stopRequested=true;}
@@ -23,6 +25,11 @@ export class AutonomousController {
     let repairHistory=[...(context.repairHistory??[])];
 
     for(let cycle=1;cycle<=this.maxCycles&&!this.stopRequested;cycle+=1) {
+      const tenantId=context.tenantId??"default";
+      const actorId=context.actorId??"system";
+      const policy=await this.policyEngine?.evaluate({action:"EXECUTE",tenantId,actorId,context,metrics:{}});
+      if(policy && !policy.allowed) { results.push({cycle,status:"POLICY_BLOCKED",policy}); break; }
+
       if(!project) {
         project=await this.delivery.deliver({
           command,
