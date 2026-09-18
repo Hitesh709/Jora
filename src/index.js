@@ -6,3 +6,7 @@ export { ExecutionStore } from "./core/execution-store.js";
 export { CodeMaster } from "./core/code-master.js";
 export { InMemoryRepository } from "./core/repository.js";
 export { ProductionPipeline } from "./core/pipeline.js";
+export { SelfDevelopmentEngine, DEV_STATUS } from "./core/self-development.js";
+export { SelfInspector } from "./core/self-inspector.js";
+export { SelfTaskGenerator } from "./core/task-generator.js";
+export { SelfExecutor } from "./core/self-executor.js";
