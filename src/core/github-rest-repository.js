@@ -13,14 +13,14 @@ export class GitHubRestRepository {
       "X-GitHub-Api-Version":"2026-03-10",
       ...options.headers
     }});
-    const data=await response.json();
+    const data=response.status===204?{}:await response.json();
     if(!response.ok) throw new Error("GitHub request failed: "+response.status+" "+JSON.stringify(data));
     return data;
   }
 
   pathFor(path){return encodeURIComponent(path).replace(/%2F/g,"/");}
 
-  async read(path){
+  async read(path){ 
     const d=await this.request("/repos/"+this.owner+"/"+this.repo+"/contents/"+this.pathFor(path)+"?ref="+encodeURIComponent(this.branch));
     return {path,sha:d.sha,content:Buffer.from(d.content.replace(/\n/g,""),"base64").toString("utf8")};
   }
@@ -37,10 +37,22 @@ export class GitHubRestRepository {
 
   async createBranch(branch,base=this.branch){
     const baseRef=await this.ref(base);
+    return this.createBranchAtSha(branch,baseRef.object.sha);
+  }
+
+  async createBranchAtSha(branch,sha){
     return this.request("/repos/"+this.owner+"/"+this.repo+"/git/refs",{
       method:"POST",
-      body:JSON.stringify({ref:"refs/heads/"+branch,sha:baseRef.object.sha})
+      body:JSON.stringify({ref:"refs/heads/"+branch,sha})
     });
+  }
+
+  async deleteBranch(branch){
+    return this.request("/repos/"+this.owner+"/"+this.repo+"/git/refs/heads/"+encodeURIComponent(branch),{method:"DELETE"});
+  }
+
+  async getCommit(sha){
+    return this.request("/repos/"+this.owner+"/"+this.repo+"/git/commits/"+encodeURIComponent(sha));
   }
 
   async createBlob(content){
@@ -71,6 +83,33 @@ export class GitHubRestRepository {
     });
   }
 
+  async publishCandidate({branch,targetBranch=this.branch,files=[],message="Jora candidate"}={}){
+    if(!branch) throw new Error("candidate branch is required");
+    const target=await this.ref(targetBranch);
+    const parentSha=target.object.sha;
+    const parentCommit=await this.getCommit(parentSha);
+    const tree=await this.createTree(
+      files.map(file=>{
+        if(!file?.path||file.path.startsWith("/")||file.path.split("/").includes("..")) {
+          throw new Error("unsafe candidate file path");
+        }
+        return {path:file.path,mode:"100644",type:"blob",content:String(file.content??"")};
+      }),
+      parentCommit.tree.sha
+    );
+    const commit=await this.createCommit(message,tree.sha,parentSha);
+    const created=await this.createBranchAtSha(branch,commit.sha);
+    return {
+      published:true,
+      branch,
+      targetBranch,
+      parent:parentSha,
+      tree:tree.sha,
+      commit:commit.sha,
+      ref:created.ref
+    };
+  }
+
   async promoteBranch(candidateBranch,targetBranch=this.branch){
     const candidate=await this.ref(candidateBranch);
     const target=await this.ref(targetBranch);
@@ -97,10 +136,47 @@ export class GitHubRestRepository {
     };
   }
 
+  async listWorkflowRuns({branch=null,headSha=null,perPage=50}={}){
+    const params=new URLSearchParams({per_page:String(perPage)});
+    if(branch) params.set("branch",branch);
+    if(headSha) params.set("head_sha",headSha);
+    const data=await this.request("/repos/"+this.owner+"/"+this.repo+"/actions/runs?"+params.toString());
+    return data.workflow_runs??[];
+  }
+
+  async waitForWorkflow({branch=null,headSha,timeoutMs=600000,pollMs=5000}={}){
+    if(!headSha) throw new Error("headSha is required");
+    const deadline=Date.now()+timeoutMs;
+    let seen=[];
+    while(Date.now()<=deadline){
+      seen=await this.listWorkflowRuns({branch,headSha});
+      if(seen.length){
+        const latestByWorkflow=new Map();
+        for(const run of seen){
+          const key=run.workflow_id??run.name??run.id;
+          const previous=latestByWorkflow.get(key);
+          if(!previous || new Date(run.created_at??0)>new Date(previous.created_at??0)) {
+            latestByWorkflow.set(key,run);
+          }
+        }
+        const runs=[...latestByWorkflow.values()];
+        const failed=runs.find(run=>run.status==="completed" && run.conclusion!=="success");
+        if(failed) {
+          return {passed:false,status:"FAILED",headSha,branch,runs,evidence:failed};
+        }
+        if(runs.length && runs.every(run=>run.status==="completed" && run.conclusion==="success")) {
+          return {passed:true,status:"PASSED",headSha,branch,runs};
+        }
+      }
+      await new Promise(resolve=>setTimeout(resolve,pollMs));
+    }
+    return {passed:false,status:"TIMEOUT",headSha,branch,runs:seen};
+  }
+
   async commit(message){
     return {
       committed:false,
-      reason:"GitHub Contents API creates commits per file; use createBlob/createTree/createCommit for atomic multi-file commits.",
+      reason:"GitHub Contents API creates commits per file; use publishCandidate or createBlob/createTree/createCommit for atomic multi-file commits.",
       message
     };
   }
