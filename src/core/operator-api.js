@@ -41,6 +41,7 @@ export class OperatorApi {
     runtime,
     executionStore,
     observability=null,
+    metrics=null,
     worker=null,
     queue=null,
     host="127.0.0.1",
@@ -52,6 +53,7 @@ export class OperatorApi {
     this.runtime=runtime;
     this.executionStore=executionStore;
     this.observability=observability;
+    this.metrics=metrics;
     this.worker=worker;
     this.queue=queue;
     this.host=host;
@@ -95,6 +97,10 @@ export class OperatorApi {
 
     if(!this._authorized(req)) {
       return json(res,401,{error:"unauthorized"});
+    }
+
+    if(method==="GET" && path==="/v1/metrics") {
+      return json(res,200,this.metrics?.snapshot ? this.metrics.snapshot() : {counters:{},histograms:{}});
     }
 
     if(method==="GET" && path==="/v1/status") {
