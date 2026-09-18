@@ -1,4 +1,5 @@
 import {AgentSpecPlanner} from "./agent-spec-planner.js";
+import {AgentRegistry} from "./agent-registry.js";
 import {ProjectFactory} from "./project-factory.js";
 import {AgentFactory} from "./agent-factory.js";
 import {EvolutionEngine} from "./evolution.js";
@@ -162,7 +163,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     evaluator:{evaluateProject:async args=>buildPipeline.evaluateProject(args)}
   });
   const planner=new AgentSpecPlanner();
-  const agentFactory=new AgentFactory({planner,projectFactory:factory});
+  const agentRegistry=new AgentRegistry();
+  const agentFactory=new AgentFactory({planner,projectFactory:factory,registry:agentRegistry});
   const evolution=new EvolutionEngine({evaluator});
   const delivery=new AutonomousDelivery({agentFactory,evolution,maxRepairCycles:3});
   const builder=new ProductionAgentBuilder({planner,factory,delivery});
@@ -342,6 +344,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,lineageStore,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,agentRegistry,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
