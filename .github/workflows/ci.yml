@@ -5,6 +5,11 @@ on:
       - main
       - 'jora/**'
   pull_request:
+
+concurrency:
+  group: jora-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ubuntu-latest
