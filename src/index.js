@@ -66,3 +66,5 @@ export { OperatorApi } from "./core/operator-api.js";
 export { MetricsCollector } from "./core/metrics-collector.js";
 export { OperationalHealthMonitor } from "./core/operational-health-monitor.js";
 export { RecoveryOrchestrator } from "./core/recovery-orchestrator.js";
+
+export { IncidentManager } from "./core/incident-manager.js";
