@@ -101,3 +101,7 @@ export { ChangeImpactAnalyzer } from "./core/change-impact-analyzer.js";
 export { CodeQualityAssessor } from "./core/code-quality-assessor.js";
 export { RefactorSafetyGate } from "./core/refactor-safety-gate.js";
 export { AgentTeamCoordinator } from "./core/agent-factory.js";
+export { AgentMemory } from "./core/agent-memory.js";
+export { KnowledgeStore } from "./core/knowledge-store.js";
+export { KnowledgeRetriever } from "./core/knowledge-retriever.js";
+export { SharedTeamMemory } from "./core/shared-team-memory.js";
