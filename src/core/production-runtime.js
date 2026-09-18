@@ -59,6 +59,10 @@ import {AgentMemory} from "./agent-memory.js";
 import {KnowledgeStore} from "./knowledge-store.js";
 import {KnowledgeRetriever} from "./knowledge-retriever.js";
 import {SharedTeamMemory} from "./shared-team-memory.js";
+import {RoadmapEngine} from "./roadmap-engine.js";
+import {MissionManager} from "./mission-manager.js";
+import {AutonomousMissionRunner} from "./autonomous-mission-runner.js";
+import {JORA_1_00_ROADMAP} from "./jora-1.00-roadmap.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -224,6 +228,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const metrics=new MetricsCollector();
   const auditLog=new AuditLog({observability:null});
 
+  const roadmap=new RoadmapEngine({roadmap:JORA_1_00_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
+  await roadmap.load();
+  const missionManager=new MissionManager({roadmap,maxTasksPerCycle:config.mission?.tasksPerCycle??1});
+  await missionManager.initialize();
+
   const observability=new ObservabilityStore({
     store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})
   });
@@ -317,6 +326,12 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     })
   });
   runtime.continuousWorker=worker;
+  const missionRunner=new AutonomousMissionRunner({
+    missionManager,
+    maxCycles:config.mission?.maxCycles??Infinity,
+    intervalMs:config.mission?.intervalMs??0,
+    executeTask:async (task,{context})=>runtime.execute({command:task.description||task.title,constraints:{roadmapTask:task.id,title:task.title},context:{...context,roadmapTask:task}})
+  });
   const recoveryConfig=config.recovery??{};
   const recovery=new RecoveryOrchestrator({observability,worker,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
   const incidentManager=new IncidentManager({observability});
@@ -355,6 +370,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,lineageStore,agentRegistry,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,agentRegistry,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
