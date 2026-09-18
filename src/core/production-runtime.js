@@ -159,7 +159,9 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     repository,
     targetBranch:repository.baseBranch??config.github?.branch??"main",
     ciGate,
-    policyEngine
+    policyEngine,
+    regressionAnalyzer,
+    benchmarkStore
   });
   const controller=new AutonomousController({
     delivery,
