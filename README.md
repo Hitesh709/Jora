@@ -66,3 +66,15 @@ The intended production loop is:
 Security gates are automated evaluation agents/checks; they are not intended to require manual approval for every development step.
 
 The Docker boundary is designed as an infrastructure adapter with network isolation, resource limits, dropped Linux capabilities, read-only root filesystem, ephemeral tmpfs, and a non-root user. A production deployment should additionally harden the host/container runtime and secrets management.
+
+
+## Production adapter milestone
+
+Version 0.5 adds concrete provider, GitHub, persistence, and deployment adapter boundaries:
+
+- `OpenAICompatibleProvider` — environment-configured model HTTP adapter
+- `GitHubRestRepository` — token-based GitHub repository content adapter
+- `JsonStore` and `PersistentExecutionStore` — durable local execution evidence
+- `DeploymentAdapter` — deployment/rollback integration boundary
+
+Credentials are read from environment/configuration and are never embedded in generated source. These adapters are intentionally dependency-injected so Jora's autonomous controller can run the same workflow against different production infrastructures.
