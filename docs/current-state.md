@@ -209,3 +209,8 @@ Jora v0.18.0 connects operational health alerts to a bounded recovery orchestrat
 ## Incident management
 
 Jora v0.19.0 adds an incident lifecycle around operational alerts. Alerts are deduplicated into incident IDs with severity, occurrence counts, timestamps, recovery state, resolution, and escalation. The operator API exposes `GET /v1/incidents` and `GET /v1/incidents/:id`. Recovery actions update the incident lifecycle; failed recovery escalates the incident instead of silently disappearing. The incident manager is integrated with observability for an auditable operational history.
+
+
+## Operator API security hardening
+
+Jora v0.20.0 protects the operator dashboard with the same bearer authentication as the control API when an auth token is configured. The liveness endpoint GET /health remains public for infrastructure probes. Operator traffic now has an in-process per-client rate limit, configurable with JORA_API_RATE_LIMIT_PER_MINUTE (default 120). Excess requests receive HTTP 429. Remote operator API binding continues to require an auth token.
