@@ -1,0 +1,3 @@
+import test from "node:test"; import assert from "node:assert/strict"; import {GovernanceStateMachine} from "../src/core/governance-state-machine.js";
+test("governance state machine enforces lifecycle transitions",async()=>{const events=[];const g=new GovernanceStateMachine({store:{append:async(id,e)=>events.push(e)}});await g.transition({executionId:"e1",to:"AUTHORIZED"});await g.transition({executionId:"e1",to:"PLANNED"});assert.equal(g.current("e1"),"PLANNED");assert.equal(events.length,2);});
+test("invalid governance transition is blocked",async()=>{const g=new GovernanceStateMachine();await assert.rejects(()=>g.transition({executionId:"e2",to:"PROMOTED"}),/invalid governance transition/);});
