@@ -83,9 +83,18 @@ export { SecurityIntelligence } from "./core/security-intelligence.js";
 export { RegressionAnalyzer } from "./core/regression-analyzer.js";
 
 export { ChampionSelector } from "./core/champion-selector.js";
-\nexport { CandidatePopulation } from "./core/candidate-population.js";\nexport { LineageStore } from "./core/lineage-store.js";\nexport { MutationStrategyEngine } from "./core/mutation-strategy-engine.js";\nexport { EvolutionScheduler } from "./core/evolution-scheduler.js";\nexport { ResearchLoop } from "./core/research-loop.js";
+
+export { CandidatePopulation } from "./core/candidate-population.js";
+export { LineageStore } from "./core/lineage-store.js";
+export { MutationStrategyEngine } from "./core/mutation-strategy-engine.js";
+export { EvolutionScheduler } from "./core/evolution-scheduler.js";
+export { ResearchLoop } from "./core/research-loop.js";
 export { MultiGenerationEngine } from "./core/multi-generation-engine.js";
 export { ParallelCandidateRunner } from "./core/parallel-candidate-runner.js";
 export { ExperimentEngine } from "./core/experiment-engine.js";
 export { LearningMemory } from "./core/learning-memory.js";
 export { AutonomousEvolutionController } from "./core/autonomous-evolution-controller.js";
+export { CodebaseIndex } from "./core/codebase-index.js";
+export { ArchitectureAnalyzer } from "./core/architecture-analyzer.js";
+export { RefactorPlanner } from "./core/refactor-planner.js";
+export { ChangeImpactAnalyzer } from "./core/change-impact-analyzer.js";
