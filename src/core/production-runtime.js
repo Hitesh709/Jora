@@ -40,6 +40,7 @@ import {AccessController} from "./access-controller.js";
 import {AuditLog} from "./audit-log.js";
 import {PolicyEngine} from "./policy-engine.js";
 import {GovernanceStateMachine} from "./governance-state-machine.js";
+import {RegressionAnalyzer} from "./regression-analyzer.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -153,6 +154,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   const policyRules=config.policy??{};
   const policyEngine=new PolicyEngine({rules:policyRules});
+  const regressionAnalyzer=new RegressionAnalyzer();
 
   const promotion=new PromotionController({
     evaluator:new CandidateEvaluator(),
