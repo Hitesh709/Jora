@@ -6,8 +6,8 @@ export class AutonomousDelivery {
 
   async deliver({command,constraints={},context={}}={}) {
     let last;
-    let repairFeedback=null;
-    const history=[];
+    let repairFeedback=context.repairFeedback??null;
+    const history=[...(context.repairHistory??[])];
     for(let cycle=1;cycle<=this.maxRepairCycles;cycle+=1) {
       const cycleContext={...context,repairFeedback,repairHistory:history,cycle};
       last=await this.agentFactory.build({command,constraints,context:cycleContext,cycle});
