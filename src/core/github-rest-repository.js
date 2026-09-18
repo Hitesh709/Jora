@@ -5,7 +5,7 @@ export class GitHubRestRepository {
     this.token=token; this.owner=owner; this.repo=repo; this.branch=branch; this.apiBase=apiBase.replace(/\\/$/,"");
   }
   async request(path,options={}) {
-    const response=await fetch(this.apiBase+path,{...options,headers:{"accept":"application/vnd.github+json","content-type":"application/json","authorization:"+"Bearer "+this.token,...options.headers}});
+    const response=await fetch(this.apiBase+path,{...options,headers:{"accept":"application/vnd.github+json","content-type":"application/json","authorization":"Bearer "+this.token,...options.headers}});
     const data=await response.json();
     if(!response.ok) throw new Error("GitHub request failed: "+response.status+" "+JSON.stringify(data));
     return data;
