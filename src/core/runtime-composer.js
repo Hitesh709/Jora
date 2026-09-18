@@ -17,21 +17,20 @@ export function createJoraRuntime({planner,factory,delivery,controller,modelProv
   const modelGateway=new ModelGateway({providers:new Map([...providers.providers]),defaultModel:"default"});
   const benchmarkStore=new BenchmarkStore();
   const executionStore=new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
-  const workerStore=new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"});
   const builder=new ProductionAgentBuilder({planner,factory,delivery});
+  const runtime=new JoraRuntime({builder,controller,executionStore});
   const worker=new DurableWorker({
-    store:workerStore,
+    store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
     intervalMs:config.worker?.intervalMs??60000,
     heartbeatMs:config.worker?.heartbeatMs??10000,
     staleAfterMs:config.worker?.staleAfterMs??120000,
     maxCycles:config.worker?.maxCycles??Infinity,
-    cycle:async ({cycle,command,context})=>controller.run({
+    cycle:async ({cycle,command,context})=>runtime.execute({
       command:command??"Improve Jora",
+      constraints:{},
       context:{...context,cycle,modelGateway,benchmarkStore}
     })
   });
-  return {
-    runtime:new JoraRuntime({builder,controller,continuousWorker:worker,executionStore}),
-    modelGateway,benchmarkStore,executionStore,providers,worker,config
-  };
+  runtime.continuousWorker=worker;
+  return {runtime,modelGateway,benchmarkStore,executionStore,providers,worker,config};
 }
