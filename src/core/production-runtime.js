@@ -36,6 +36,7 @@ import path from "node:path";
 import {OperationalHealthMonitor} from "./operational-health-monitor.js";
 import {RecoveryOrchestrator} from "./recovery-orchestrator.js";
 import {IncidentManager} from "./incident-manager.js";
+import {AccessController} from "./access-controller.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -262,6 +263,9 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     healthTimer.unref?.();
   }
 
+  const accessTokens={};
+  if(config.api?.accessTokens) { for(const entry of String(config.api.accessTokens).split(",").map(x=>x.trim()).filter(Boolean)) { const [token,tenantId="default",roles="admin"]=entry.split(":"); if(token) accessTokens[token]={id:token.slice(0,8),tenantId,roles:roles.split("+")}; } }
+  const accessController=new AccessController({tokens:accessTokens});
   const api=config.api?.enabled
     ? new OperatorApi({
         runtime,
@@ -277,7 +281,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         rateLimitPerMinute:config.api.rateLimitPerMinute,
         dashboardPath:path.resolve(process.cwd(),"src/operator/dashboard.html"),
         healthMonitor,
-        incidentManager
+        incidentManager,
+        accessController
       })
     : null;
   return {
