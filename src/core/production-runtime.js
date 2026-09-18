@@ -12,6 +12,8 @@ import {AutonomousDelivery} from "./autonomous-delivery.js";
 import {AutonomousController} from "./autonomous-controller.js";
 import {PromotionController} from "./promotion-controller.js";
 import {WorkspaceRepository} from "./workspace-repository.js";
+import {GitHubRestRepository} from "./github-rest-repository.js";
+import {GitHubCIGate} from "./github-ci-gate.js";
 import {createWorkspaceSecurityCouncil} from "./security-checks.js";
 import {JoraRuntime} from "./jora-runtime.js";
 import {JsonStore} from "./json-store.js";
@@ -55,7 +57,13 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   if(!config) throw new Error("config is required");
   if(!modelGateway) throw new Error("modelGateway is required");
 
-  const repository=new WorkspaceRepository({root:config.workspace});
+  const remoteRepository=config.github?.token && config.github?.owner && config.github?.repo
+    ? new GitHubRestRepository(config.github)
+    : null;
+  const repository=new WorkspaceRepository({
+    root:config.workspace,
+    remoteRepository
+  });
   await repository.prepareCandidate(`startup-${Date.now()}`);
   const benchmarkStore=new BenchmarkStore();
   const executionStore=new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
@@ -80,10 +88,18 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const evolution=new EvolutionEngine({evaluator});
   const delivery=new AutonomousDelivery({agentFactory,evolution,maxRepairCycles:3});
   const builder=new ProductionAgentBuilder({planner,factory,delivery});
+  const ciGate=remoteRepository
+    ? new GitHubCIGate({
+        repository:remoteRepository,
+        timeoutMs:config.ci?.timeoutMs,
+        pollMs:config.ci?.pollMs
+      })
+    : null;
   const promotion=new PromotionController({
     evaluator:new CandidateEvaluator(),
     repository,
-    targetBranch:repository.baseBranch??"main"
+    targetBranch:repository.baseBranch??config.github?.branch??"main",
+    ciGate
   });
   const controller=new AutonomousController({
     delivery,
@@ -94,7 +110,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   const runtime=new JoraRuntime({builder,controller,executionStore,repository});
   return {
-    runtime,repository,securityCouncil,sandbox,testRunner,benchmarkStore,
+    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
     executionStore,championStore,modelGateway,config
   };
 }
