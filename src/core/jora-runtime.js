@@ -1,11 +1,12 @@
 export class JoraRuntime {
-  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null}={}) {
+  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null}={}) {
     if (!builder || !controller) throw new Error("builder and controller are required");
     this.builder=builder;
     this.controller=controller;
     this.continuousWorker=continuousWorker;
     this.executionStore=executionStore;
     this.repository=repository;
+    this.deploymentController=deploymentController;
   }
 
   async execute({command,constraints={},context={}}={}) {
@@ -35,13 +36,30 @@ export class JoraRuntime {
       const built=await this.builder.build({command,constraints,context:candidateContext});
       if(execution) await this.executionStore.append(execution.id,{type:"BUILD_COMPLETE",status:built?.status});
 
-      const result=await this.controller.run({
+      let result=await this.controller.run({
         command,
         context:{...candidateContext,built}
       });
+
+      if(result.status==="PROMOTED" && this.deploymentController) {
+        const deployment=await this.deploymentController.deploy({
+          candidate:result.champion??result.candidate,
+          version:result.champion?.version??result.version,
+          context:{...candidateContext,executionId:execution?.id,result}
+        });
+        result={...result,deployment};
+        if(execution) await this.executionStore.append(execution.id,{
+          type:"DEPLOYMENT",
+          status:deployment.status,
+          deployment
+        });
+      }
+
       if(execution) await this.executionStore.finish(
         execution.id,
-        result.status==="PROMOTED"?"PROMOTED":"COMPLETED",
+        result.status==="PROMOTED" && (!result.deployment || result.deployment.status==="DEPLOYED")
+          ?"PROMOTED"
+          :"COMPLETED",
         result
       );
       return result;
