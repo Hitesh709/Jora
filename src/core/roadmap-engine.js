@@ -79,7 +79,7 @@ export class RoadmapEngine {
       .filter(task=>(task.dependencies??[]).every(dep=>this.state.tasks[dep]?.status===STATUS.DONE))
       .sort((a,b)=>(Number(b.priority??0)-Number(a.priority??0)) || String(a.id).localeCompare(String(b.id)))
       .slice(0,limit)
-      .map(structuredClone);
+      .map(x=>structuredClone(x));
   }
 
   progress() {
@@ -97,6 +97,6 @@ export class RoadmapEngine {
 
   all() {
     if(!this.loaded) return [];
-    return Object.values(this.state.tasks).map(structuredClone);
+    return Object.values(this.state.tasks).map(x=>structuredClone(x));
   }
 }
