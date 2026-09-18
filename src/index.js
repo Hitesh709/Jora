@@ -30,6 +30,7 @@ export { DurableWorker } from "./core/durable-worker.js";
 export { DistributedWorker } from "./core/distributed-worker.js";
 export { PostgresLeaseStore, createPostgresLeaseStore } from "./core/postgres-lease-store.js";
 export { PostgresTaskQueue, createPostgresTaskQueue } from "./core/postgres-task-queue.js";
+export { PostgresExecutionStore, createPostgresExecutionStore } from "./core/postgres-execution-store.js";
 export { SecurityGate } from "./core/security-gate.js";
 export { SecurityCouncil } from "./core/security-council.js";
 export { AutonomousController } from "./core/autonomous-controller.js";
