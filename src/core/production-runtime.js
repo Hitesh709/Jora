@@ -43,6 +43,7 @@ import {GovernanceStateMachine} from "./governance-state-machine.js";
 import {RegressionAnalyzer} from "./regression-analyzer.js";
 import {ChampionSelector} from "./champion-selector.js";
 import {AutonomousEvolutionController} from "./autonomous-evolution-controller.js";
+import {CandidatePopulation} from "./candidate-population.js";
 import {LearningMemory} from "./learning-memory.js";
 import {ExperimentEngine} from "./experiment-engine.js";
 import {ParallelCandidateRunner} from "./parallel-candidate-runner.js";
