@@ -63,6 +63,7 @@ import {RoadmapEngine} from "./roadmap-engine.js";
 import {MissionManager} from "./mission-manager.js";
 import {AutonomousMissionRunner} from "./autonomous-mission-runner.js";
 import {JORA_1_00_ROADMAP} from "./jora-1.00-roadmap.js";
+import {AutonomousProgramManager} from "./autonomous-program-manager.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -299,6 +300,12 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     metrics,
     governance
   });
+  const missionRunner=new AutonomousMissionRunner({
+    missionManager,
+    maxCycles:config.mission?.maxCycles??Infinity,
+    intervalMs:config.mission?.intervalMs??0,
+    executeTask:async (task,{context})=>runtime.execute({command:task.description||task.title,constraints:{roadmapTask:task.id,title:task.title},context:{...context,roadmapTask:task}})
+  });
   const worker=new DurableWorker({
     store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
     workerId:config.distributed?.owner||"jora-worker",
@@ -309,28 +316,31 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     heartbeatMs:config.worker?.heartbeatMs??10000,
     staleAfterMs:config.worker?.staleAfterMs??120000,
     maxCycles:config.worker?.maxCycles??Infinity,
-    cycle:async ({cycle,command,context})=>runtime.execute({
-      command:command??"Improve Jora",
-      constraints:{},
-      context:{
-        ...context,
-        cycle,
-        modelGateway,
-        benchmarkStore,
-        championStore,
-        workspace:config.workspace,
-        sandbox,
-        network:config.docker.network,
-        securityConfig:config.security
-      }
-    })
+    cycle:async ({cycle,command,context})=>{
+      const objective=command??"Complete Jora roadmap autonomously";
+      return missionRunner.run({
+        objective,
+        context:{
+          ...context,
+          cycle,
+          modelGateway,
+          benchmarkStore,
+          championStore,
+          workspace:config.workspace,
+          sandbox,
+          network:config.docker.network,
+          securityConfig:config.security
+        },
+        maxCycles:1
+      });
+    }
   });
   runtime.continuousWorker=worker;
-  const missionRunner=new AutonomousMissionRunner({
+  const programManager=new AutonomousProgramManager({
     missionManager,
-    maxCycles:config.mission?.maxCycles??Infinity,
-    intervalMs:config.mission?.intervalMs??0,
-    executeTask:async (task,{context})=>runtime.execute({command:task.description||task.title,constraints:{roadmapTask:task.id,title:task.title},context:{...context,roadmapTask:task}})
+    missionRunner,
+    roadmap,
+    observability:null
   });
   const recoveryConfig=config.recovery??{};
   const recovery=new RecoveryOrchestrator({observability,worker,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
@@ -370,6 +380,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,lineageStore,agentRegistry,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,agentRegistry,programManager,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
