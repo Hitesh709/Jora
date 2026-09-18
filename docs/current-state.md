@@ -32,15 +32,26 @@
 - GitHub Git-database primitives for atomic candidate branch promotion and rollback
 - Remote GitHub candidate publication from the local workspace
 - GitHub Actions CI gate before promotion
+- CI failure job-log evidence collection
+- Autonomous CI diagnosis and repair loop
+- Re-publication of repaired candidates to the same isolated GitHub branch without force updates
 - CLI command entry point
 
-## Target product
-
-**Master AI Agent + Autonomous Software Factory + Agent Factory + Controlled Self-Evolution Engine**
+## Autonomous production loop
 
 A user should eventually be able to issue one high-level command:
 
 `Build a production-ready AI coding agent.`
+
+Jora now has the control flow for:
+
+`COMMAND → ISOLATE → BUILD → TEST → SECURITY → BENCHMARK → PUBLISH → CI → DIAGNOSE → REPAIR → REPUBLISH → CI → PROMOTE`
+
+The repair loop is bounded by `JORA_AUTONOMOUS_MAX_CYCLES` (default 4). A failed GitHub Actions candidate is not promoted. Jora collects failed workflow/job evidence, feeds that evidence into the next model build cycle, reuses the isolated candidate branch, and republishes the repaired tree. Remote branch advancement is non-force; promotion to the target branch remains fast-forward-only.
+
+## Target product
+
+**Master AI Agent + Autonomous Software Factory + Agent Factory + Controlled Self-Evolution Engine**
 
 Jora should derive requirements, create the project, implement it, test it, diagnose and repair failures, run independent automated security gates, benchmark the candidate, compare it with the champion, publish an isolated GitHub candidate branch, wait for CI, promote or roll back, deploy, monitor, and continue improving without step-by-step user intervention.
 
