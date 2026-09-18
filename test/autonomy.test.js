@@ -59,7 +59,10 @@ test("autonomous controller repairs after CI failure and retries promotion", asy
       : {status:"PROMOTED",candidate:{version:"candidate-2"},decision:{passed:true},ci:{passed:true}}},
     maxCycles:2
   });
-  const result=await controller.run({command:"repair me",context:{built:{project:{version:"candidate-1",evaluation:{passed:true,benchmarkScore:0.9,qualityScore:0.9}}}});
+  const result=await controller.run({
+    command:"repair me",
+    context:{built:{project:{version:"candidate-1",evaluation:{passed:true,benchmarkScore:0.9,qualityScore:0.9}}}}
+  });
   assert.equal(result.status,"PROMOTED");
   assert.equal(builds.length,1);
   assert.equal(builds[0].source,"CI");
