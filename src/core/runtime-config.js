@@ -35,7 +35,15 @@ export function runtimeConfig(env=process.env){
         healthIntervalMs:Number(env.JORA_PRODUCTION_HEALTHCHECK_INTERVAL_MS||env.JORA_HEALTHCHECK_INTERVAL_MS||2000)
       }
     },
-    api:{\n      enabled:env.JORA_API_ENABLED==="true",\n      host:env.JORA_API_HOST||"127.0.0.1",\n      port:Number(env.JORA_API_PORT||8787),\n      authToken:env.JORA_API_AUTH_TOKEN,\n      maxBodyBytes:Number(env.JORA_API_MAX_BODY_BYTES||1000000)\n    },\n    worker:{
+    api:{\n      enabled:env.JORA_API_ENABLED==="true",\n      host:env.JORA_API_HOST||"127.0.0.1",\n      port:Number(env.JORA_API_PORT||8787),\n      authToken:env.JORA_API_AUTH_TOKEN,\n      maxBodyBytes:Number(env.JORA_API_MAX_BODY_BYTES||1000000)\n    },\n    distributed:{
+      enabled:env.JORA_DISTRIBUTED_ENABLED==="true",
+      databaseUrl:env.JORA_DATABASE_URL||env.DATABASE_URL,
+      leaseNamespace:env.JORA_LEASE_NAMESPACE||"jora-worker",
+      leaseTtlMs:Number(env.JORA_LEASE_TTL_MS||120000),
+      maxConnections:Number(env.JORA_DATABASE_MAX_CONNECTIONS||5),
+      owner:env.JORA_WORKER_ID||"jora-worker"
+    },
+    worker:{
       intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),
       maxCycles:env.JORA_MAX_CYCLES?Number(env.JORA_MAX_CYCLES):Infinity,
       stateFile:env.JORA_WORKER_STATE_FILE||"./.jora/worker.json",
