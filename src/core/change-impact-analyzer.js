@@ -1,0 +1,3 @@
+export class ChangeImpactAnalyzer {
+  analyze({before={},after={},index={}}={}){const changed=[...new Set([...Object.keys(before),...Object.keys(after)])].filter(f=>before[f]!==after[f]);const deps=index.dependencies??{};const impacted=new Set(changed);let added=true;while(added){added=false;for(const [file,imports] of Object.entries(deps))if((imports??[]).some(i=>changed.some(c=>c.endsWith(i.replace(/^\.\//,""))||c.endsWith(i.replace(/^\.\//,"")+".js")))&&!impacted.has(file)){impacted.add(file);added=true;}}return {changedFiles:changed,impactedFiles:[...impacted],riskScore:Math.min(1,(impacted.size/Math.max(1,Object.keys(deps).length)))};}
+}
