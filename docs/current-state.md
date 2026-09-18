@@ -26,8 +26,10 @@
 - Docker sandbox boundary
 - Local Git repository adapter
 - Production evaluator
-- Champion store
+- Champion store with persistent state and promotion history
 - Unified Jora runtime
+- Per-execution isolated candidate branches with validated fast-forward promotion and rollback
+- GitHub Git-database primitives for atomic candidate branch promotion and rollback
 - CLI command entry point
 
 ## Target product
@@ -45,9 +47,9 @@ Jora should derive requirements, create the project, implement it, test it, diag
 The control plane and several concrete runtime boundaries now exist, but full autonomous production still requires deployment-specific adapters:
 
 1. Real model-provider implementation and credentials
-2. Real GitHub/Git workspace provisioning and branch/worktree lifecycle
+2. Remote GitHub workspace provisioning/push orchestration and branch/worktree lifecycle
 3. Production container runtime and host hardening
-4. Persistent task/execution/benchmark/champion storage
+4. Durable task/execution/benchmark storage beyond the current local JSON/in-memory boundaries
 5. Production test, security, and benchmark suites
 6. Deployment adapters
 7. Durable 24×7 scheduler/worker with restart and heartbeat
