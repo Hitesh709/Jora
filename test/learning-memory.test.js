@@ -1,2 +1,2 @@
 import test from "node:test";import assert from "node:assert/strict";import {LearningMemory} from "../src/core/learning-memory.js";
-test("retains lessons from failed candidates",()=>{const m=new LearningMemory();m.record({candidate:{version:"v1"},outcome:"REJECTED",lessons:["increase timeout"]});assert.deepEqual(m.lessons({outcome:"REJECTED"}),["increase timeout"]);});
+test("retains lessons from failed candidates",async()=>{const m=new LearningMemory();m.record({candidate:{version:"v1"},outcome:"REJECTED",lessons:["increase timeout"]});assert.deepEqual(await m.lessons({outcome:"REJECTED"}),["increase timeout"]);});
