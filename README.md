@@ -41,3 +41,7 @@ See `docs/AI_EVOLUTION_OS.md`, `docs/TASK_EXECUTION_PROTOCOL.md`, `TASKS.md`, an
 ## Autonomous runtime milestone
 
 The platform now includes adapter boundaries for process isolation, Git-backed repository operations, candidate promotion/rollback, and continuous worker execution. These components are deliberately dependency-injected so production deployments can supply hardened infrastructure without granting the model unrestricted host access.
+
+## Autonomous security model
+
+Jora is designed for high-autonomy operation. Safety is enforced by independent security gates rather than step-by-step user intervention. A Security Council can run multiple independent checks and require a configurable quorum before candidate promotion.
