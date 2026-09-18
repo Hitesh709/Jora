@@ -73,6 +73,7 @@ export class AutonomousController {
       const promotion=await this.promotion.promote({
         candidate,
         champion,
+        context,
         metrics:{
           security,
           benchmarkScore:candidate?.evaluation?.benchmarkScore,
