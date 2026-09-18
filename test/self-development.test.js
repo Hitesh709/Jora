@@ -8,15 +8,16 @@ import { SelfTaskGenerator } from "../src/core/task-generator.js";
 
 test("self-development engine repairs failed work and succeeds on a later attempt", async () => {
   const store = new ExecutionStore();
-  const inspector = new SelfInspector({repository: new InMemoryRepository({"/src/a.js": "export const a=1;"})});
-  const taskGenerator = new SelfTaskGenerator({
-    model: {async generate: undefined}
+  const inspector = new SelfInspector({
+    repository: new InMemoryRepository({"/src/a.js": "export const a=1;"})
   });
-  taskGenerator.model = {
-    async generate() {
-      return [{id: "SELF-1", title: "repairable task"}];
+  const taskGenerator = new SelfTaskGenerator({
+    model: {
+      async generate() {
+        return [{id: "SELF-1", title: "repairable task"}];
+      }
     }
-  };
+  });
 
   let attempts = 0;
   const executor = {
@@ -30,7 +31,13 @@ test("self-development engine repairs failed work and succeeds on a later attemp
   };
   const evaluator = {
     async evaluate({result}) {
-      return {passed: result.passed, testsPassed: result.passed, securityPassed: result.passed, benchmarkScore: result.passed ? 1 : 0, qualityScore: result.passed ? 1 : 0};
+      return {
+        passed: result.passed,
+        testsPassed: result.passed,
+        securityPassed: result.passed,
+        benchmarkScore: result.passed ? 1 : 0,
+        qualityScore: result.passed ? 1 : 0
+      };
     }
   };
 
@@ -44,8 +51,9 @@ test("self-development engine repairs failed work and succeeds on a later attemp
   });
 
   const result = await engine.run({objective: "improve Jora"});
-  assert.equal(result[0].tasks[0].status, "IDLE");
-  assert.equal(result[0].tasks[0].tasks?.[0], undefined);
+  assert.equal(result[0].status, "IDLE");
+  assert.equal(result[0].tasks[0].status, "SUCCEEDED");
+  assert.equal(result[0].tasks[0].attempts, 2);
   assert.equal(attempts, 2);
 });
 
