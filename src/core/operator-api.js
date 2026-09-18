@@ -3,6 +3,7 @@ import {randomUUID} from "node:crypto";
 import {URL} from "node:url";
 import fs from "node:fs/promises";
 import path from "node:path";
+import {AccessController} from "./access-controller.js";
 
 function json(res,status,payload,headers={}) {
   const body=JSON.stringify(payload);
@@ -53,7 +54,8 @@ export class OperatorApi {
     dashboardPath=null,
     healthMonitor=null,
     incidentManager=null,
-    rateLimitPerMinute=120
+    rateLimitPerMinute=120,
+    accessController=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -71,6 +73,7 @@ export class OperatorApi {
     this.incidentManager=incidentManager;
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
+    this.accessController=accessController;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
     this.server=null;
@@ -85,7 +88,14 @@ export class OperatorApi {
     return bucket.count>this.rateLimitPerMinute;
   }
 
-  _authorized(req) {
+  _principal(req) {
+    if(!this.accessController) return this.authToken ? null : {id:"local",tenantId:"default",roles:["admin"]};
+    const header=req.headers.authorization??""; return this.accessController.authenticate(header.startsWith("Bearer ")?header.slice(7):null);
+  }
+
+  _authorized(req,action="read") {
+    if(this.accessController) return this.accessController.authorize(this._principal(req),action);
+
     if(!this.authToken) return true;
     const header=req.headers.authorization??"";
     return header===`Bearer ${this.authToken}`;
@@ -116,7 +126,8 @@ export class OperatorApi {
 
     if(this._rateLimited(req)) return json(res,429,{error:"rate_limit_exceeded",retryAfterSeconds:60});
 
-    if(!this._authorized(req)) {
+    const action=method==="GET"?"read":(path==="/v1/execute"||path==="/v1/jobs"||path.startsWith("/v1/worker")?"execute":"operate");
+    if(!this._authorized(req,action)) {
       return json(res,401,{error:"unauthorized"});
     }
 
