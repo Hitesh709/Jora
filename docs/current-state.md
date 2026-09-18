@@ -30,6 +30,8 @@
 - Unified Jora runtime
 - Per-execution isolated candidate branches with validated fast-forward promotion and rollback
 - GitHub Git-database primitives for atomic candidate branch promotion and rollback
+- Remote GitHub candidate publication from the local workspace
+- GitHub Actions CI gate before promotion
 - CLI command entry point
 
 ## Target product
@@ -40,14 +42,14 @@ A user should eventually be able to issue one high-level command:
 
 `Build a production-ready AI coding agent.`
 
-Jora should derive requirements, create the project, implement it, test it, diagnose and repair failures, run independent automated security gates, benchmark the candidate, compare it with the champion, promote or roll back, deploy, monitor, and continue improving without step-by-step user intervention.
+Jora should derive requirements, create the project, implement it, test it, diagnose and repair failures, run independent automated security gates, benchmark the candidate, compare it with the champion, publish an isolated GitHub candidate branch, wait for CI, promote or roll back, deploy, monitor, and continue improving without step-by-step user intervention.
 
 ## Current limitations
 
 The control plane and several concrete runtime boundaries now exist, but full autonomous production still requires deployment-specific adapters:
 
 1. Real model-provider implementation and credentials
-2. Remote GitHub workspace provisioning/push orchestration and branch/worktree lifecycle
+2. Remote GitHub workspace provisioning/push orchestration for deletions and full repository mirroring
 3. Production container runtime and host hardening
 4. Durable task/execution/benchmark storage beyond the current local JSON/in-memory boundaries
 5. Production test, security, and benchmark suites
