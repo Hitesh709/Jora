@@ -204,3 +204,8 @@ Configuration: `JORA_OPERATIONAL_HEALTH_ENABLED`, `JORA_OPERATIONAL_HEALTH_INTER
 ## Autonomous recovery
 
 Jora v0.18.0 connects operational health alerts to a bounded recovery orchestrator. High failure rate and latency can queue a diagnostic/repair job; stale workers can trigger queue recovery and worker restart; queue backlog can recover expired jobs. Recovery actions are cooldown-limited, recorded in observability, and remain subject to the existing worker, security, CI, promotion, and deployment gates. Recovery policy is configurable through `JORA_RECOVERY_*_ACTION` variables.
+
+
+## Incident management
+
+Jora v0.19.0 adds an incident lifecycle around operational alerts. Alerts are deduplicated into incident IDs with severity, occurrence counts, timestamps, recovery state, resolution, and escalation. The operator API exposes `GET /v1/incidents` and `GET /v1/incidents/:id`. Recovery actions update the incident lifecycle; failed recovery escalates the incident instead of silently disappearing. The incident manager is integrated with observability for an auditable operational history.
