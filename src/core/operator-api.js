@@ -51,7 +51,8 @@ export class OperatorApi {
     authToken=null,
     maxBodyBytes=1_000_000,
     dashboardPath=null,
-    healthMonitor=null
+    healthMonitor=null,
+    incidentManager=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -66,6 +67,7 @@ export class OperatorApi {
     this.maxBodyBytes=maxBodyBytes;
     this.dashboardPath=dashboardPath;
     this.healthMonitor=healthMonitor;
+    this.incidentManager=incidentManager;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
     this.server=null;
@@ -112,6 +114,17 @@ export class OperatorApi {
 
     if(!this._authorized(req)) {
       return json(res,401,{error:"unauthorized"});
+    }
+
+    if(method==="GET" && path==="/v1/incidents") {
+      if(!this.incidentManager) return json(res,503,{error:"incident_manager_not_configured"});
+      return json(res,200,{incidents:this.incidentManager.list({status:url.searchParams.get("status")||undefined,limit:url.searchParams.get("limit")||100})});
+    }
+    const incidentMatch=path.match(/^\\/v1\\/incidents\\/([^/]+)$/);
+    if(method==="GET" && incidentMatch) {
+      const incident=this.incidentManager?.get(incidentMatch[1]);
+      if(!incident) return json(res,404,{error:"incident_not_found"});
+      return json(res,200,{incident});
     }
 
     if(method==="GET" && path==="/v1/health") {
