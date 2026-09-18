@@ -27,6 +27,8 @@ export { GitRepositoryAdapter } from "./core/git-repository.js";
 export { PromotionController } from "./core/promotion-controller.js";
 export { ContinuousWorker } from "./core/continuous-worker.js";
 export { DurableWorker } from "./core/durable-worker.js";
+export { DistributedWorker } from "./core/distributed-worker.js";
+export { PostgresLeaseStore, createPostgresLeaseStore } from "./core/postgres-lease-store.js";
 export { SecurityGate } from "./core/security-gate.js";
 export { SecurityCouncil } from "./core/security-council.js";
 export { AutonomousController } from "./core/autonomous-controller.js";
