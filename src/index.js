@@ -81,3 +81,5 @@ export { GovernanceStateMachine } from "./core/governance-state-machine.js";
 export { SecurityIntelligence } from "./core/security-intelligence.js";
 
 export { RegressionAnalyzer } from "./core/regression-analyzer.js";
+
+export { ChampionSelector } from "./core/champion-selector.js";
