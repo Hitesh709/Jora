@@ -20,6 +20,7 @@ import {JsonStore} from "./json-store.js";
 import {PersistentExecutionStore} from "./persistent-execution-store.js";
 import {BenchmarkStore} from "./benchmark-store.js";
 import {ChampionStore} from "./champion-store.js";
+import {DurableWorker} from "./durable-worker.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -64,7 +65,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     root:config.workspace,
     remoteRepository
   });
-  await repository.prepareCandidate(`startup-${Date.now()}`);
+  await repository.prepareCandidate("startup-"+Date.now());
   const benchmarkStore=new BenchmarkStore();
   const executionStore=new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
   const championStore=new ChampionStore({
@@ -108,9 +109,33 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     championStore,
     maxCycles:config.autonomous?.maxCycles??4
   });
-  const runtime=new JoraRuntime({builder,controller,executionStore,repository});
+  const worker=new DurableWorker({
+    store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
+    intervalMs:config.worker?.intervalMs??60000,
+    heartbeatMs:config.worker?.heartbeatMs??10000,
+    staleAfterMs:config.worker?.staleAfterMs??120000,
+    maxCycles:config.worker?.maxCycles??Infinity,
+    cycle:async ({cycle,command,context})=>controller.run({
+      command:command??"Improve Jora",
+      context:{
+        ...context,
+        cycle,
+        modelGateway,
+        benchmarkStore,
+        championStore,
+        workspace:config.workspace
+      }
+    })
+  });
+  const runtime=new JoraRuntime({
+    builder,
+    controller,
+    continuousWorker:worker,
+    executionStore,
+    repository
+  });
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,modelGateway,config
+    executionStore,championStore,worker,modelGateway,config
   };
 }
