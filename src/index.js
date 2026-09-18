@@ -10,6 +10,7 @@ export { ModelGateway } from "./core/model-gateway.js";
 export { AgentRuntime } from "./core/agent-runtime.js";
 export { AgentRegistry } from "./core/agent-registry.js";
 export { Sandbox } from "./core/sandbox.js";
+export { ToolRegistry } from "./core/tool-registry.js";
 export { SelfDevelopmentEngine, DEV_STATUS } from "./core/self-development.js";
 export { SelfInspector } from "./core/self-inspector.js";
 export { SelfTaskGenerator } from "./core/task-generator.js";
