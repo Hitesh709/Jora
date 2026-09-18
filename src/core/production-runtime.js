@@ -47,6 +47,7 @@ import {LearningMemory} from "./learning-memory.js";
 import {ExperimentEngine} from "./experiment-engine.js";
 import {ParallelCandidateRunner} from "./parallel-candidate-runner.js";
 import {MultiGenerationEngine} from "./multi-generation-engine.js";
+import {LineageStore} from "./lineage-store.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -130,8 +131,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const executionStore=distributedConfig.enabled
     ? await createPostgresExecutionStore({connectionString:distributedConfig.databaseUrl,namespace:distributedConfig.queueNamespace||"jora",maxConnections:distributedConfig.maxConnections})
     : new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
+  const lineageStore=new LineageStore({store:new JsonStore({file:config.lineageStateFile||"./.jora/lineage.json"})});
+  await lineageStore.load();
   const championStore=new ChampionStore({
-    store:new JsonStore({file:config.championStateFile})
+    store:new JsonStore({file:config.championStateFile}),
+    lineageStore
   });
   await championStore.load();
   const securityCouncil=createWorkspaceSecurityCouncil({repository});
@@ -161,6 +165,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const policyRules=config.policy??{};
   const policyEngine=new PolicyEngine({rules:policyRules});
   const regressionAnalyzer=new RegressionAnalyzer();
+  const championSelector=new ChampionSelector({minimumScore:0.8,minimumDelta:0});
+  const population=new CandidatePopulation({maxSize:config.evolution?.populationSize??8});
+  const mutationStrategy=new MutationStrategyEngine();
+  const evolutionScheduler=new EvolutionScheduler({maxGenerations:config.evolution?.maxGenerations??10});
+  const researchLoop=new ResearchLoop({strategyEngine:mutationStrategy,scheduler:evolutionScheduler});
+  const candidateRunner=new ParallelCandidateRunner({concurrency:config.evolution?.concurrency??4,runner:async candidate=>candidate});
+  const experimentEngine=new ExperimentEngine({benchmarkStore});
+  const learningMemory=new LearningMemory({maxRecords:config.evolution?.learningRecords??10000});
+  const populationEngine=new MultiGenerationEngine({delivery,population,maxCandidates:config.evolution?.populationSize??8});
+  const autonomousEvolution=new AutonomousEvolutionController({generationEngine:populationEngine,experimentEngine,learningMemory,scheduler:evolutionScheduler,selector:championSelector,maxGenerations:config.evolution?.maxGenerations??10});
 
   const promotion=new PromotionController({
     evaluator:new CandidateEvaluator(),
@@ -179,7 +193,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     championStore,
     population,
     researchLoop,
-    autonomousEvolution,
     maxCycles:config.autonomous?.maxCycles??4,
     policyEngine
   });
@@ -318,6 +331,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
