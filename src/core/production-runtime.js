@@ -30,6 +30,7 @@ import {ObservabilityStore} from "./observability-store.js";
 import {OperatorApi} from "./operator-api.js";
 import {createPostgresLeaseStore} from "./postgres-lease-store.js";
 import {createPostgresTaskQueue} from "./postgres-task-queue.js";
+import {createPostgresExecutionStore} from "./postgres-execution-store.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -108,7 +109,10 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   await repository.prepareCandidate("startup-"+Date.now());
   const benchmarkStore=new BenchmarkStore();
-  const executionStore=new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
+  const distributedConfig=config.distributed??{};
+  const executionStore=distributedConfig.enabled
+    ? await createPostgresExecutionStore({connectionString:distributedConfig.databaseUrl,namespace:distributedConfig.queueNamespace||"jora",maxConnections:distributedConfig.maxConnections})
+    : new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
   const championStore=new ChampionStore({
     store:new JsonStore({file:config.championStateFile})
   });
@@ -188,7 +192,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     });
   }
 
-  const distributedConfig=config.distributed??{};
   const queueStore=distributedConfig.enabled
     ? await createPostgresTaskQueue({
         connectionString:distributedConfig.databaseUrl,
