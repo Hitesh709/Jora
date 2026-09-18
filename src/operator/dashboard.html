@@ -1,0 +1,15 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Jora Control Center</title><style>
+body{font-family:system-ui;margin:0;background:#0f1115;color:#eee}header{padding:20px 28px;border-bottom:1px solid #292d35;display:flex;justify-content:space-between}main{padding:24px;display:grid;gap:18px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:#171a21;border:1px solid #292d35;border-radius:12px;padding:18px}.value{font-size:28px;font-weight:700;margin-top:8px}pre{white-space:pre-wrap;overflow:auto;max-height:280px}button{background:#eee;color:#111;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}input{background:#111;color:#eee;border:1px solid #333;border-radius:7px;padding:9px;width:280px}small{color:#9aa3b2}.ok{color:#7ee787}.bad{color:#ff7b72}</style></head>
+<body><header><div><strong>Jora Control Center</strong><br><small>Autonomous Software Factory</small></div><div><input id="token" type="password" placeholder="Bearer token (optional)"> <button onclick="refresh()">Refresh</button></div></header>
+<main><section class="grid"><div class="card">System<div class="value" id="system">—</div></div><div class="card">Worker<div class="value" id="worker">—</div></div><div class="card">Executions<div class="value" id="executions">—</div></div><div class="card">Uptime<div class="value" id="uptime">—</div></div></section>
+<section class="card"><h2>Runtime Metrics</h2><pre id="metrics">Loading…</pre></section>
+<section class="card"><h2>Recent Executions</h2><pre id="recent">Loading…</pre></section>
+<section class="card"><h2>Queue Jobs</h2><pre id="jobs">Loading…</pre></section>
+<section class="card"><h2>Observability Events</h2><pre id="events">Loading…</pre></section></main>
+<script>
+const h=()=>{const t=document.getElementById('token').value;return t?{Authorization:'Bearer '+t}:{}};
+async function get(p){const r=await fetch(p,{headers:h()});if(!r.ok)throw new Error(r.status+' '+await r.text());return r.json()}
+async function refresh(){try{const [s,m,e,j,o]=await Promise.all([get('/v1/status'),get('/v1/metrics'),get('/v1/executions?limit=10'),get('/v1/jobs?limit=10'),get('/v1/observability?limit=10')]);system.textContent=s.status;system.className='value '+(s.status==='OK'?'ok':'bad');worker.textContent=s.worker?.status||'OFF';executions.textContent=s.executions?.total??0;uptime.textContent=Math.round((s.uptimeMs||0)/1000)+'s';metrics.textContent=JSON.stringify(m,null,2);recent.textContent=JSON.stringify(e.executions,null,2);jobs.textContent=JSON.stringify(j.jobs,null,2);events.textContent=JSON.stringify(o.events,null,2)}catch(x){system.textContent='ERROR';system.className='value bad';metrics.textContent=x.message}}
+refresh();setInterval(refresh,10000);
+</script></body></html>
