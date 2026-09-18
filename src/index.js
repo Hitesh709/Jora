@@ -100,3 +100,4 @@ export { RefactorPlanner } from "./core/refactor-planner.js";
 export { ChangeImpactAnalyzer } from "./core/change-impact-analyzer.js";
 export { CodeQualityAssessor } from "./core/code-quality-assessor.js";
 export { RefactorSafetyGate } from "./core/refactor-safety-gate.js";
+export { AgentTeamCoordinator } from "./core/agent-factory.js";
