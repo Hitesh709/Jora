@@ -27,6 +27,7 @@ import {HttpDeploymentAdapter} from "./http-deployment-adapter.js";
 import {HttpHealthCheck} from "./http-health-check.js";
 import {HealthCheck} from "./health-check.js";
 import {ObservabilityStore} from "./observability-store.js";
+import {OperatorApi} from "./operator-api.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -212,8 +213,20 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     })
   });
   runtime.continuousWorker=worker;
+  const api=config.api?.enabled
+    ? new OperatorApi({
+        runtime,
+        executionStore,
+        observability,
+        worker,
+        host:config.api.host,
+        port:config.api.port,
+        authToken:config.api.authToken,
+        maxBodyBytes:config.api.maxBodyBytes
+      })
+    : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,observability,deploymentController,modelGateway,config
+    executionStore,championStore,worker,observability,deploymentController,api,modelGateway,config
   };
 }
