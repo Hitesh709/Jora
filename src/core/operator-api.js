@@ -80,7 +80,7 @@ export class OperatorApi {
     this.accessController=accessController;
     this.auditLog=auditLog;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
-    if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
+    if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
     this.startedAt=null;
   }
@@ -95,17 +95,20 @@ export class OperatorApi {
 
   _principal(req) {
     const header=req.headers.authorization??"";
-    if(!header && !this.authToken) return {id:"local",tenantId:"default",roles:["admin"]};
-    if(!this.accessController) return this.authToken ? null : {id:"local",tenantId:"default",roles:["admin"]};
-    return this.accessController.authenticate(header.startsWith("Bearer ")?header.slice(7):null);
+    if(!header) {
+      if(!this.authToken) return {id:"local",tenantId:"default",roles:["admin"]};
+      return null;
+    }
+    const token=header.startsWith("Bearer ")?header.slice(7):null;
+    if(this.authToken && token===this.authToken) return {id:"legacy",tenantId:"default",roles:["admin"]};
+    return this.accessController?.authenticate(token)??null;
   }
 
   _authorized(req,action="read") {
-    if(this.accessController) return this.accessController.authorize(this._principal(req),action);
-
-    if(!this.authToken) return true;
-    const header=req.headers.authorization??"";
-    return header===`Bearer ${this.authToken}`;
+    const principal=this._principal(req);
+    if(this.accessController && principal?.id!=="legacy" && principal?.id!=="local") return this.accessController.authorize(principal,action);
+    if(principal?.id==="legacy" || principal?.id==="local") return true;
+    return false;
   }
 
   async _status() {
