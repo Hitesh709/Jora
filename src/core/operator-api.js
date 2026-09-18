@@ -156,7 +156,7 @@ export class OperatorApi {
       if(!this.incidentManager) return json(res,503,{error:"incident_manager_not_configured"});
       return json(res,200,{incidents:this.incidentManager.list({status:url.searchParams.get("status")||undefined,limit:url.searchParams.get("limit")||100})});
     }
-    const incidentMatch=path.match(/^\\/v1\\/incidents\\/([^/]+)$/);
+    const incidentMatch=path.match(/^\/v1\/incidents\/([^/]+)$/);
     if(method==="GET" && incidentMatch) {
       const incident=this.incidentManager?.get(incidentMatch[1]);
       if(!incident) return json(res,404,{error:"incident_not_found"});
