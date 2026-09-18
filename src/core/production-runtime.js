@@ -33,6 +33,7 @@ import {createPostgresTaskQueue} from "./postgres-task-queue.js";
 import {createPostgresExecutionStore} from "./postgres-execution-store.js";
 import {MetricsCollector} from "./metrics-collector.js";
 import path from "node:path";
+import {OperationalHealthMonitor} from "./operational-health-monitor.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -246,6 +247,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     })
   });
   runtime.continuousWorker=worker;
+  const healthConfig=config.operationalHealth??{};
+  const healthMonitor=healthConfig.enabled
+    ? new OperationalHealthMonitor({metrics,observability,worker,queue:queueStore,thresholds:healthConfig.thresholds})
+    : null;
+  let healthTimer=null;
+  if(healthMonitor) {
+    healthTimer=setInterval(()=>void healthMonitor.check().catch(()=>{}),healthConfig.intervalMs??30000);
+    healthTimer.unref?.();
+  }
+
   const api=config.api?.enabled
     ? new OperatorApi({
         runtime,
@@ -258,11 +269,12 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         port:config.api.port,
         authToken:config.api.authToken,
         maxBodyBytes:config.api.maxBodyBytes,
-        dashboardPath:path.resolve(process.cwd(),"src/operator/dashboard.html")
+        dashboardPath:path.resolve(process.cwd(),"src/operator/dashboard.html"),
+        healthMonitor
       })
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,deploymentController,api,modelGateway,config
+    executionStore,championStore,worker,leaseStore,queueStore,observability,metrics,healthMonitor,healthTimer,deploymentController,api,modelGateway,config
   };
 }
