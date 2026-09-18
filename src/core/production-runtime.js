@@ -109,14 +109,21 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     championStore,
     maxCycles:config.autonomous?.maxCycles??4
   });
+  const runtime=new JoraRuntime({
+    builder,
+    controller,
+    executionStore,
+    repository
+  });
   const worker=new DurableWorker({
     store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
     intervalMs:config.worker?.intervalMs??60000,
     heartbeatMs:config.worker?.heartbeatMs??10000,
     staleAfterMs:config.worker?.staleAfterMs??120000,
     maxCycles:config.worker?.maxCycles??Infinity,
-    cycle:async ({cycle,command,context})=>controller.run({
+    cycle:async ({cycle,command,context})=>runtime.execute({
       command:command??"Improve Jora",
+      constraints:{},
       context:{
         ...context,
         cycle,
@@ -127,13 +134,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       }
     })
   });
-  const runtime=new JoraRuntime({
-    builder,
-    controller,
-    continuousWorker:worker,
-    executionStore,
-    repository
-  });
+  runtime.continuousWorker=worker;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
     executionStore,championStore,worker,modelGateway,config
