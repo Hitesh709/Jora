@@ -47,6 +47,11 @@ import {LearningMemory} from "./learning-memory.js";
 import {ExperimentEngine} from "./experiment-engine.js";
 import {ParallelCandidateRunner} from "./parallel-candidate-runner.js";
 import {MultiGenerationEngine} from "./multi-generation-engine.js";
+import {CodebaseIndex} from "./codebase-index.js";
+import {ArchitectureAnalyzer} from "./architecture-analyzer.js";
+import {RefactorPlanner} from "./refactor-planner.js";
+import {ChangeImpactAnalyzer} from "./change-impact-analyzer.js";
+import {CodeMaster} from "./code-master.js";
 import {LineageStore} from "./lineage-store.js";
 
 class CandidateEvaluator {
@@ -133,6 +138,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
   const lineageStore=new LineageStore({store:new JsonStore({file:config.lineageStateFile||"./.jora/lineage.json"})});
   await lineageStore.load();
+  const codeIndex=new CodebaseIndex({repository});
+  const architectureAnalyzer=new ArchitectureAnalyzer();
+  const refactorPlanner=new RefactorPlanner({architectureAnalyzer});
+  const impactAnalyzer=new ChangeImpactAnalyzer();
+  const codeMaster=new CodeMaster({repository,index:codeIndex,architecture:architectureAnalyzer,planner:refactorPlanner,impact:impactAnalyzer});
   const championStore=new ChampionStore({
     store:new JsonStore({file:config.championStateFile}),
     lineageStore
@@ -331,6 +341,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
-    executionStore,championStore,lineageStore,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
