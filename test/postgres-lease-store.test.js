@@ -54,7 +54,7 @@ test("expired lease can be recovered",async()=>{
   const a=new PostgresLeaseStore({pool,namespace:"recover",ttlMs:25});
   const b=new PostgresLeaseStore({pool,namespace:"recover",ttlMs:25});
   const first=await a.acquire({owner:"a"});
-  await new Promise(r=>setTimeout(r,40));
+  pool.rows[0].expiresAt=Date.now()-1;
   const second=await b.acquire({owner:"b"});
   assert.ok(second?.token);
   assert.notEqual(second.token,first.token);
