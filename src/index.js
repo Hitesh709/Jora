@@ -44,6 +44,8 @@ export { PersistentExecutionStore } from "./core/persistent-execution-store.js";
 export { DeploymentAdapter } from "./core/deployment-adapter.js";
 export { DeploymentController } from "./core/deployment-controller.js";
 export { HealthCheck } from "./core/health-check.js";
+export { HttpDeploymentAdapter } from "./core/http-deployment-adapter.js";
+export { HttpHealthCheck } from "./core/http-health-check.js";
 export { ObservabilityStore } from "./core/observability-store.js";
 export { requiredSecrets, redactSecrets, isSecretName } from "./core/secret-config.js";
 export { runtimeConfig } from "./core/runtime-config.js";
