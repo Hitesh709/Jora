@@ -65,3 +65,36 @@ test("GitHub CI gate blocks when no remote candidate commit exists", async()=>{
   assert.equal(result.passed,false);
   assert.equal(result.status,"NO_REMOTE_COMMIT");
 });
+
+test("GitHub workflow polling passes after the candidate run completes successfully", async()=>{
+  let poll=0;
+  class FakeGitHub extends GitHubRestRepository {
+    constructor(){super({token:"test-token",owner:"owner",repo:"repo"});}
+    async request(path) {
+      assert.match(path,/actions\/runs/);
+      poll+=1;
+      return {
+        workflow_runs:[{
+          id:poll,
+          workflow_id:1,
+          name:"CI",
+          head_branch:"jora/candidate-1",
+          head_sha:"candidate-sha",
+          status:poll===1?"queued":"completed",
+          conclusion:poll===1?null:"success",
+          created_at:new Date().toISOString()
+        }]
+      };
+    }
+  }
+  const repo=new FakeGitHub();
+  const result=await repo.waitForWorkflow({
+    branch:"jora/candidate-1",
+    headSha:"candidate-sha",
+    timeoutMs:100,
+    pollMs:1
+  });
+  assert.equal(result.passed,true);
+  assert.equal(result.status,"PASSED");
+  assert.equal(poll,2);
+});
