@@ -14,3 +14,7 @@ export { AgentFactory } from "./core/agent-factory.js";
 export { ProjectFactory } from "./core/project-factory.js";
 export { AgentSpecPlanner } from "./core/agent-spec-planner.js";
 export { AutonomousDelivery } from "./core/autonomous-delivery.js";
+export { ProcessSandbox } from "./core/real-sandbox.js";
+export { GitRepositoryAdapter } from "./core/git-repository.js";
+export { PromotionController } from "./core/promotion-controller.js";
+export { ContinuousWorker } from "./core/continuous-worker.js";
