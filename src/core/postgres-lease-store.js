@@ -48,7 +48,7 @@ export class PostgresLeaseStore {
       [this.namespace,owner,token,this.ttlMs,JSON.stringify(metadata)]
     );
     if(!result.rows.length) return null;
-    return result.rows[0];
+    return structuredClone(result.rows[0]);
   }
 
   async heartbeat({owner,token,metadata}={}) {
