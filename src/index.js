@@ -43,6 +43,7 @@ export { JsonStore } from "./core/json-store.js";
 export { PersistentExecutionStore } from "./core/persistent-execution-store.js";
 export { DeploymentAdapter } from "./core/deployment-adapter.js";
 export { DeploymentController } from "./core/deployment-controller.js";
+export { StagedDeploymentController } from "./core/staged-deployment-controller.js";
 export { HealthCheck } from "./core/health-check.js";
 export { HttpDeploymentAdapter } from "./core/http-deployment-adapter.js";
 export { HttpHealthCheck } from "./core/http-health-check.js";
