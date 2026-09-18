@@ -32,6 +32,7 @@ import {createPostgresLeaseStore} from "./postgres-lease-store.js";
 import {createPostgresTaskQueue} from "./postgres-task-queue.js";
 import {createPostgresExecutionStore} from "./postgres-execution-store.js";
 import {MetricsCollector} from "./metrics-collector.js";
+import path from "node:path";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -255,7 +256,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         host:config.api.host,
         port:config.api.port,
         authToken:config.api.authToken,
-        maxBodyBytes:config.api.maxBodyBytes
+        maxBodyBytes:config.api.maxBodyBytes,
+        dashboardPath:path.resolve(process.cwd(),"src/operator/dashboard.html")
       })
     : null;
   return {
