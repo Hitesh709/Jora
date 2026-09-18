@@ -45,3 +45,24 @@ The platform now includes adapter boundaries for process isolation, Git-backed r
 ## Autonomous security model
 
 Jora is designed for high-autonomy operation. Safety is enforced by independent security gates rather than step-by-step user intervention. A Security Council can run multiple independent checks and require a configurable quorum before candidate promotion.
+
+
+## Runtime infrastructure milestone
+
+Jora now has concrete runtime boundaries for command execution, Docker-isolated project execution, local Git operations, production evaluation, benchmark evidence, champion history, rollback, and a unified `JoraRuntime` composition layer.
+
+The CLI entry point is:
+
+`npm run jora:command -- "Build a production-ready AI coding agent."`
+
+It currently accepts and records the command but reports `ADAPTERS_REQUIRED` until a real model provider, repository workspace, evaluator/security implementation, and deployment adapter are configured. This prevents a false claim of production execution.
+
+### Autonomous operating model
+
+The intended production loop is:
+
+**One command → Plan → Build → Isolate → Test → Diagnose → Repair → Security Council → Benchmark → Compare → Promote/Rollback → Deploy → Monitor → Improve**
+
+Security gates are automated evaluation agents/checks; they are not intended to require manual approval for every development step.
+
+The Docker boundary is designed as an infrastructure adapter with network isolation, resource limits, dropped Linux capabilities, read-only root filesystem, ephemeral tmpfs, and a non-root user. A production deployment should additionally harden the host/container runtime and secrets management.
