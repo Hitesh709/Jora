@@ -22,8 +22,10 @@ import {BenchmarkStore} from "./benchmark-store.js";
 import {ChampionStore} from "./champion-store.js";
 import {DurableWorker} from "./durable-worker.js";
 import {DeploymentController} from "./deployment-controller.js";
+import {StagedDeploymentController} from "./staged-deployment-controller.js";
 import {HttpDeploymentAdapter} from "./http-deployment-adapter.js";
 import {HttpHealthCheck} from "./http-health-check.js";
+import {HealthCheck} from "./health-check.js";
 import {ObservabilityStore} from "./observability-store.js";
 
 class CandidateEvaluator {
@@ -56,6 +58,38 @@ class CandidateEvaluator {
         : ["Candidate failed a promotion gate or did not meet the champion benchmark"]
     };
   }
+}
+
+function createHealthGate(url,{attempts,intervalMs}={}) {
+  if(!url) return null;
+  const httpHealth=new HttpHealthCheck({url});
+  return new HealthCheck({
+    attempts,
+    intervalMs,
+    checkFn:input=>httpHealth.check(input)
+  });
+}
+
+function createDeploymentController({
+  webhookUrl,
+  healthUrl,
+  healthAttempts,
+  healthIntervalMs,
+  timeoutMs,
+  observability
+}) {
+  if(!webhookUrl) return null;
+  return new DeploymentController({
+    adapter:new HttpDeploymentAdapter({
+      deployUrl:webhookUrl,
+      timeoutMs
+    }),
+    healthCheck:createHealthGate(healthUrl,{
+      attempts:healthAttempts,
+      intervalMs:healthIntervalMs
+    }),
+    store:observability
+  });
 }
 
 export async function createProductionJoraRuntime({config,modelGateway}={}) {
@@ -113,21 +147,50 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     championStore,
     maxCycles:config.autonomous?.maxCycles??4
   });
-  const observability=new ObservabilityStore({store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})});
-  const deploymentController=config.deployment?.enabled && config.deployment?.webhookUrl
-    ? new DeploymentController({
-        adapter:new HttpDeploymentAdapter({deployUrl:config.deployment.webhookUrl}),
-        healthCheck:config.deployment.healthUrl
-          ? new HttpHealthCheck({url:config.deployment.healthUrl})
-          : null,
-        store:observability
+
+  const observability=new ObservabilityStore({
+    store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})
+  });
+
+  const deploymentConfig=config.deployment??{};
+  const productionConfig=deploymentConfig.production??deploymentConfig;
+  const productionDeployment=deploymentConfig.enabled
+    ? createDeploymentController({
+        webhookUrl:productionConfig.webhookUrl,
+        healthUrl:productionConfig.healthUrl,
+        healthAttempts:productionConfig.healthAttempts,
+        healthIntervalMs:productionConfig.healthIntervalMs,
+        timeoutMs:deploymentConfig.timeoutMs,
+        observability
       })
     : null;
+
+  let deploymentController=productionDeployment;
+  const stagingConfig=deploymentConfig.staging??{};
+  if(deploymentConfig.enabled && stagingConfig.enabled) {
+    if(!stagingConfig.webhookUrl) throw new Error("staging deployment is enabled but JORA_STAGING_DEPLOYMENT_WEBHOOK_URL is missing");
+    if(!productionDeployment) throw new Error("staging deployment requires a production deployment webhook");
+    const stagingDeployment=createDeploymentController({
+      webhookUrl:stagingConfig.webhookUrl,
+      healthUrl:stagingConfig.healthUrl,
+      healthAttempts:stagingConfig.healthAttempts,
+      healthIntervalMs:stagingConfig.healthIntervalMs,
+      timeoutMs:deploymentConfig.timeoutMs,
+      observability
+    });
+    deploymentController=new StagedDeploymentController({
+      staging:stagingDeployment,
+      production:productionDeployment,
+      store:observability
+    });
+  }
+
   const runtime=new JoraRuntime({
     builder,
     controller,
     executionStore,
-    repository
+    repository,
+    deploymentController
   });
   const worker=new DurableWorker({
     store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
