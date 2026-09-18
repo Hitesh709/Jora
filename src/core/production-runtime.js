@@ -41,6 +41,7 @@ import {AuditLog} from "./audit-log.js";
 import {PolicyEngine} from "./policy-engine.js";
 import {GovernanceStateMachine} from "./governance-state-machine.js";
 import {RegressionAnalyzer} from "./regression-analyzer.js";
+import {ChampionSelector} from "./champion-selector.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -163,13 +164,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     ciGate,
     policyEngine,
     regressionAnalyzer,
-    benchmarkStore
+    benchmarkStore,
+    championSelector
   });
   const controller=new AutonomousController({
     delivery,
     securityCouncil,
     promotion,
     championStore,
+    population,
+    researchLoop,
     maxCycles:config.autonomous?.maxCycles??4,
     policyEngine
   });
