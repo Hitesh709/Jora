@@ -1,43 +1,5 @@
 export class AgentRuntime {
-  constructor({ toolRegistry, modelGateway } = {}) {
-    if (!toolRegistry) throw new Error("Tool registry is required");
-    if (!modelGateway) throw new Error("Model gateway is required");
-    this.toolRegistry = toolRegistry;
-    this.modelGateway = modelGateway;
-  }
-
-  async run(agent, input, { maxSteps = 10 } = {}) {
-    if (!agent?.id) throw new Error("Agent id is required");
-    if (!input?.trim()) throw new Error("Input is required");
-
-    const trace = [];
-    let current = { role: "user", content: input.trim() };
-
-    for (let step = 0; step < maxSteps; step++) {
-      const response = await this.modelGateway.complete({
-        agent,
-        messages: [current],
-        tools: this.toolRegistry.schemas(agent.permissions ?? [])
-      });
-
-      trace.push({ step, response });
-
-      if (!response?.toolCall) {
-        return { agentId: agent.id, output: response?.content ?? "", trace, status: "COMPLETED" };
-      }
-
-      const result = await this.toolRegistry.execute(
-        response.toolCall.name,
-        response.toolCall.arguments,
-        agent.permissions ?? []
-      );
-      current = {
-        role: "tool",
-        name: response.toolCall.name,
-        content: JSON.stringify(result)
-      };
-    }
-
-    return { agentId: agent.id, trace, status: "MAX_STEPS_REACHED" };
-  }
+  constructor({toolRegistry,modelGateway}={}){if(!toolRegistry)throw new Error("Tool registry is required");if(!modelGateway)throw new Error("Model gateway is required");this.toolRegistry=toolRegistry;this.modelGateway=modelGateway;}
+  async run(agent,input,{maxSteps=10}={}){if(!agent?.id)throw new Error("Agent id is required");if(!input?.trim())throw new Error("Input is required");const trace=[];let current={role:"user",content:input.trim()};for(let step=0;step<maxSteps;step++){const response=await this.modelGateway.complete({agent,messages:[current],tools:this.toolRegistry.schemas(agent.permissions??[])});trace.push({step,response});if(!response?.toolCall)return {agentId:agent.id,output:response?.content??"",trace,status:"COMPLETED"};const result=await this.toolRegistry.execute(response.toolCall.name,response.toolCall.arguments,agent.permissions??[]);current={role:"tool",name:response.toolCall.name,content:JSON.stringify(result)};}return {agentId:agent.id,trace,status:"MAX_STEPS_REACHED"};}
+  async runTeam(team,input,{maxSteps=10}={}){if(!team?.members?.length)throw new Error("team members are required");const results=[];for(const member of team.members){const agent=member.agent??member;results.push(await this.run(agent,input,{maxSteps}));}return {teamId:team.teamId??null,results,status:results.every(r=>r.status==="COMPLETED")?"COMPLETED":"PARTIAL"};}
 }
