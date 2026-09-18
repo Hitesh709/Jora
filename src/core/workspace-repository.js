@@ -30,6 +30,8 @@ export class WorkspaceRepository {
   }
   async prepareCandidate(id=`${Date.now()}`) {
     await this.ensureReady();
+    const status=await this.git.status().catch(()=>"");
+    if(status) await this.git.runner.run("git",["reset","--hard","HEAD"],{cwd:this.root});
     const branch=`jora/candidate-${String(id).replace(/[^a-zA-Z0-9._-]/g,"-")}`;
     const result=await this.git.runner.run("git",["checkout","-b",branch],{cwd:this.root});
     if(!result.ok) throw new Error(result.stderr||"failed to create candidate branch");
