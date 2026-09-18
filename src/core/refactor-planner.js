@@ -1,0 +1,4 @@
+export class RefactorPlanner {
+  constructor({architectureAnalyzer=null}={}){this.architectureAnalyzer=architectureAnalyzer;}
+  plan({index={},issues=[],goal="improve architecture"}={}){const architecture=this.architectureAnalyzer?.analyze(index)??{};const targets=issues.length?issues.map(x=>x.file).filter(Boolean):((architecture.hotspots??[]).slice(0,3).map(x=>x.file));return {goal,targets,steps:targets.map(file=>({file,actions:["inspect dependencies","preserve public interfaces","apply minimal change","run targeted tests","run full regression"]})),safety:["no direct production mutation","require isolated workspace","require tests","require security gate","require promotion approval"]};}
+}
