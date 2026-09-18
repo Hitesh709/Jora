@@ -67,3 +67,14 @@ test("autonomous delivery feeds failed evaluation into the next repair cycle", a
   assert.equal(contexts[1].repairFeedback.hypothesis,"Fix the syntax failure");
   assert.equal(result.history.length,2);
 });
+
+import { AgentRegistry } from "../src/core/agent-registry.js";
+import { AgentTeamCoordinator } from "../src/core/agent-factory.js";
+test("agent factory creates specialized teams", async () => {
+  const planner=new AgentSpecPlanner(); const pipeline={async plan(){return {kind:"plan"}},async executeProject(){return {status:"SUCCEEDED"}}}; const evaluator={async evaluateProject(){return {passed:true}}};
+  const registry=new AgentRegistry(); const factory=new AgentFactory({planner,projectFactory:new ProjectFactory({pipeline,evaluator}),registry});
+  const team=await factory.buildTeam({command:"Build a secure AI platform",roles:[{name:"security",capabilities:["security"]},{name:"coding",capabilities:["coding"]}]});
+  assert.equal(team.members.length,2); assert.equal(registry.list().length,2);
+  assert.equal(new AgentTeamCoordinator({registry}).route({requiredCapabilities:["security"]})[0].specialization.role,"security");
+});
+test("agent registry evaluates and retires weak agents",()=>{const r=new AgentRegistry();r.register({id:"a",capabilities:["x"],metrics:{score:.5,reliability:.9}});assert.equal(r.evaluate("a").passed,false);assert.equal(r.retire("a","below threshold").status,"RETIRED");});
