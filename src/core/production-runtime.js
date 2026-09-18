@@ -274,6 +274,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         port:config.api.port,
         authToken:config.api.authToken,
         maxBodyBytes:config.api.maxBodyBytes,
+        rateLimitPerMinute:config.api.rateLimitPerMinute,
         dashboardPath:path.resolve(process.cwd(),"src/operator/dashboard.html"),
         healthMonitor,
         incidentManager
