@@ -45,6 +45,19 @@ test("champion store promotes and rolls back",()=> {
   assert.equal(store.get(),"v2"); assert.equal(store.rollback(),"v1");
 });
 
+test("Jora runtime creates an isolated candidate before each execution",async()=> {
+  const calls=[];
+  const runtime=new JoraRuntime({
+    builder:{build:async x=>{calls.push(["build",x.context.candidate.branch]);return {project:{id:"candidate"}};}},
+    controller:{run:async x=>{calls.push(["run",x.context.built.project.id]);return {status:"PROMOTED"};},stop(){}},
+    repository:{baseBranch:"main",prepareCandidate:async id=>({branch:"jora/candidate-"+id,base:"base-sha"})}
+  });
+  const result=await runtime.execute({command:"build agent",context:{taskId:"t1"}});
+  assert.equal(result.status,"PROMOTED");
+  assert.equal(calls[0][0],"build");
+  assert.match(calls[0][1],/^jora\\/candidate-t1$/);
+});
+
 test("Jora runtime connects build and autonomous controller",async()=> {
   const calls=[];
   const runtime=new JoraRuntime({
