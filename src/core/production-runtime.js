@@ -88,7 +88,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     championStore,
     maxCycles:1
   });
-  const runtime=new JoraRuntime({builder,controller,executionStore});
+  const runtime=new JoraRuntime({builder,controller,executionStore,repository});
   return {
     runtime,repository,securityCouncil,sandbox,testRunner,benchmarkStore,
     executionStore,championStore,modelGateway,config
