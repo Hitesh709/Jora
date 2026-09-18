@@ -56,7 +56,8 @@ export class OperatorApi {
     healthMonitor=null,
     incidentManager=null,
     rateLimitPerMinute=120,
-    accessController=null
+    accessController=null,
+    auditLog=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -75,6 +76,7 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
+    this.auditLog=auditLog;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken) throw new Error("authToken is required when operator api is not bound to localhost");
     this.server=null;
@@ -131,8 +133,11 @@ export class OperatorApi {
 
     const principal=this._principal(req);
     const tenantId=this.accessController?.tenant(principal)||"default";
+    const actorId=principal?.id||"local";
     const action=method==="GET"?"read":(path==="/v1/execute"||path==="/v1/jobs"||path.startsWith("/v1/worker")?"execute":"operate");
     if(!this._authorized(req,action)) {
+      await this.auditLog?.record({action:"AUTH_DENIED",actorId,tenantId,resource:path,metadata:{method}});
+
       return json(res,401,{error:"unauthorized"});
     }
 
@@ -144,6 +149,8 @@ export class OperatorApi {
         res.end(body); return;
       } catch { return json(res,404,{error:"dashboard_not_found"}); }
     }
+
+    await this.auditLog?.record({action:"API_ACCESS",actorId,tenantId,resource:path,metadata:{method}});
 
     if(method==="GET" && path==="/v1/incidents") {
       if(!this.incidentManager) return json(res,503,{error:"incident_manager_not_configured"});
@@ -159,6 +166,11 @@ export class OperatorApi {
     if(method==="GET" && path==="/v1/health") {
       const result=this.healthMonitor?.check ? await this.healthMonitor.check() : {healthy:true,alerts:[]};
       return json(res,result.healthy?200:503,result);
+    }
+
+    if(method==="GET" && path==="/v1/audit") {
+      if(!this.auditLog) return json(res,503,{error:"audit_log_not_configured"});
+      return json(res,200,{entries:this.auditLog.list({tenantId,limit:url.searchParams.get("limit")||100}),integrity:this.auditLog.verify()});
     }
 
     if(method==="GET" && path==="/v1/metrics") {
