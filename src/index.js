@@ -49,3 +49,4 @@ export { AutonomousBuildPipeline } from "./core/autonomous-build-pipeline.js";
 export { WorkspaceRepository } from "./core/workspace-repository.js";
 export { createWorkspaceSecurityCouncil } from "./core/security-checks.js";
 export { createProductionJoraRuntime } from "./core/production-runtime.js";
+export { GitHubCIGate } from "./core/github-ci-gate.js";
