@@ -1,0 +1,1 @@
+export class GitReleaseEngine{constructor(){this.version="1.68.0";}prepare({artifacts=[],validation}={}){return{accepted:true,status:"RELEASE_PREPARED",version:this.version,artifacts:artifacts.map(a=>a.id),validationRequired:true,commitPolicy:"validated-changes-only",deploymentPolicy:"explicit-target-only"};}}
