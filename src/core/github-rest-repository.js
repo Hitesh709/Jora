@@ -20,6 +20,16 @@ export class GitHubRestRepository {
 
   pathFor(path){return encodeURIComponent(path).replace(/%2F/g,"/");}
 
+  async provisionRepository({name,description="",private:true,organization=null,autoInit=true}={}) {
+    if(!name||!String(name).trim()) throw new Error("repository name is required");
+    const clean=String(name).trim().replace(/[^a-zA-Z0-9._-]/g,"-").replace(/^-+|-+$/g,"").slice(0,100);
+    if(!clean) throw new Error("invalid repository name");
+    const endpoint=organization
+      ? "/orgs/"+encodeURIComponent(organization)+"/repos"
+      : "/user/repos";
+    return this.request(endpoint,{method:"POST",body:JSON.stringify({name:clean,description,private:Boolean(private),auto_init:Boolean(autoInit)})});
+  }
+
   async read(path){
     const d=await this.request("/repos/"+this.owner+"/"+this.repo+"/contents/"+this.pathFor(path)+"?ref="+encodeURIComponent(this.branch));
     return {path,sha:d.sha,content:Buffer.from(d.content.replace(/\n/g,""),"base64").toString("utf8")};
