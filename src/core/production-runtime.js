@@ -87,7 +87,7 @@ import {SelfImprovingEngineeringCore} from "./self-improving-engineering-core.js
 import {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
 import {ProductionInfrastructureControlPlane,StartupConfigValidator,ReadinessProbe,GracefulShutdownCoordinator,DependencyHealthRegistry,DurableStateRecoveryScanner,RuntimeResourceGuard,RuntimeConfigSnapshot} from "./production-infrastructure-control-plane-v2.js";
 import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapter,DeploymentStatusPoller,ProductionHealthVerifier,AutomaticRollbackExecutor,ExecutionEvidenceStore,ExternalExecutionControlPlaneV2} from "./external-execution-control-plane-v2.js";
-import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter} from "./customer-control-plane-v2.js";
+import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter,CustomerWorkspaceRegistry,CustomerVersionRegistry} from "./customer-control-plane-v2.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -318,13 +318,17 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     const client=target==="vercel"?vercelDeploymentClient:railwayDeploymentClient;
     return client.deploy({target,payload});
   }});
-  const customerTenants=new CustomerTenantRegistry();
-  const customerProjects=new ProjectRegistry();
-  const customerMissions=new CustomerMissionManager();
-  const customerMeter=new UsageMeter();
-  const customerQuota=new QuotaGuard({limits:config.customer?.quotas||{}});
-  const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null});
-  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter});
+  const customerConfig=config.customer??{};
+  const customerTenants=new CustomerTenantRegistry({store:new JsonStore({file:customerConfig.tenantStateFile||"./.jora/customer-tenants.json"})});
+  const customerProjects=new ProjectRegistry({store:new JsonStore({file:customerConfig.projectStateFile||"./.jora/customer-projects.json"})});
+  const customerMissions=new CustomerMissionManager({store:new JsonStore({file:customerConfig.missionStateFile||"./.jora/customer-missions.json"})});
+  const customerMeter=new UsageMeter({store:new JsonStore({file:customerConfig.usageStateFile||"./.jora/customer-usage.json"})});
+  const customerWorkspaces=new CustomerWorkspaceRegistry({store:new JsonStore({file:customerConfig.workspaceStateFile||"./.jora/customer-workspaces.json"})});
+  const customerVersions=new CustomerVersionRegistry();
+  const customerQuota=new QuotaGuard({limits:customerConfig.quotas||{},plans:customerConfig.plans||{}});
+  const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions});
+  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions});
+  await customerControl.load();
 
   const externalExecution=new ExternalExecutionControlPlaneV2({
     github:new GitHubExecutionAdapter({repository:remoteRepository}),
