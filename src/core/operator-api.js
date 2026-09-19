@@ -66,7 +66,8 @@ export class OperatorApi {
     autonomousCodingOrchestrator=null,
     autonomousEngineeringLoop=null,
     selfImprovingEngineeringCore=null,
-    autonomousSoftwareFactory=null
+    autonomousSoftwareFactory=null,
+    executionPlatform=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -87,6 +88,7 @@ export class OperatorApi {
     this.rateBuckets=new Map();
     this.accessController=accessController;
     this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;\n    this.autonomousProductBuilder=autonomousProductBuilder;\n    this.autonomousCodingOrchestrator=autonomousCodingOrchestrator;\n    this.autonomousEngineeringLoop=autonomousEngineeringLoop;\n    this.selfImprovingEngineeringCore=selfImprovingEngineeringCore;\n    this.autonomousSoftwareFactory=autonomousSoftwareFactory;
+    this.executionPlatform=executionPlatform;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -297,6 +299,65 @@ export class OperatorApi {
       const body=await readBody(req,this.maxBodyBytes);
       try{return json(res,200,await this.autonomousSoftwareFactory.run(body||{}));}
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+
+    if(method==="GET" && path==="/v2/platform") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,this.executionPlatform.status());
+    }
+
+    if(method==="GET" && path==="/v2/approvals") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{approvals:this.executionPlatform.approvalGate.list()});
+    }
+
+    if(method==="POST" && path==="/v2/approvals") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.requestApproval(body||{}));
+    }
+
+    const approvalMatch=path.match(/^\\/v2\\/approvals\\/([^/]+)\\/(approve|reject)$/);
+    if(method==="POST" && approvalMatch) {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,approvalMatch[2]==="approve"
+        ? this.executionPlatform.approve(approvalMatch[1])
+        : this.executionPlatform.reject(approvalMatch[1],body.reason));
+    }
+
+    if(method==="POST" && path==="/v2/tests/run") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.cwd) return json(res,400,{error:"cwd is required"});
+      return json(res,200,await this.executionPlatform.runTests({cwd:body.cwd,commandArgs:body.commandArgs||["test"]}));
+    }
+
+    if(method==="POST" && path==="/v2/github") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.operation) return json(res,400,{error:"operation is required"});
+      return json(res,200,await this.executionPlatform.executeGitHub({operation:body.operation,payload:body.payload||{}}));
+    }
+
+    if(method==="POST" && path==="/v2/deploy") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.provider) return json(res,400,{error:"provider is required"});
+      const approval=this.executionPlatform.requestApproval({operation:"deploy:"+body.provider,risk:body.risk||"high",evidence:body.evidence||[]});
+      if(!approval.approved) return json(res,202,{accepted:false,status:"APPROVAL_REQUIRED",approval});
+      return json(res,200,await this.executionPlatform.deploy({provider:body.provider,target:body.target,payload:body.payload||{}}));
+    }
+
+    if(method==="GET" && path==="/v2/jobs") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{jobs:await this.executionPlatform.queue.list({limit:url.searchParams.get("limit")||50,status:url.searchParams.get("status")||undefined})});
+    }
+
+    if(method==="POST" && path==="/v2/jobs") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,202,{accepted:true,status:"QUEUED",job:await this.executionPlatform.queue.enqueue({command:body.command,constraints:body.constraints||{},context:{...(body.context||{}),tenantId}})});
     }
 
     if(method==="GET" && path==="/v1/status") {
