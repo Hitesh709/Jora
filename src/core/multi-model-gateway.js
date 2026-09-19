@@ -1,3 +1,12 @@
+import {AsyncLocalStorage} from "node:async_hooks";
+
+export const modelSelectionContext=new AsyncLocalStorage();
+
+export function withModelSelection(provider,fn){
+  if(!provider) return fn();
+  return modelSelectionContext.run(provider,fn);
+}
+
 export class AnthropicProvider {
   constructor({apiKey=process.env.ANTHROPIC_API_KEY,baseUrl=process.env.JORA_ANTHROPIC_BASE_URL||"https://api.anthropic.com/v1",model=process.env.JORA_ANTHROPIC_MODEL||"claude-sonnet-4-5"}={}) {
     if(!apiKey) throw new Error("Anthropic API key is required");
@@ -23,8 +32,9 @@ export class MultiModelGateway {
     return this.providers.get("default");
   }
   async complete(request={}) {
-    const requested=request.model??this.defaultModel;
-    const candidates=[requested,...this.fallbackModels].filter((x,i,a)=>x&&a.indexOf(x)===i);
+    const selected=modelSelectionContext.getStore();
+    const requested=selected??request.model??this.defaultModel;
+    const candidates=[requested,...(selected?[]:this.fallbackModels)].filter((x,i,a)=>x&&a.indexOf(x)===i);
     const errors=[];
     for(const model of candidates){
       const provider=this.providerFor(model);
