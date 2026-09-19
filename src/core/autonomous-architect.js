@@ -202,7 +202,7 @@ export class AutonomousArchitect {
     return checkpointStore.write({version:1,updatedAt:new Date().toISOString(),state:clone(state)});
   }
 
-  async plan({objective,context={},currentArchitecture=null}={}){
+  async plan({objective,context={},currentArchitecture=null,persist=true}={}){
     const requirements=await this.interpretRequirements({objective,context});
     const alternatives=await this.designAlternatives(requirements,{currentArchitecture});
     const decision=this.decide(requirements,alternatives);
@@ -215,8 +215,10 @@ export class AutonomousArchitect {
     if(this.experiencePlanner) { const planned=[]; for(const task of taskDAG) planned.push(await this.experiencePlanner.plan(task)); taskDAG=planned; }
     const agentTeam=this.compileAgentTeam(contract);
     const plan={version:"1.50",requirements,alternatives,decision,contract,validation,taskDAG,agentTeam};
-    const persisted=await this.architectureStore?.saveContract?.(contract,{decision,parentArchitectureId:context.parentArchitectureId});
-    if(persisted) plan.contract=persisted;
+    if(persist) {
+      const persisted=await this.architectureStore?.saveContract?.(contract,{decision,parentArchitectureId:context.parentArchitectureId});
+      if(persisted) plan.contract=persisted;
+    }
     await this.observability?.append?.({type:"ARCHITECTURE_PLAN_CREATED",architectureId:contract.id,objective,at:new Date().toISOString()});
     return plan;
   }
