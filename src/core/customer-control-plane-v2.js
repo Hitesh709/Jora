@@ -92,6 +92,12 @@ export class CustomerVersionRegistry {
 
 export class CustomerRepositoryFactory {
   constructor({github=null,organization=null,privateRepositories=true}={}) { this.github=github; this.organization=organization; this.privateRepositories=privateRepositories; }
+  repositoryFor(repository) {
+    if(!repository?.owner||!repository?.name||!this.github?.token) return null;
+    const GitHubClass=this.github.constructor;
+    return new GitHubClass({token:this.github.token,owner:repository.owner,repo:repository.name,branch:repository.defaultBranch||"main"});
+  }
+
   async provision({tenantId,projectId,name,description="",repositoryName=null}={}) {
     if(!this.github?.provisionRepository) return {accepted:false,status:"GITHUB_REPOSITORY_PROVISIONER_NOT_CONFIGURED"};
     const repo=await this.github.provisionRepository({name:repositoryName||name,description,private:this.privateRepositories,organization:this.organization});
