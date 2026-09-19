@@ -12,8 +12,8 @@ export class ProductUnderstandingEngine {
     const text=this._clean(input);
     const constraints=[];
     const patterns=[
-      [/\\b(?:under|below|less than)\\s+([^,.!?]+)/i,"budget"],
       [/\\b(?:within|in)\\s+(\\d+\\s*(?:days?|weeks?|months?))/i,"deadline"],
+      [/\\b(?:under|below|less than)\\s+([^,.!?]+)/i,"budget"],
       [/\\b(?:must|should)\\s+(?:use|run on|support)\\s+([^,.!?]+)/i,"technology"],
       [/\\b(?:for|targeting)\\s+([^,.!?]+?)\\s+(?:users?|customers?|people)\\b/i,"audience"]
     ];
