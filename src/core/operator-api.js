@@ -377,6 +377,29 @@ export class OperatorApi {
       }));
     }
 
+    if(method==="GET" && path==="/v4/customer/platform") return json(res,200,this.executionPlatform?.customerPlatformV4?.status?.()||{});
+    if(method==="POST" && path==="/v4/customer/roles") {
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,201,this.executionPlatform.customerGrantRole(body||{}));}catch(error){return json(res,400,{accepted:false,error:error.message});}
+    }
+    if(method==="POST" && path==="/v4/customer/govern") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.customerGovern(body||{}));
+    }
+    if(method==="GET" && path==="/v4/customer/roles") {
+      return json(res,200,{roles:this.executionPlatform.customerPlatformV4.access.list({tenantId:url.searchParams.get("tenantId")||undefined})});
+    }
+    if(method==="POST" && path==="/v4/customer/sla/record") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,201,this.executionPlatform.customerRecordSLA(body||{}));
+    }
+    if(method==="GET" && path==="/v4/customer/sla") {
+      return json(res,200,this.executionPlatform.customerSLA({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined}));
+    }
+    if(method==="GET" && path==="/v4/customer/audit") {
+      return json(res,200,{events:this.executionPlatform.customerPlatformV4.audit.list({tenantId:url.searchParams.get("tenantId")||undefined})});
+    }
+
     if(method==="GET" && path==="/v3/customer/saas") {
       if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
       return json(res,200,this.executionPlatform.customerSaaS.status());
