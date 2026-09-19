@@ -1,0 +1,1 @@
+export class FailureAnalysisAgent{constructor(){this.version="1.74.0";}analyze({failures=[]}={}){return{accepted:true,status:"FAILURE_ANALYSIS_COMPLETED",version:this.version,findings:failures.map(f=>({taskId:f.taskId||null,error:f.error||"unknown",evidenceRequired:true,nextStep:"reproduce-and-isolate"}))};}}
