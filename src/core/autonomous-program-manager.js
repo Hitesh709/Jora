@@ -26,7 +26,9 @@ export class AutonomousProgramManager {
     else if(this.autonomousArchitect?.plan) architecturePlan=await this.autonomousArchitect.plan({objective,context});
     const missionContext={...context,architecturePlan};
     await this.observability?.append?.({type:"MISSION_STARTED",objective,architectureId:architecturePlan?.contract?.id??null,at:new Date().toISOString()});
-    const result=await this.missionRunner.run({objective,context:missionContext,maxCycles});
+    const result=this.programDirector?.run
+      ? await this.programDirector.run({objective,context:missionContext,maxCycles})
+      : await this.missionRunner.run({objective,context:missionContext,maxCycles});
     await this.observability?.append?.({type:"MISSION_FINISHED",status:result.status,progress:result.roadmap.progress,at:new Date().toISOString()});
     return result;
   }
