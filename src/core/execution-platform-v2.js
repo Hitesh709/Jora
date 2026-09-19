@@ -9,6 +9,7 @@ import {AutonomousReleaseControlPlane} from "./autonomous-release-control-plane-
 import {ProductionInfrastructureControlPlane} from "./production-infrastructure-control-plane-v2.js";
 import {ExternalExecutionControlPlaneV2} from "./external-execution-control-plane-v2.js";
 import {CustomerControlPlaneV2} from "./customer-control-plane-v2.js";
+import {AutonomousCustomerProductionPlatform} from "./autonomous-customer-production-v3.js";
 
 export class ApprovalGate {
   constructor({autoApproveLowRisk=true}={}) {
@@ -115,7 +116,7 @@ export class WebhookDeploymentClient {
 }
 
 export class ExecutionPlatformV2 {
-  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null}={}) {
+  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null,customerProduction=null}={}) {
     this.version="2.70.0";
     this.github=github;this.sandbox=sandbox;this.testRunner=testRunner;this.queue=queue;
     this.approvalGate=approvalGate??new ApprovalGate();
@@ -137,6 +138,7 @@ export class ExecutionPlatformV2 {
     this.infrastructure=infrastructure??new ProductionInfrastructureControlPlane();
     this.externalExecution=externalExecution??new ExternalExecutionControlPlaneV2();
     this.customerControl=customerControl??new CustomerControlPlaneV2();
+    this.customerProduction=customerProduction??new AutonomousCustomerProductionPlatform({customerControl:this.customerControl,executionPlatform:this});
   }
   status() {
     return {
@@ -162,7 +164,8 @@ export class ExecutionPlatformV2 {
       release:this.release.status().capabilities,
       infrastructure:this.infrastructure.status().capabilities,
       externalExecution:this.externalExecution.status().capabilities,
-      customerControl:this.customerControl.status().capabilities
+      customerControl:this.customerControl.status().capabilities,
+      customerProduction:this.customerProduction.status().capabilities
     };
   }
   deliveryStatus(){return this.delivery.status();}
@@ -201,7 +204,7 @@ export class ExecutionPlatformV2 {
   requestApproval(input){return this.approvalGate.evaluate(input);}
   approve(id){return this.approvalGate.approve(id);}
   reject(id,reason){return this.approvalGate.reject(id,reason);}
-  async customerSubmit(input={}) { return this.customerControl.router.submit(input); }
+  async customerSubmit(input={}) { return this.customerProduction.submit(input); }
   async externalExecute({operation,payload={}}={}) { return this.externalExecution.execute({operation,payload}); }
   async externalEndToEnd(input={}) { return this.externalExecution.endToEnd(input); }
   async deploy({provider,target,payload={}}={}) {
