@@ -13,5 +13,5 @@ test("v4.60 autonomous mission director executes dependency-aware mission",async
  const swarm={execute:async({task})=>({status:"COMPLETED",taskId:task.id})};
  const d=new AutonomousMissionDirectorV4({teamControlPlane:{registry:teams},swarm});
  const r=await d.run({mission:"build app",type:"coding",agents:[{id:"a",capabilities:["analysis","coding","testing"]}],models:["model-a"]});
- assert.equal(r.status,"COMPLETED"); assert.equal(r.results.length,3); assert.equal(d.ledger.list({missionId:r.id}).length,5);
+ assert.equal(r.status,"COMPLETED"); assert.equal(r.results.length,3); assert.equal(d.ledger.list({missionId:r.id}).length,6);
 });
