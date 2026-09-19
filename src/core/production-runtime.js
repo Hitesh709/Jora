@@ -291,13 +291,13 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const controlPreflight=new PreflightGate({policyEngine:controlPolicy});
   const artifactManifest=new ArtifactManifest();
   const healthVerifier=new DeploymentHealthVerifier({timeoutMs:config.executionPlatform?.healthTimeoutMs||10000});
-  const checkpointStore=new FactoryCheckpointStore({file:config.executionPlatform?.checkpointFile||"./.jora/v2-checkpoints.json"});
+  const v2CheckpointStore=new FactoryCheckpointStore({file:config.executionPlatform?.checkpointFile||"./.jora/v2-checkpoints.json"});
   const rollbackCoordinator=new RollbackCoordinator({deploymentClient:async ({target,payload})=>{
     const client=target==="vercel"?vercelDeploymentClient:target==="railway"?railwayDeploymentClient:railwayDeploymentClient;
     return client.deploy({target,payload});
   },ledger:executionLedger});
   const recoveryController=new RecoveryController({healthVerifier,rollbackCoordinator,ledger:executionLedger});
-  const controlLoop=new AutonomousControlLoop({ledger:executionLedger,policy:controlPolicy,preflight:controlPreflight,checkpoints:checkpointStore});
+  const controlLoop=new AutonomousControlLoop({ledger:executionLedger,policy:controlPolicy,preflight:controlPreflight,checkpoints:v2CheckpointStore});
   const executionPlatform=new ExecutionPlatformV2({
     github:remoteRepository,
     sandbox,
@@ -313,7 +313,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     artifacts:artifactManifest,
     healthVerifier,
     recovery:recoveryController,
-    checkpoints:checkpointStore,
+    checkpoints:v2CheckpointStore,
     controlLoop
   });
   const auditLog=new AuditLog({observability:null});
