@@ -75,7 +75,15 @@ import {KnowledgeIngestionPipeline,KnowledgeIndex,EvidenceAwareRetriever,Provena
 import {MutationStrategyEngine} from "./mutation-strategy-engine.js";
 import {EvolutionScheduler} from "./evolution-scheduler.js";
 import {ResearchLoop} from "./research-loop.js";
-import {ExecutionPlatformV2,PersistentLocalQueue,ApprovalGate,WorkerPool,WebhookDeploymentClient} from "./execution-platform-v2.js";\nimport {ProductUnderstandingEngine} from "./product-understanding-engine.js";\nimport {ArchitecturePlanningEngine} from "./architecture-planning-engine.js";\nimport {TaskDAGGenerationEngine} from "./task-dag-generation-engine.js";\nimport {AutonomousProductBuilder} from "./autonomous-product-builder.js";\nimport {AutonomousCodingOrchestrator} from "./autonomous-coding-orchestrator.js";\nimport {AutonomousEngineeringLoop} from "./autonomous-engineering-loop.js";\nimport {SelfImprovingEngineeringCore} from "./self-improving-engineering-core.js";\nimport {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
+import {ExecutionPlatformV2,PersistentLocalQueue,ApprovalGate,WorkerPool,WebhookDeploymentClient} from "./execution-platform-v2.js";
+import {ProductUnderstandingEngine} from "./product-understanding-engine.js";
+import {ArchitecturePlanningEngine} from "./architecture-planning-engine.js";
+import {TaskDAGGenerationEngine} from "./task-dag-generation-engine.js";
+import {AutonomousProductBuilder} from "./autonomous-product-builder.js";
+import {AutonomousCodingOrchestrator} from "./autonomous-coding-orchestrator.js";
+import {AutonomousEngineeringLoop} from "./autonomous-engineering-loop.js";
+import {SelfImprovingEngineeringCore} from "./self-improving-engineering-core.js";
+import {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -263,7 +271,15 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     policyEngine
   });
 
-  const metrics=new MetricsCollector();\n  const productUnderstanding=new ProductUnderstandingEngine({modelGateway});\n  const architecturePlanner=new ArchitecturePlanningEngine({modelGateway,productUnderstanding});\n  const taskDAGGenerator=new TaskDAGGenerationEngine({modelGateway});\n  const autonomousProductBuilder=new AutonomousProductBuilder({runtime:null,modelGateway});\n  const autonomousCodingOrchestrator=new AutonomousCodingOrchestrator();\n  const autonomousEngineeringLoop=new AutonomousEngineeringLoop();\n  const selfImprovingEngineeringCore=new SelfImprovingEngineeringCore();\n  const autonomousSoftwareFactory=new AutonomousSoftwareFactory();
+  const metrics=new MetricsCollector();
+  const productUnderstanding=new ProductUnderstandingEngine({modelGateway});
+  const architecturePlanner=new ArchitecturePlanningEngine({modelGateway,productUnderstanding});
+  const taskDAGGenerator=new TaskDAGGenerationEngine({modelGateway});
+  const autonomousProductBuilder=new AutonomousProductBuilder({runtime:null,modelGateway});
+  const autonomousCodingOrchestrator=new AutonomousCodingOrchestrator();
+  const autonomousEngineeringLoop=new AutonomousEngineeringLoop();
+  const selfImprovingEngineeringCore=new SelfImprovingEngineeringCore();
+  const autonomousSoftwareFactory=new AutonomousSoftwareFactory();
   const platformQueue=distributedConfig.enabled ? queueStore : new PersistentLocalQueue({file:config.executionPlatform?.localQueueFile});
   const approvalGate=new ApprovalGate({autoApproveLowRisk:config.executionPlatform?.autoApproveLowRisk!==false});
   const workerPool=new WorkerPool({concurrency:config.executionPlatform?.workerConcurrency??2});
@@ -286,7 +302,9 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const taskGenerator=new SelfTaskGenerator({
     model:{
       generate:async ({objective,snapshot,limit=1})=>{
-        const response=await modelGateway.complete({messages:[{role:"system",content:"Return ONLY a JSON array of implementation tasks. Do not invent repository facts. Each task must have title, description, priority and dependencies."},{role:"user",content:`Objective: ${objective}\nSnapshot: ${JSON.stringify(snapshot).slice(0,10000)}\nLimit: ${limit}`}]});
+        const response=await modelGateway.complete({messages:[{role:"system",content:"Return ONLY a JSON array of implementation tasks. Do not invent repository facts. Each task must have title, description, priority and dependencies."},{role:"user",content:`Objective: ${objective}
+Snapshot: ${JSON.stringify(snapshot).slice(0,10000)}
+Limit: ${limit}`}]});
         const raw=response?.content??response?.output??"";
         const match=String(raw).match(/\[[\s\S]*\]/);
         if(!match) return [];
