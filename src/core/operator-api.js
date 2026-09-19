@@ -4,6 +4,7 @@ import {URL} from "node:url";
 import fs from "node:fs/promises";
 import path from "node:path";
 import {AccessController} from "./access-controller.js";
+import {WebSearchProvider} from "./web-search-provider.js";
 
 function json(res,status,payload,headers={}) {
   const body=JSON.stringify(payload);
@@ -67,7 +68,8 @@ export class OperatorApi {
     autonomousEngineeringLoop=null,
     selfImprovingEngineeringCore=null,
     autonomousSoftwareFactory=null,
-    executionPlatform=null
+    executionPlatform=null,
+    searchProvider=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -97,6 +99,7 @@ export class OperatorApi {
     this.selfImprovingEngineeringCore=selfImprovingEngineeringCore;
     this.autonomousSoftwareFactory=autonomousSoftwareFactory;
     this.executionPlatform=executionPlatform;
+    this.searchProvider=searchProvider||new WebSearchProvider();
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -808,6 +811,24 @@ export class OperatorApi {
       const events=this.observability?.list ? await this.observability.list() : [];
       const limit=Math.min(200,Math.max(1,Number(url.searchParams.get("limit")||50)));
       return json(res,200,{events:events.filter(e=>!e.tenantId||e.tenantId===tenantId).slice(-limit)});
+    }
+
+    if((method==="GET" || method==="POST") && path==="/v1/search") {
+      const body=method==="POST" ? await readBody(req,this.maxBodyBytes) : {};
+      const query=String(method==="GET" ? (url.searchParams.get("q")||url.searchParams.get("query")||"") : (body.query||body.q||"")).trim();
+      if(!query) return json(res,400,{error:"query is required"});
+      if(!this.searchProvider?.search) return json(res,503,{error:"search_provider_not_configured"});
+      try {
+        const result=await this.searchProvider.search({
+          query,
+          maxResults:method==="GET" ? Number(url.searchParams.get("limit")||8) : Number(body.maxResults||body.limit||8),
+          topic:method==="GET" ? (url.searchParams.get("topic")||"general") : (body.topic||"general")
+        });
+        return json(res,200,{accepted:true,status:"SEARCH_COMPLETED",...result});
+      } catch(error) {
+        const status=error.code==="SEARCH_NOT_CONFIGURED" ? 503 : (error.status>=400&&error.status<500 ? 502 : 502);
+        return json(res,status,{accepted:false,status:error.code==="SEARCH_NOT_CONFIGURED"?"SEARCH_NOT_CONFIGURED":"SEARCH_FAILED",error:error.message});
+      }
     }
 
     if(method==="POST" && path==="/v1/execute") {
