@@ -11,6 +11,7 @@ import {ExternalExecutionControlPlaneV2} from "./external-execution-control-plan
 import {CustomerControlPlaneV2} from "./customer-control-plane-v2.js";
 import {AutonomousCustomerProductionPlatform} from "./autonomous-customer-production-v3.js";
 import {CustomerApplicationFactoryControlPlane,CustomerArtifactSecurityGate,CustomerBuildValidationGate,CustomerTestCommandController,CustomerDeliveryRecordStore,CustomerProductionUrlRegistry} from "./customer-application-factory-v3.70.js";
+import {CustomerSaaSControlPlaneV3} from "./customer-saas-control-plane-v3.80.js";
 
 export class ApprovalGate {
   constructor({autoApproveLowRisk=true}={}) {
@@ -140,6 +141,7 @@ export class ExecutionPlatformV2 {
     this.externalExecution=externalExecution??new ExternalExecutionControlPlaneV2();
     this.customerControl=customerControl??new CustomerControlPlaneV2();
     this.applicationFactory=applicationFactory??new CustomerApplicationFactoryControlPlane();
+    this.customerSaaS=new CustomerSaaSControlPlaneV3({customerControl:this.customerControl,applicationFactory:this.applicationFactory});
     this.customerProduction=customerProduction??new AutonomousCustomerProductionPlatform({customerControl:this.customerControl,executionPlatform:this,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory,applicationFactory:this.applicationFactory});
   }
   status() {
@@ -168,7 +170,8 @@ export class ExecutionPlatformV2 {
       externalExecution:this.externalExecution.status().capabilities,
       customerControl:this.customerControl.status().capabilities,
       customerProduction:this.customerProduction.status().capabilities,
-      applicationFactory:this.applicationFactory.status().capabilities
+      applicationFactory:this.applicationFactory.status().capabilities,
+      customerSaaS:this.customerSaaS.status().capabilities
     };
   }
   deliveryStatus(){return this.delivery.status();}
