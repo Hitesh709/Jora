@@ -146,14 +146,23 @@ export class ExternalExecutionControlPlaneV2 {
     if(!pr.result?.accepted) return {status:"PR_FAILED",mutation,ci,pr};
     const deployment=await this.execute({operation:"deploy",payload:{provider,target,payload:{...payload,commit:sha}}});
     if(!deployment.result?.accepted) return {status:"DEPLOYMENT_FAILED",mutation,ci,pr,deployment};
-    let health=null;
-    if(healthUrl) {
-      health=await this.execute({operation:"health.verify",payload:{url:healthUrl}});
-      if(!health.result?.healthy) {
-        const rollback=await this.execute({operation:"rollback",payload:{target,ref:base,payload}});
-        return {status:"ROLLED_BACK",mutation,ci,pr,deployment,health,rollback};
+    let deploymentStatus=null;
+    const deploymentId=deployment.result?.result?.deploymentId||deployment.result?.result?.id||deployment.result?.deploymentId;
+    if(deploymentId && this.deploymentStatus) {
+      deploymentStatus=await this.execute({operation:"deployment.status",payload:{deploymentId,target}});
+      if(["FAILED","CANCELLED","TIMEOUT"].includes(String(deploymentStatus.result?.status||"").toUpperCase())) {
+        return {status:"DEPLOYMENT_FAILED",mutation,ci,pr,deployment,deploymentStatus};
       }
     }
-    return {status:"DELIVERED",mutation,ci,pr,deployment,health};
+    const resolvedHealthUrl=healthUrl||deployment.result?.result?.url||deployment.result?.result?.productionUrl||deployment.result?.result?.deploymentUrl||null;
+    let health=null;
+    if(resolvedHealthUrl) {
+      health=await this.execute({operation:"health.verify",payload:{url:resolvedHealthUrl}});
+      if(!health.result?.healthy) {
+        const rollback=await this.execute({operation:"rollback",payload:{target,ref:base,payload}});
+        return {status:"ROLLED_BACK",mutation,ci,pr,deployment,deploymentStatus,health,rollback,productionUrl:resolvedHealthUrl};
+      }
+    }
+    return {status:"DELIVERED",mutation,ci,pr,deployment,deploymentStatus,health,productionUrl:resolvedHealthUrl};
   }
 }
