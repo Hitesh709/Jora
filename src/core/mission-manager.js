@@ -23,7 +23,11 @@ export class MissionManager {
     const generated=await this.taskGenerator.generate({objective,snapshot:{roadmap:this.roadmap.progress(),context},limit});
     const added=[];
     for(const [i,task] of generated.entries()) {
-      const normalized={id:task.id??`DYNAMIC-${Date.now()}-${i}`,title:task.title,description:task.description,priority:task.priority??0,dependencies:task.dependencies??[]};
+      const id=task.id??`DYNAMIC-${Date.now()}-${i}`;
+      const known=new Set(this.roadmap.all().map(x=>x.id));
+      const uniqueId=known.has(id)?`${id}-${Date.now()}-${i}`:id;
+      const dependencies=(task.dependencies??[]).filter(dep=>known.has(dep));
+      const normalized={id:uniqueId,title:task.title,description:task.description,priority:task.priority??0,dependencies};
       added.push(this.roadmap.addTask(normalized));
     }
     await this.roadmap.save();
