@@ -1,0 +1,1 @@
+export class RollbackEngine{constructor(){this.version="1.96.0";}plan({deployment,reason}={}){return{accepted:true,status:"ROLLBACK_PLAN_READY",version:this.version,deployment,reason,steps:["stop rollout","restore last known-good revision","verify health","record incident"],requiresApproval:true};}}
