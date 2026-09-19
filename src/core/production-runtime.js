@@ -386,10 +386,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       try { architecturePlan=await architectCore.plan({objective,context}); } catch (error) {
         await observability.append?.({type:"ARCHITECTURE_PLAN_FAILED",objective,error:error.message,at:new Date().toISOString()});
       }
-      try {
-        await continuousLearning.learn({candidate:{id:`mission-${cycle}`},outcome:"ATTEMPTED",strategy:architecturePlan?.taskDAG?.[0]?.executionStrategy??"standard",lessons:architecturePlan?.requirements?.acceptanceCriteria??[],evidence:{}});
-      } catch {}
-      return missionRunner.run({
+      const learningStrategy=architecturePlan?.taskDAG?.[0]?.executionStrategy??"standard";
+      const missionResult=await missionRunner.run({
         objective,
         context:{
           ...context,
@@ -405,6 +403,18 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         },
         maxCycles:1
       });
+      try {
+        const outcome=missionResult?.status==="COMPLETED"||missionResult?.status==="PROMOTED"?"SUCCESS":"FAILED";
+        const failure=missionResult?.error??missionResult?.results?.find?.(x=>x.status==="FAILED"||String(x.status).includes("BLOCKED"));
+        await continuousLearning.learn({
+          candidate:{id:`mission-${cycle}`},
+          outcome,
+          strategy:learningStrategy,
+          lessons:architecturePlan?.requirements?.acceptanceCriteria??[],
+          evidence:failure?{failureType:failure.status??"MISSION_FAILURE",message:failure.error??failure.reason??"mission failed"}:{}
+        });
+      } catch {}
+      return missionResult;
     }
   });
   runtime.continuousWorker=worker;
