@@ -377,6 +377,30 @@ export class OperatorApi {
       }));
     }
 
+    if(method==="GET" && path==="/v4/missions/status") {
+      if(!this.executionPlatform?.missionDirector) return json(res,503,{error:"mission_director_not_configured"});
+      return json(res,200,this.executionPlatform.missionDirector.status());
+    }
+    if(method==="GET" && path==="/v4/missions") {
+      if(!this.executionPlatform?.missionDirector) return json(res,503,{error:"mission_director_not_configured"});
+      return json(res,200,{missions:this.executionPlatform.missionDirector.state.list({status:url.searchParams.get("status")||undefined,limit:url.searchParams.get("limit")||100})});
+    }
+    if(method==="GET" && path==="/v4/missions/events") {
+      if(!this.executionPlatform?.missionDirector) return json(res,503,{error:"mission_director_not_configured"});
+      return json(res,200,{events:this.executionPlatform.missionDirector.ledger.list({missionId:url.searchParams.get("missionId")||undefined,limit:url.searchParams.get("limit")||100})});
+    }
+    if(method==="POST" && path==="/v4/missions/run") {
+      if(!this.executionPlatform?.missionDirector) return json(res,503,{error:"mission_director_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.mission) return json(res,400,{error:"mission is required"});
+      try {
+        const result=await this.executionPlatform.missionRun({...body,context:{...(body.context||{}),tenantId}});
+        return json(res,result.status==="COMPLETED"?200:202,result);
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"MISSION_FAILED",error:error.message});
+      }
+    }
+
     if(method==="GET" && path==="/v4/teams/status") return json(res,200,this.executionPlatform?.agentTeams?.status?.()||{});
     if(method==="GET" && path==="/v4/teams") return json(res,200,{teams:this.executionPlatform.agentTeams.registry.list()});
     if(method==="POST" && path==="/v4/teams") {
