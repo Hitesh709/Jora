@@ -78,7 +78,7 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
-    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;\n    this.autonomousProductBuilder=autonomousProductBuilder;
+    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;\n    this.autonomousProductBuilder=autonomousProductBuilder;\n    this.autonomousCodingOrchestrator=autonomousCodingOrchestrator;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -259,6 +259,14 @@ export class OperatorApi {
       if(!body.input) return json(res,400,{error:"input is required"});
       try { return json(res,200,await this.autonomousProductBuilder.build({input:body.input,context:body.context||{}})); }
       catch(error){ return json(res,400,{accepted:false,status:"FAILED",error:error.message}); }
+    }
+
+    if(method==="POST" && path==="/v1/code/plan") {
+      if(!this.autonomousCodingOrchestrator) return json(res,503,{error:"autonomous_coding_orchestrator_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.task) return json(res,400,{error:"task is required"});
+      try{return json(res,200,this.autonomousCodingOrchestrator.build({task:body.task,repository:body.repository||{}}));}
+      catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
 
     if(method==="GET" && path==="/v1/status") {
