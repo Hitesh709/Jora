@@ -1,0 +1,10 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "../src/core/autonomous-planning.js";
+
+test("architecture store preserves lineage",async()=>{const store=new ArchitectureStore();await store.saveContract({id:"a1",objective:"x",components:[]});await store.saveContract({id:"a2",objective:"x2",components:[],parentArchitectureId:"a1"});assert.equal((await store.lineage("a2")).length,2);});
+test("task DAG optimizer computes order and parallel levels",()=>{const x=new TaskDAGOptimizer().optimize([{id:"a",dependencies:[],priority:1},{id:"b",dependencies:[],priority:2},{id:"c",dependencies:["a","b"],priority:3}]);assert.deepEqual(x.order,["b","a","c"]);assert.deepEqual(x.parallelGroups[0],["b","a"]);assert.equal(x.criticalPathLength,2);});
+test("task contracts verify required evidence",()=>{const e=new TaskContractEngine();const t=e.compile({id:"t",acceptanceCriteria:["works"]},{evidenceRequired:["tests"]});assert.equal(e.verify(t,{status:"DONE"},{tests:true}).passed,true);assert.equal(e.verify(t,{status:"DONE"},{}).passed,false);});
+test("adaptive planner chooses guarded strategy for risky work",()=>{const p=new AdaptiveExecutionPlanner().plan([{id:"t",dependencies:[],risk:{score:.8}}]);assert.equal(p.tasks[0].executionStrategy,"isolated-verified");});
+test("resource scheduler blocks over-capacity work",()=>{const s=new ResourceAwareScheduler({cpu:1});assert.equal(s.admit({resources:{cpu:2}}).admitted,false);});
+test("checkpoint, idempotency and transactions work",async()=>{const c=new CheckpointStore();await c.save("x",{step:1});assert.equal((await c.load("x")).state.step,1);const g=new IdempotencyGuard();g.record("t","k",{status:"DONE"});assert.equal(g.get("t","k").status,"DONE");const m=new MissionTransactionManager();m.begin("m");m.append("m",{id:"t"});assert.equal(m.commit("m").status,"COMMITTED");});
