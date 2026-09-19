@@ -414,6 +414,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     evolutionController,
     incidentCommander,
     sloRecovery,
+    architectureStore,
     observability
   });
   const healthConfig=config.operationalHealth??{};
