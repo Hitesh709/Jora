@@ -348,7 +348,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     evidence:externalEvidence
   });
 
-  customerRouter.executionPlatform=executionPlatform;
   const executionPlatform=new ExecutionPlatformV2({
     github:remoteRepository,
     sandbox,
@@ -375,6 +374,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     projectBuilder,
     repositoryFactory:customerRepositoryFactory
   });
+  customerRouter.executionPlatform=executionPlatform;
   const auditLog=new AuditLog({observability:null});
 
   const roadmap=new RoadmapEngine({roadmap:JORA_MASTER_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
