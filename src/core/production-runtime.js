@@ -373,7 +373,10 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     policy:policyDrivenAutonomy,
     observability
   });
-  // Bootstrap a safe architecture planner before the full ArchitectCore is constructed.\n  // This avoids temporal-dead-zone failures during runtime startup while preserving the full core once initialized.\n  let architectCore={plan:input=>autonomousArchitect.plan(input)};\n  const worker=new DurableWorker({
+  // Bootstrap a safe architecture planner before the full ArchitectCore is constructed.
+  // This avoids temporal-dead-zone failures during runtime startup while preserving the full core once initialized.
+  let architectCore={plan:input=>autonomousArchitect.plan(input)};
+  const worker=new DurableWorker({
     store:new JsonStore({file:config.worker?.stateFile||"./.jora/worker.json"}),
     workerId:config.distributed?.owner||"jora-worker",
     leaseStore,
