@@ -309,6 +309,29 @@ export class OperatorApi {
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
 
+    if(method==="GET" && path==="/v2/customer") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,this.executionPlatform.customerControl.status());
+    }
+    if(method==="POST" && path==="/v2/customer/tenants") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,201,await this.executionPlatform.customerControl.tenants.create(body||{}));
+    }
+    if(method==="POST" && path==="/v2/customer/projects") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,201,this.executionPlatform.customerControl.projects.create(body||{}));
+    }
+    if(method==="POST" && path==="/v2/customer/missions") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,202,await this.executionPlatform.customerSubmit(body||{}));
+    }
+    if(method==="GET" && path==="/v2/customer/missions") {
+      return json(res,200,{missions:this.executionPlatform.customerControl.missions.list(url.searchParams.get("tenantId")||undefined)});
+    }
+    if(method==="GET" && path==="/v2/customer/usage") {
+      return json(res,200,{usage:this.executionPlatform.customerControl.meter.summarize({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+    }
+
     if(method==="GET" && path==="/v2/external") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.externalExecution.status());
