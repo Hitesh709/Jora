@@ -1,8 +1,8 @@
 import {randomUUID} from "node:crypto";
 
 export class CustomerMissionOrchestrator {
-  constructor({missionManager,customerControl=null,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
-    Object.assign(this,{missionManager,customer:customerControl,executionPlatform,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory});
+  constructor({missionManager,customerControl=null,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null}={}) {
+    Object.assign(this,{missionManager,customer:customerControl,executionPlatform,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory,applicationFactory});
   }
   async execute(mission,{context={}}={}) {
     this.missionManager.transition(mission.id,"RUNNING");
@@ -46,9 +46,20 @@ export class CustomerMissionOrchestrator {
               context:{...baseContext,architecture:planning.architecture,dag:planning.dag},
               repository:workspace
             });
+            const files=await workspace.snapshot();
+            const artifactGate=this.applicationFactory?.validateArtifacts({files});
+            if(artifactGate && !artifactGate.allowed) {
+              return this.missionManager.transition(mission.id,"FAILED",{gate,planning,build,artifactGate});
+            }
+            const buildGate=this.applicationFactory?.validateBuild({files,specification,architecture:planning.architecture});
+            if(buildGate && !buildGate.allowed) {
+              return this.missionManager.transition(mission.id,"FAILED",{gate,planning,build,artifactGate,buildGate});
+            }
+            const normalizedTests=this.applicationFactory?.normalizeTests(context.testCommandArgs);
             const localTests=await this.executionPlatform?.runTests?.({
               cwd:workspacePath,
-              commandArgs:context.testCommandArgs||["test"]
+              commandArgs:normalizedTests?.commandArgs||context.testCommandArgs||["test"],
+              timeoutMs:normalizedTests?.timeoutMs
             });
             build={...build,localTests};
             if(localTests && localTests.ok===false) {
@@ -58,7 +69,6 @@ export class CustomerMissionOrchestrator {
               });
               return this.missionManager.transition(mission.id,"FAILED",{gate,planning,build,version});
             }
-            const files=await workspace.snapshot();
             deliveryContext={
               branch:workspace.candidateBranch,
               base:remote.branch,
@@ -80,11 +90,15 @@ export class CustomerMissionOrchestrator {
             specification,architecture:planning.architecture,dag:planning.dag
           }
         };
+        const deliveryRecord=await this.applicationFactory?.createDelivery?.({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,status:"DELIVERY_STARTED",revision:null,metadata:{branch:deliveryInput.branch}});
         const delivery=await this.executionPlatform.externalEndToEnd(deliveryInput);
         const finalStatus=delivery?.status==="DELIVERED"?"DELIVERED":
           delivery?.status==="ROLLED_BACK"?"ROLLED_BACK":"FAILED";
         const revision=delivery?.mutation?.result?.commit||delivery?.mutation?.commit||delivery?.commit||null;
-        const version=customer?.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,revision,status:finalStatus,metadata:{deliveryStatus:delivery?.status}});
+        const productionUrl=delivery?.productionUrl||delivery?.deploymentStatus?.url||delivery?.deployment?.result?.url||null;
+        if(productionUrl) await this.applicationFactory?.recordProductionUrl?.({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,url:productionUrl,status:finalStatus,revision,deploymentId:delivery?.deploymentStatus?.id||null});
+        if(deliveryRecord) await this.applicationFactory?.updateDelivery?.(deliveryRecord.id,{status:finalStatus,revision,productionUrl,metadata:{deliveryStatus:delivery?.status,deploymentStatus:delivery?.deploymentStatus}});
+        const version=customer?.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,revision,status:finalStatus,metadata:{deliveryStatus:delivery?.status,productionUrl}});
         return this.missionManager.transition(mission.id,finalStatus,{gate,planning,build,delivery,version});
       }
       const version=this.customer.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,status:"PLANNED",metadata:{planning}});
@@ -150,6 +164,7 @@ export class AutonomousCustomerProductionPlatform {
       productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory
     });
     this.lifecycle=new CustomerLifecycleEngine({missions:customerControl.missions,orchestrator:this.orchestrator});
+    this.applicationFactory=applicationFactory;
     this.lineage=new CustomerArtifactLineage({store:this.customer.artifactLineageStore});
     this.pipeline=new CustomerProductionPipeline({policy:this.policy,lifecycle:this.lifecycle,lineage:this.lineage});
   }
@@ -160,7 +175,7 @@ export class AutonomousCustomerProductionPlatform {
       taskDAGGeneration:Boolean(this.taskDAGGenerator),projectGeneration:Boolean(this.projectBuilder),customerRepository:Boolean(this.repositoryFactory),githubDelivery:Boolean(this.execution?.externalExecution),
       realTests:Boolean(this.execution?.testRunner),deployment:Boolean(Object.keys(this.execution?.deploymentClients||{}).length),
       healthVerification:Boolean(this.execution?.healthVerifier),rollback:Boolean(this.execution?.recovery),
-      productionPipeline:true
+      productionPipeline:true,applicationFactory:Boolean(this.applicationFactory),artifactSecurity:Boolean(this.applicationFactory?.security),deliveryRecords:Boolean(this.applicationFactory?.deliveries),productionUrlRegistry:Boolean(this.applicationFactory?.productionUrls)
     }};
   }
   async submit(input={}) {
