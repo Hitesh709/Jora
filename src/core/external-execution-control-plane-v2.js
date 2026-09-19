@@ -143,6 +143,7 @@ export class ExternalExecutionControlPlaneV2 {
     const ci=await this.execute({operation:"github.ci",payload:{branch,headSha:sha}});
     if(!ci.result?.passed) return {status:"CI_FAILED",mutation,ci};
     const pr=await this.execute({operation:"github.pullRequest",payload:{title,head:branch,base}});
+    if(!pr.result?.accepted) return {status:"PR_FAILED",mutation,ci,pr};
     const deployment=await this.execute({operation:"deploy",payload:{provider,target,payload:{...payload,commit:sha}}});
     if(!deployment.result?.accepted) return {status:"DEPLOYMENT_FAILED",mutation,ci,pr,deployment};
     let health=null;
