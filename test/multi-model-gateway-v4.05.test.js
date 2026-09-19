@@ -13,7 +13,7 @@ test("v4.02 routes Claude model names to Anthropic provider",async()=>{
  assert.equal(result.text,"claude"); assert.deepEqual(calls,["claude-sonnet-4-5"]);
 });
 test("v4.04 falls back after provider failure",async()=>{
- let n=0; const gateway=new MultiModelGateway({providers:new Map([["openai",{async complete(){n++;throw new Error("down");}},["claude",{async complete(){n++;return {text:"fallback"};}}]]),fallbackModels:["claude-sonnet-4-5"]});
+ let n=0; const gateway=new MultiModelGateway({providers:new Map([["openai",{async complete(){n++;throw new Error("down");}}],["claude",{async complete(){n++;return {text:"fallback"};}}]]),fallbackModels:["claude-sonnet-4-5"]});
  const result=await gateway.complete({model:"gpt-5.6"});
  assert.equal(result.text,"fallback"); assert.equal(n,2);
 });
