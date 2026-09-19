@@ -123,14 +123,19 @@ export class AutonomousProgramDirector {
 }
 
 export class AutonomousArchitectCore {
-  constructor({architect,programDirector=null,dependencyIntelligence,architectureRegression,securityArchitect,policy,evolutionController=null,incidentCommander=null,sloRecovery=null,observability=null}={}){Object.assign(this,{architect,programDirector,dependencyIntelligence,architectureRegression,securityArchitect,policy,evolutionController,incidentCommander,sloRecovery,observability});}
+  constructor({architect,programDirector=null,dependencyIntelligence,architectureRegression,securityArchitect,policy,evolutionController=null,incidentCommander=null,sloRecovery=null,architectureStore=null,observability=null}={}){Object.assign(this,{architect,programDirector,dependencyIntelligence,architectureRegression,securityArchitect,policy,evolutionController,incidentCommander,sloRecovery,architectureStore,observability});}
   async plan(input){
+    const records=await this.architectureStore?.list?.()??[];
+    const baseline=records.at(-1)??null;
     const plan=await this.architect.plan(input);
     plan.securityArchitecture=this.securityArchitect.design({contract:plan.contract});
     plan.securityValidation=this.securityArchitect.validate(plan.securityArchitecture);
     if(!plan.securityValidation.passed) throw new Error(plan.securityValidation.errors.join("; "));
     plan.dependencies=this.dependencyIntelligence.model({architecture:plan.contract,agents:plan.agentTeam});
-    if(this.architectureRegression?.history?.length) plan.architectureRegression=await this.architectureRegression.compare({candidate:plan.contract});
+    if(this.architectureRegression) {
+      plan.architectureRegression=await this.architectureRegression.compare({candidate:plan.contract,baseline});
+      if(!plan.architectureRegression.passed) throw new Error("architecture regression gate failed");
+    }
     await this.observability?.append?.({type:"ARCHITECT_CORE_PLAN",architectureId:plan.contract.id,at:new Date().toISOString()});
     return plan;
   }
