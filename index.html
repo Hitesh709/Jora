@@ -2,87 +2,129 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Jora Control Center</title>
+<title>Jora — AI Engineering Agent</title>
 <style>
-body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#0f1115;color:#eee}
-header{padding:20px 28px;border-bottom:1px solid #292d35;display:flex;justify-content:space-between;gap:16px;align-items:center;flex-wrap:wrap}
-main{padding:24px;display:grid;gap:18px;max-width:1500px;margin:auto}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
-.card{background:#171a21;border:1px solid #292d35;border-radius:12px;padding:18px}.value{font-size:26px;font-weight:700;margin-top:8px}
-pre{white-space:pre-wrap;overflow:auto;max-height:320px}button{background:#eee;color:#111;border:0;border-radius:8px;padding:9px 14px;cursor:pointer}
-input{background:#111;color:#eee;border:1px solid #333;border-radius:7px;padding:9px;width:320px}small{color:#9aa3b2}
-.ok{color:#7ee787}.bad{color:#ff7b72}.warn{color:#f2cc60}.muted{color:#9aa3b2}
-.banner{border:1px solid #3a414d;background:#141820;border-radius:12px;padding:16px}a{color:#8ab4ff}
-.cap{display:inline-block;padding:5px 8px;margin:3px;border:1px solid #333;border-radius:8px;font-size:12px}
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#0b0d11;color:#f3f4f6}
+button,input,textarea,select{font:inherit}.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}
+aside{border-right:1px solid #252a33;background:#0f1218;padding:18px;display:flex;flex-direction:column;gap:14px}
+.logo{font-size:20px;font-weight:800}.sub{font-size:11px;color:#8b94a5}.new{width:100%;padding:11px;border:1px solid #343b47;background:#171b23;color:#fff;border-radius:9px;cursor:pointer}
+nav{display:grid;gap:5px}nav button{border:0;background:transparent;color:#aab3c2;text-align:left;padding:10px;border-radius:8px;cursor:pointer}nav button.active,nav button:hover{background:#1a1f28;color:#fff}
+.sideBottom{margin-top:auto;display:grid;gap:8px}.conn{font-size:11px;color:#7ee787}.conn.off{color:#f2cc60}
+main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62px;border-bottom:1px solid #252a33;display:flex;align-items:center;justify-content:space-between;padding:0 22px;gap:12px}.topTitle{font-weight:700}.top small{color:#8b94a5}
+.content{width:min(980px,100%);margin:0 auto;padding:28px 22px 100px;overflow:auto;flex:1}
+.hero{text-align:center;padding:48px 0 28px}.hero h1{font-size:32px;margin:0 0 8px}.hero p{color:#8b94a5;margin:0}
+.chat{display:grid;gap:12px}.messages{display:grid;gap:12px}.msg{padding:14px 16px;border-radius:12px;border:1px solid #282e38;background:#12161d;white-space:pre-wrap;line-height:1.5}.msg.user{background:#171c25;margin-left:10%}.msg.system{font-size:12px;color:#9da7b6}
+.composer{border:1px solid #343b47;background:#11151c;border-radius:14px;padding:10px;position:sticky;bottom:15px;box-shadow:0 10px 35px #0008}
+textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outline:0;background:transparent;color:#fff;padding:8px}.composeRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.modes{display:flex;gap:5px;overflow:auto}.mode{border:1px solid #303744;background:#171b23;color:#aeb7c5;border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px}.mode.active{background:#26303d;color:#fff;border-color:#4b5668}.send{border:0;border-radius:8px;background:#fff;color:#111;padding:9px 15px;font-weight:700;cursor:pointer}.send:disabled{opacity:.5}
+.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.quick button{border:1px solid #292f39;background:#12161d;color:#cdd3dd;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.quick button:hover{background:#181d26}
+.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
+.overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
+@media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.content{padding:18px 14px 90px}.hero{padding:34px 0 22px}.hero h1{font-size:27px}.grid{grid-template-columns:repeat(2,1fr)}.top{padding:0 14px}.quick{grid-template-columns:1fr}.msg.user{margin-left:0}}
 </style></head>
 <body>
-<header><div><strong>Jora Control Center</strong><br><small>Autonomous Software Factory · v2.01–v2.10 Execution Platform</small></div>
-<div><input id="api" placeholder="API URL"><input id="token" type="password" placeholder="Bearer token"> <button onclick="saveAndRefresh()">Connect</button></div></header>
+<div class="app">
+<aside>
+  <div><div class="logo">✦ Jora</div><div class="sub">AI Engineering Agent</div></div>
+  <button class="new" onclick="newChat()">＋ New task</button>
+  <nav>
+    <button class="active" id="navChat" onclick="showView('chat')">Chat</button>
+    <button onclick="showView('projects')">Projects</button>
+    <button onclick="showView('runs')">Runs &amp; jobs</button>
+    <button onclick="showView('control')">Control center</button>
+  </nav>
+  <div class="sideBottom">
+    <div id="conn" class="conn off">● Backend not connected</div>
+    <button class="secondary" onclick="openSettings()">Backend settings</button>
+  </div>
+</aside>
 <main>
-<section class="banner"><strong id="bannerTitle">Checking deployment…</strong><div id="bannerText" class="muted">Connecting to the Jora API health endpoint.</div></section>
-<section class="grid">
-<div class="card">System<div class="value" id="system">—</div></div>
-<div class="card">Worker<div class="value" id="worker">—</div></div>
-<div class="card">Executions<div class="value" id="executions">—</div></div>
-<div class="card">Uptime<div class="value" id="uptime">—</div></div>
-<div class="card">Factory<div class="value" id="factory">—</div></div>
-<div class="card">Approvals<div class="value" id="approvals">—</div></div>
-</section>
-<section class="card"><h2>v2.01–v2.10 Capabilities</h2><div id="caps">Loading…</div></section>
-<section class="card"><h2>Runtime Metrics</h2><pre id="metrics">Loading…</pre></section>
-<section class="card"><h2>Recent Executions</h2><pre id="recent">Loading…</pre></section>
-<section class="card"><h2>Queue Jobs</h2><pre id="jobs">Loading…</pre></section>
-<section class="card"><h2>Pending Approvals</h2><pre id="approvalList">Loading…</pre></section>
-<section class="card"><h2>Incidents</h2><pre id="incidents">Loading…</pre></section>
-</main>
+<header class="top"><div class="topTitle">Jora <small>· Autonomous Software Factory</small></div><button class="secondary" onclick="openSettings()">⚙</button></header>
+<div class="content" id="content">
+  <section id="chatView">
+    <div class="hero"><h1>What are we building?</h1><p>Ask Jora to research, plan, code, test, fix, or ship a project.</p></div>
+    <div class="chat"><div id="messages" class="messages">
+      <div class="msg system">Jora is ready. Connect the backend, then describe what you want in one message.</div>
+    </div>
+    <div class="composer">
+      <textarea id="prompt" placeholder="Ask Jora anything about your software project…" onkeydown="keySend(event)"></textarea>
+      <div class="composeRow"><div class="modes">
+        <button class="mode active" data-mode="agent" onclick="setMode(this)">Agent</button>
+        <button class="mode" data-mode="research" onclick="setMode(this)">Research</button>
+        <button class="mode" data-mode="code" onclick="setMode(this)">Code</button>
+        <button class="mode" data-mode="build" onclick="setMode(this)">Build</button>
+      </div><button class="send" id="send" onclick="sendPrompt()">Send</button></div>
+    </div></div>
+    <div class="quick">
+      <button onclick="quick('Build a production-ready web application for me. First understand the requirements, then create the architecture and implementation plan.')">🚀 Build a new application</button>
+      <button onclick="quick('Inspect my current project and identify the highest-priority engineering problems to fix next.')">🔎 Inspect a project</button>
+      <button onclick="quick('Create a coding plan for the feature I describe, including files, tests, risks and deployment steps.')">🧩 Plan a feature</button>
+      <button onclick="quick('Run a production-readiness review of this project: architecture, security, testing, reliability and deployment.')">🛡 Production review</button>
+    </div>
+  </section>
+  <section id="projectsView" style="display:none"><div class="hero"><h1>Projects</h1><p>Project and repository management will appear here as Jora connects to your workspace.</p></div><div class="panel"><h3>Connect a project</h3><p class="muted">Use Chat → “Inspect my current project” or configure your GitHub integration in the backend.</p></div></section>
+  <section id="runsView" style="display:none"><div class="hero"><h1>Runs &amp; jobs</h1><p>Execution history from the Jora control plane.</p></div><div class="panel"><pre id="runs">Loading…</pre></div></section>
+  <section id="controlView" style="display:none"><div class="hero"><h1>Control Center</h1><p>Operational telemetry for the autonomous software factory.</p></div>
+    <div class="grid"><div class="card">System<div class="value" id="system">—</div></div><div class="card">Worker<div class="value" id="worker">—</div></div><div class="card">Executions<div class="value" id="executions">—</div></div><div class="card">Uptime<div class="value" id="uptime">—</div></div><div class="card">Factory<div class="value" id="factory">—</div></div><div class="card">Approvals<div class="value" id="approvals">—</div></div></div>
+    <div class="panel"><h3>Capabilities</h3><div id="caps" class="muted">Loading…</div></div>
+    <div class="panel"><h3>Runtime Metrics</h3><pre id="metrics">Loading…</pre></div>
+    <div class="panel"><h3>Recent Executions</h3><pre id="recent">Loading…</pre></div>
+    <div class="panel"><h3>Queue Jobs</h3><pre id="jobs">Loading…</pre></div>
+    <div class="panel"><h3>Pending Approvals</h3><pre id="approvalList">Loading…</pre></div>
+    <div class="panel"><h3>Incidents</h3><pre id="incidents">Loading…</pre></div>
+  </section>
+</div></main></div>
+<div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div><input id="api" placeholder="https://your-jora-api.up.railway.app"><input id="token" type="password" placeholder="Bearer token"><div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="send" onclick="saveSettings()">Connect</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token");
-apiInput.value=localStorage.getItem("jora_api_base")||new URLSearchParams(location.search).get("api")||defaultApi;
-function base(){return apiInput.value.replace(/\/$/,"");}
-function headers(){const t=tokenInput.value;return t?{Authorization:"Bearer "+t}:{}}
-async function get(p){const r=await fetch(base()+p,{headers:headers()});if(!r.ok){const e=new Error(r.status+" "+(await r.text()));e.status=r.status;throw e}return r.json()}
-function setBanner(title,text,kind="ok"){document.getElementById("bannerTitle").textContent=title;document.getElementById("bannerTitle").className=kind;document.getElementById("bannerText").textContent=text}
-function saveAndRefresh(){localStorage.setItem("jora_api_base",base());refresh()}
-async function refresh(){
+const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
+apiInput.value=localStorage.getItem("jora_api_base")||defaultApi;
+let mode="agent";
+function base(){return apiInput.value.replace(/\/$/,"")}
+function headers(){const t=tokenInput.value;return t?{Authorization:"Bearer "+t,"Content-Type":"application/json"}:{"Content-Type":"application/json"}}
+async function get(p){const r=await fetch(base()+p,{headers:headers(),cache:"no-store"});if(!r.ok){const e=new Error(r.status+" "+(await r.text()));e.status=r.status;throw e}return r.json()}
+function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",research:"What do you want Jora to research?",code:"Describe the code change you want…",build:"Describe the product you want built…"}[mode]}
+function quick(text){promptInput.value=text;promptInput.focus()}
+function keySend(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendPrompt()}}
+function addMessage(text,who){const d=document.createElement("div");d.className="msg "+who;d.textContent=text;document.getElementById("messages").appendChild(d);d.scrollIntoView({behavior:"smooth",block:"end"})}
+async function sendPrompt(){
+  const command=promptInput.value.trim();if(!command)return;
+  addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage("Working…","system");
   try{
-    const health=await fetch(base()+"/health",{cache:"no-store"}); 
-    if(!health.ok) throw new Error("health "+health.status);
-    setBanner("API ONLINE","Railway Jora API is reachable. Checking authenticated control-plane data.","ok");
-  }catch(e){setBanner("API OFFLINE","Frontend is online, but the configured Jora API cannot be reached: "+e.message,"bad");return}
-  const endpoints=[
-    ["status","/v1/status"],["metrics","/v1/metrics"],["executions","/v1/executions?limit=10"],
-    ["jobs","/v2/jobs?limit=10"],["platform","/v2/platform"],["approvals","/v2/approvals"],["incidents","/v1/incidents?limit=20"]
-  ];
-  const results=await Promise.allSettled(endpoints.map(([,p])=>get(p)));
-  const data=Object.fromEntries(endpoints.map(([name],_),i=>[name,results[i].status==="fulfilled"?results[i].value:null]));
-  const failures=endpoints.filter(([,],i)=>results[i].status==="rejected").map(([name],i)=>({name,error:results[endpoints.findIndex(([n])=>n===name)]?.reason?.message||"request failed"}));
-  const authFailure=results.some(r=>r.status==="rejected"&&r.reason?.status===401);
-
-  const s=data.status,m=data.metrics,e=data.executions,j=data.jobs,p=data.platform,a=data.approvals,inc=data.incidents;
-  if(s){
-    document.getElementById("system").textContent=s.status||"OK";
-    document.getElementById("system").className="value ok";
-    document.getElementById("worker").textContent=s.worker?.worker?.status||s.worker?.status||"IDLE";
-    document.getElementById("executions").textContent=s.executions?.total??0;
-    document.getElementById("uptime").textContent=Math.round((s.uptimeMs||0)/1000)+"s";
-  } else {
-    document.getElementById("system").textContent=authFailure?"AUTH REQUIRED":"DEGRADED";
-    document.getElementById("system").className="value "+(authFailure?"warn":"bad");
-  }
-  if(p){
-    document.getElementById("factory").textContent=p.version||"2.10.0";
-    document.getElementById("caps").innerHTML=Object.entries(p.capabilities||{}).map(([k,v])=>'<span class="cap">'+k+': '+(typeof v==="object"?JSON.stringify(v):v)+'</span>').join("");
-  }
-  if(a) document.getElementById("approvals").textContent=(a.approvals||[]).length;
-  if(m) document.getElementById("metrics").textContent=JSON.stringify(m,null,2);
-  if(e) document.getElementById("recent").textContent=JSON.stringify(e.executions,null,2);
-  if(j) document.getElementById("jobs").textContent=JSON.stringify(j.jobs,null,2);
-  if(a) document.getElementById("approvalList").textContent=JSON.stringify(a.approvals,null,2);
-  if(inc) document.getElementById("incidents").textContent=JSON.stringify(inc.incidents,null,2);
-
-  if(authFailure) setBanner("API ONLINE · AUTH REQUIRED","The Railway API is reachable, but one or more control endpoints require the Bearer token. Enter it above.","warn");
-  else if(failures.length) setBanner("Jora Control Plane DEGRADED","API is reachable. Some control-plane endpoints failed: "+failures.map(x=>x.name).join(", ")+".","warn");
-  else setBanner("Jora Control Plane ONLINE","API, execution platform and authenticated telemetry are available.","ok");
+    const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
+    const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode}})});
+    const data=await r.json().catch(()=>({error:"Invalid backend response"}));
+    document.querySelector("#messages .msg.system:last-child").remove();
+    if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
+    else if(!r.ok) addMessage("Jora could not execute this request: "+(data.error||r.statusText),"system");
+    else addMessage(formatResult(data),"assistant");
+  }catch(e){document.querySelector("#messages .msg.system:last-child")?.remove();addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL and token.","system")}
+  finally{sendBtn.disabled=false}
 }
-refresh();setInterval(refresh,10000);
+function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
+function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
+function closeSettings(){document.getElementById("settings").style.display="none"}
+function saveSettings(){localStorage.setItem("jora_api_base",base());closeSettings();checkBackend()}
+function newChat(){document.getElementById("messages").innerHTML='<div class="msg system">New Jora task. What should I build or solve?</div>';promptInput.focus()}
+function showView(view){
+  ["chat","projects","runs","control"].forEach(v=>document.getElementById(v+"View").style.display=v===view?"block":"none");
+  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
+  if(view==="chat")document.getElementById("navChat").classList.add("active");
+  if(view==="control")refreshControl();
+  if(view==="runs")loadRuns();
+}
+async function checkBackend(){
+  const el=document.getElementById("conn");
+  try{const r=await fetch(base()+"/health",{cache:"no-store"});if(!r.ok)throw new Error();el.textContent="● Backend online";el.className="conn"}catch{el.textContent="● Backend offline";el.className="conn off"}
+}
+async function loadRuns(){try{const e=await get("/v1/executions?limit=30");document.getElementById("runs").textContent=JSON.stringify(e.executions,null,2)}catch(e){document.getElementById("runs").textContent="Unable to load runs: "+e.message}}
+async function refreshControl(){
+  const endpoints=[["status","/v1/status"],["metrics","/v1/metrics"],["executions","/v1/executions?limit=10"],["jobs","/v2/jobs?limit=10"],["platform","/v2/platform"],["approvals","/v2/approvals"],["incidents","/v1/incidents?limit=20"]];
+  const results=await Promise.allSettled(endpoints.map(([,p])=>get(p)));
+  const d={};endpoints.forEach(([n],i)=>d[n]=results[i].status==="fulfilled"?results[i].value:null);
+  if(d.status){system.textContent=d.status.status;worker.textContent=d.status.worker?.worker?.status||d.status.worker?.status||"IDLE";executions.textContent=d.status.executions?.total??0;uptime.textContent=Math.round((d.status.uptimeMs||0)/1000)+"s"}
+  if(d.platform){factory.textContent=d.platform.version||"—";caps.innerHTML=Object.entries(d.platform.capabilities||{}).map(([k,v])=>'<span>'+k+': '+(typeof v==="object"?JSON.stringify(v):v)+"</span><br>").join("")}
+  if(d.approvals)approvals.textContent=(d.approvals.approvals||[]).length;
+  if(d.metrics)metrics.textContent=JSON.stringify(d.metrics,null,2);if(d.executions)recent.textContent=JSON.stringify(d.executions.executions,null,2);if(d.jobs)jobs.textContent=JSON.stringify(d.jobs.jobs,null,2);if(d.approvals)approvalList.textContent=JSON.stringify(d.approvals.approvals,null,2);if(d.incidents)incidents.textContent=JSON.stringify(d.incidents.incidents,null,2);
+}
+checkBackend();setInterval(checkBackend,15000);
 </script></body></html>
