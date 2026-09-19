@@ -89,6 +89,7 @@ import {ProductionInfrastructureControlPlane,StartupConfigValidator,ReadinessPro
 import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapter,DeploymentStatusPoller,ProductionHealthVerifier,AutomaticRollbackExecutor,ExecutionEvidenceStore,ExternalExecutionControlPlaneV2} from "./external-execution-control-plane-v2.js";
 import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter,CustomerWorkspaceRegistry,CustomerVersionRegistry,CustomerRepositoryFactory} from "./customer-control-plane-v2.js";
 import {CustomerApplicationFactoryControlPlane,CustomerArtifactSecurityGate,CustomerBuildValidationGate,CustomerTestCommandController,CustomerDeliveryRecordStore,CustomerProductionUrlRegistry} from "./customer-application-factory-v3.70.js";
+import {CustomerSaaSControlPlaneV3,CustomerIdentityDirectory,CustomerApiKeyManager,CustomerPlanBillingController} from "./customer-saas-control-plane-v3.80.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -344,8 +345,13 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     productionUrls:new CustomerProductionUrlRegistry({store:customerProductionUrlStore})
   });
 
+  const customerIdentity=new CustomerIdentityDirectory({store:new JsonStore({file:customerConfig.identityStateFile||"./.jora/customer-identities.json"})});
+  const customerApiKeys=new CustomerApiKeyManager({store:new JsonStore({file:customerConfig.apiKeyStateFile||"./.jora/customer-api-keys.json"})});
+  const customerBilling=new CustomerPlanBillingController({plans:customerConfig.plans||{},store:new JsonStore({file:customerConfig.billingStateFile||"./.jora/customer-billing.json"})});
   const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory,artifactLineageStore:customerLineageStore});
   await customerControl.load();
+  const customerSaaS=new CustomerSaaSControlPlaneV3({customerControl,applicationFactory:customerApplicationFactory,identity:customerIdentity,apiKeys:customerApiKeys,billing:customerBilling});
+  await customerSaaS.load();
 
   const externalExecution=new ExternalExecutionControlPlaneV2({
     github:new GitHubExecutionAdapter({repository:remoteRepository}),
