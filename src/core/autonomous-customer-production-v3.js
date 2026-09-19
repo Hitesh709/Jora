@@ -61,7 +61,7 @@ export class CustomerMissionOrchestrator {
         const deliveryInput={
           ...deliveryContext,
           payload:{
-            ...(context.delivery.payload||{}),
+            ...(deliveryContext?.payload||{}),
             tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
             specification,architecture:planning.architecture,dag:planning.dag
           }
@@ -122,7 +122,7 @@ export class CustomerProductionPipeline {
 
 export class AutonomousCustomerProductionPlatform {
   constructor({customerControl,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
-    this.version="3.10.0";
+    this.version="3.40.0";
     this.customer=customerControl;
     this.execution=executionPlatform;
     this.productUnderstanding=productUnderstanding;
@@ -131,7 +131,7 @@ export class AutonomousCustomerProductionPlatform {
     this.policy=new CustomerPolicyGate();
     this.orchestrator=new CustomerMissionOrchestrator({
       missionManager:customerControl.missions,executionPlatform,
-      productUnderstanding,architecturePlanner,taskDAGGenerator
+      productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory
     });
     this.lifecycle=new CustomerLifecycleEngine({missions:customerControl.missions,orchestrator:this.orchestrator});
     this.lineage=new CustomerArtifactLineage();
@@ -141,7 +141,7 @@ export class AutonomousCustomerProductionPlatform {
     return {version:this.version,capabilities:{
       customerToMission:true,missionExecution:true,policyGates:true,artifactLineage:true,
       productUnderstanding:Boolean(this.productUnderstanding),architecturePlanning:Boolean(this.architecturePlanner),
-      taskDAGGeneration:Boolean(this.taskDAGGenerator),githubDelivery:Boolean(this.execution?.externalExecution),
+      taskDAGGeneration:Boolean(this.taskDAGGenerator),projectGeneration:Boolean(this.projectBuilder),customerRepository:Boolean(this.repositoryFactory),githubDelivery:Boolean(this.execution?.externalExecution),
       realTests:Boolean(this.execution?.testRunner),deployment:Boolean(Object.keys(this.execution?.deploymentClients||{}).length),
       healthVerification:Boolean(this.execution?.healthVerifier),rollback:Boolean(this.execution?.recovery),
       productionPipeline:true
