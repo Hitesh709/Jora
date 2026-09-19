@@ -20,7 +20,7 @@ export class GitHubRestRepository {
 
   pathFor(path){return encodeURIComponent(path).replace(/%2F/g,"/");}
 
-  async provisionRepository({name,description="",private:true,organization=null,autoInit=true}={}) {
+  async provisionRepository({name,description="",private=true,organization=null,autoInit=true}={}) {
     if(!name||!String(name).trim()) throw new Error("repository name is required");
     const clean=String(name).trim().replace(/[^a-zA-Z0-9._-]/g,"-").replace(/^-+|-+$/g,"").slice(0,100);
     if(!clean) throw new Error("invalid repository name");
