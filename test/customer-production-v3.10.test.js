@@ -19,7 +19,7 @@ test("v3.10 customer mission runs understanding -> architecture -> DAG -> delive
     customerControl,
     executionPlatform:execution,
     productUnderstanding:{async understand({input}){calls.push(["understand",input]);return {name:"Demo",requirements:[input]};}},
-    architecturePlanner:{async plan({specification}){calls.push(["architecture",specification.name]);return {plan:{services:["api"],specification};}}},
+    architecturePlanner:{async plan({specification}){calls.push(["architecture",specification.name]);return {plan:{services:["api"],specification}};}},
     taskDAGGenerator:{async generate({architecture}){calls.push(["dag",architecture.services[0]]);return {dag:[{id:"task-1",title:"implement api"}]};}}
   });
   const tenant=await customerControl.tenants.create({name:"Demo Customer"});
@@ -33,5 +33,5 @@ test("v3.10 customer mission runs understanding -> architecture -> DAG -> delive
   assert.deepEqual(calls.map(x=>x[0]),["control","understand","architecture","dag","delivery"]);
   assert.equal(result.mission.result.delivery.status,"DELIVERED");
   assert.equal(result.mission.result.planning.dag[0].id,"task-1");
-  assert.equal(platform.status().version,"3.10.0");
+  assert.equal(platform.status().version,"3.50.0");
 });
