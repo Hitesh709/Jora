@@ -426,6 +426,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   programManager.autonomousArchitect=autonomousArchitect;
   programManager.architectCore=architectCore;
+  programManager.programDirector=programDirector;
   const recoveryConfig=config.recovery??{};
   const recovery=new RecoveryOrchestrator({observability,worker,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
   const incidentManager=new IncidentManager({observability});
