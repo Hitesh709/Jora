@@ -167,7 +167,23 @@ function formatSearchResult(d){
   }
   return lines.join("\n\n")||"No web results were returned.";
 }
-function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
+async function refreshProviders(){
+  try{
+    const data=await get("/v1/providers");
+    const byId=new Map((data.providers||[]).map(x=>[x.id,x]));
+    [...providerInput.options].forEach(option=>{
+      const p=byId.get(option.value);
+      if(!p) return;
+      option.disabled=p.available===false;
+      option.textContent=option.textContent.replace(/\s+[●○] (Available|Unavailable|Checking)$/,"")+(p.available===true?" ● Available":p.available===false?" ○ Unavailable":"");
+    });
+    const selected=byId.get(providerInput.value);
+    if(selected?.available===false){
+      providerInfo.textContent=(providerInfo.textContent||"")+" This model is currently unavailable.";
+    }
+  }catch{}
+}
+function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus();refreshProviders()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
 function saveSettings(){
   localStorage.setItem("jora_api_base",base());
@@ -197,5 +213,5 @@ async function refreshControl(){
   if(d.approvals)approvals.textContent=(d.approvals.approvals||[]).length;
   if(d.metrics)metrics.textContent=JSON.stringify(d.metrics,null,2);if(d.executions)recent.textContent=JSON.stringify(d.executions.executions,null,2);if(d.jobs)jobs.textContent=JSON.stringify(d.jobs.jobs,null,2);if(d.approvals)approvalList.textContent=JSON.stringify(d.approvals.approvals,null,2);if(d.incidents)incidents.textContent=JSON.stringify(d.incidents.incidents,null,2);
 }
-checkBackend();setInterval(checkBackend,15000);
+checkBackend();setInterval(checkBackend,15000);setInterval(refreshProviders,60000);
 </script></body></html>
