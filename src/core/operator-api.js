@@ -78,7 +78,7 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
-    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;\n    this.autonomousProductBuilder=autonomousProductBuilder;\n    this.autonomousCodingOrchestrator=autonomousCodingOrchestrator;
+    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;\n    this.autonomousProductBuilder=autonomousProductBuilder;\n    this.autonomousCodingOrchestrator=autonomousCodingOrchestrator;\n    this.autonomousEngineeringLoop=autonomousEngineeringLoop;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -266,6 +266,14 @@ export class OperatorApi {
       const body=await readBody(req,this.maxBodyBytes);
       if(!body.task) return json(res,400,{error:"task is required"});
       try{return json(res,200,this.autonomousCodingOrchestrator.build({task:body.task,repository:body.repository||{}}));}
+      catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+
+    if(method==="POST" && path==="/v1/engineering/run") {
+      if(!this.autonomousEngineeringLoop) return json(res,503,{error:"autonomous_engineering_loop_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.repository || !body.task) return json(res,400,{error:"repository and task are required"});
+      try{return json(res,200,await this.autonomousEngineeringLoop.run({repository:body.repository,task:body.task,changes:body.changes||[],testCommands:body.testCommands||[],deployment:body.deployment||{}}));}
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
 
