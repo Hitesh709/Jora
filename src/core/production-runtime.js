@@ -29,6 +29,7 @@ import {HttpHealthCheck} from "./http-health-check.js";
 import {HealthCheck} from "./health-check.js";
 import {ObservabilityStore} from "./observability-store.js";
 import {OperatorApi} from "./operator-api.js";
+import {WebSearchProvider} from "./web-search-provider.js";
 import {createPostgresLeaseStore} from "./postgres-lease-store.js";
 import {createPostgresTaskQueue} from "./postgres-task-queue.js";
 import {createPostgresExecutionStore} from "./postgres-execution-store.js";
@@ -282,6 +283,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
 
   const metrics=new MetricsCollector();
+  const searchProvider=new WebSearchProvider(config.search||{});
   const productUnderstanding=new ProductUnderstandingEngine({modelGateway});
   const architecturePlanner=new ArchitecturePlanningEngine({modelGateway,productUnderstanding});
   const taskDAGGenerator=new TaskDAGGenerationEngine({modelGateway});
@@ -639,11 +641,12 @@ Limit: ${limit}`}]});
         autonomousEngineeringLoop,
         selfImprovingEngineeringCore,
         autonomousSoftwareFactory,
-        executionPlatform
+        executionPlatform,
+        searchProvider
       })
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,agentRuntime,agentToolRegistry,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
-    infrastructure,executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,platformQueue,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,autonomousEngineeringLoop,selfImprovingEngineeringCore,autonomousSoftwareFactory,executionPlatform,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    infrastructure,executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,platformQueue,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,autonomousEngineeringLoop,selfImprovingEngineeringCore,autonomousSoftwareFactory,executionPlatform,searchProvider,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
