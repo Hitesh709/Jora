@@ -108,7 +108,7 @@ export class CustomerRepositoryFactory {
 }
 
 export class CustomerExecutionRouter {
-  constructor({tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null}={}) {Object.assign(this,{tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry,versionRegistry});}
+  constructor({tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null}={}) {Object.assign(this,{tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry,versionRegistry,repositoryFactory});}
   async submit({tenantId,projectId,objective,constraints={},metric="missions",quotaCurrent=null,workspacePath=null}={}) {
     const tenant=await this.tenantRegistry.get(tenantId); if(!tenant)return {accepted:false,status:"TENANT_NOT_FOUND"};
     if(tenant.status!=="ACTIVE")return {accepted:false,status:"TENANT_NOT_ACTIVE",tenantId};
@@ -124,7 +124,7 @@ export class CustomerExecutionRouter {
 
 export class CustomerControlPlaneV2 {
   constructor({tenantRegistry=null,projects=null,missions=null,quota=null,meter=null,router=null,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null}={}) {
-    this.version="3.30.0";
+    this.version="3.42.0";
     this.tenants=tenantRegistry??new CustomerTenantRegistry(); this.projects=projects??new ProjectRegistry(); this.missions=missions??new CustomerMissionManager();
     this.quota=quota??new QuotaGuard(); this.meter=meter??new UsageMeter(); this.workspaces=workspaceRegistry??new CustomerWorkspaceRegistry(); this.versions=versionRegistry??new CustomerVersionRegistry(); this.repositoryFactory=repositoryFactory??null;
     this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,workspaceRegistry:this.workspaces,versionRegistry:this.versions});
