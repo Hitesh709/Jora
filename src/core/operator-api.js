@@ -380,6 +380,23 @@ export class OperatorApi {
       return json(res,200,this.executionPlatform.resilience.flags.set(body.name,body));
     }
 
+    if(method==="GET" && path==="/v2/delivery") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,this.executionPlatform.deliveryStatus());
+    }
+
+    if(method==="POST" && path==="/v2/delivery/review") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.evaluateDeliveryReview(body||{}));
+    }
+
+    if(method==="POST" && path==="/v2/delivery/team-optimize") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.optimizeDeliveryTeam(body||{}));
+    }
+
     if(method==="GET" && path==="/v2/platform") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.status());
