@@ -345,6 +345,9 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       try { architecturePlan=await autonomousArchitect.plan({objective,context}); } catch (error) {
         await observability.append?.({type:"ARCHITECTURE_PLAN_FAILED",objective,error:error.message,at:new Date().toISOString()});
       }
+      try {
+        await continuousLearning.learn({candidate:{id:`mission-${cycle}`},outcome:"ATTEMPTED",strategy:architecturePlan?.taskDAG?.[0]?.executionStrategy??"standard",lessons:architecturePlan?.requirements?.acceptanceCriteria??[],evidence:{}});
+      } catch {}
       return missionRunner.run({
         objective,
         context:{
