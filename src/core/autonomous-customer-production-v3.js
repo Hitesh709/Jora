@@ -1,8 +1,8 @@
 import {randomUUID} from "node:crypto";
 
 export class CustomerMissionOrchestrator {
-  constructor({missionManager,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
-    Object.assign(this,{missionManager,executionPlatform,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory});
+  constructor({missionManager,customerControl=null,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
+    Object.assign(this,{missionManager,customer:customerControl,executionPlatform,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory});
   }
   async execute(mission,{context={}}={}) {
     this.missionManager.transition(mission.id,"RUNNING");
@@ -142,7 +142,7 @@ export class AutonomousCustomerProductionPlatform {
     this.taskDAGGenerator=taskDAGGenerator;
     this.policy=new CustomerPolicyGate();
     this.orchestrator=new CustomerMissionOrchestrator({
-      missionManager:customerControl.missions,executionPlatform,
+      missionManager:customerControl.missions,customerControl,executionPlatform,
       productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory
     });
     this.lifecycle=new CustomerLifecycleEngine({missions:customerControl.missions,orchestrator:this.orchestrator});
