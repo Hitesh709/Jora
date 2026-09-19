@@ -453,6 +453,12 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     healthTimer=setInterval(()=>void healthMonitor.check().catch(()=>{}),healthConfig.intervalMs??30000);
     healthTimer.unref?.();
   }
+  let sloTimer=null;
+  if(config.slo?.enabled) {
+    const interval=Math.max(1000,Number(config.slo.intervalMs??30000));
+    sloTimer=setInterval(()=>void sloRecovery.recover().catch(()=>{}),interval);
+    sloTimer.unref?.();
+  }
 
   const accessTokens={};
   if(config.api?.accessTokens) { for(const entry of String(config.api.accessTokens).split(",").map(x=>x.trim()).filter(Boolean)) { const [token,tenantId="default",roles="admin"]=entry.split(":"); if(token) accessTokens[token]={id:token.slice(0,8),tenantId,roles:roles.split("+")}; } }
@@ -480,6 +486,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,agentRuntime,agentToolRegistry,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
-    executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
