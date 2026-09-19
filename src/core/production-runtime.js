@@ -76,6 +76,7 @@ import {MutationStrategyEngine} from "./mutation-strategy-engine.js";
 import {EvolutionScheduler} from "./evolution-scheduler.js";
 import {ResearchLoop} from "./research-loop.js";
 import {ExecutionPlatformV2,PersistentLocalQueue,ApprovalGate,WorkerPool,WebhookDeploymentClient} from "./execution-platform-v2.js";
+import {ExecutionLedger,IdempotencyGuard,PolicyEngine as ControlPolicyEngine,PreflightGate,ArtifactManifest,DeploymentHealthVerifier,RollbackCoordinator,RecoveryController,FactoryCheckpointStore,AutonomousControlLoop} from "./autonomous-control-plane-v2.js";
 import {ProductUnderstandingEngine} from "./product-understanding-engine.js";
 import {ArchitecturePlanningEngine} from "./architecture-planning-engine.js";
 import {TaskDAGGenerationEngine} from "./task-dag-generation-engine.js";
@@ -283,6 +284,20 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const platformQueue=distributedConfig.enabled ? queueStore : new PersistentLocalQueue({file:config.executionPlatform?.localQueueFile});
   const approvalGate=new ApprovalGate({autoApproveLowRisk:config.executionPlatform?.autoApproveLowRisk!==false});
   const workerPool=new WorkerPool({concurrency:config.executionPlatform?.workerConcurrency??2});
+  const railwayDeploymentClient=new WebhookDeploymentClient({webhookUrl:config.deployment?.railway?.webhookUrl,timeoutMs:config.deployment?.timeoutMs});
+  const vercelDeploymentClient=new WebhookDeploymentClient({webhookUrl:config.deployment?.vercel?.webhookUrl,timeoutMs:config.deployment?.timeoutMs});
+  const executionLedger=new ExecutionLedger({store:new JsonStore({file:config.executionPlatform?.ledgerFile||"./.jora/v2-execution-ledger.json"})});
+  const controlPolicy=new ControlPolicyEngine();
+  const controlPreflight=new PreflightGate({policyEngine:controlPolicy});
+  const artifactManifest=new ArtifactManifest();
+  const healthVerifier=new DeploymentHealthVerifier({timeoutMs:config.executionPlatform?.healthTimeoutMs||10000});
+  const checkpointStore=new FactoryCheckpointStore({file:config.executionPlatform?.checkpointFile||"./.jora/v2-checkpoints.json"});
+  const rollbackCoordinator=new RollbackCoordinator({deploymentClient:async ({target,payload})=>{
+    const client=target==="vercel"?vercelDeploymentClient:target==="railway"?railwayDeploymentClient:railwayDeploymentClient;
+    return client.deploy({target,payload});
+  },ledger:executionLedger});
+  const recoveryController=new RecoveryController({healthVerifier,rollbackCoordinator,ledger:executionLedger});
+  const controlLoop=new AutonomousControlLoop({ledger:executionLedger,policy:controlPolicy,preflight:controlPreflight,checkpoints:checkpointStore});
   const executionPlatform=new ExecutionPlatformV2({
     github:remoteRepository,
     sandbox,
@@ -290,10 +305,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     queue:platformQueue,
     approvalGate,
     workerPool,
-    deploymentClients:{
-      railway:new WebhookDeploymentClient({webhookUrl:config.deployment?.railway?.webhookUrl,timeoutMs:config.deployment?.timeoutMs}),
-      vercel:new WebhookDeploymentClient({webhookUrl:config.deployment?.vercel?.webhookUrl,timeoutMs:config.deployment?.timeoutMs})
-    }
+    deploymentClients:{railway:railwayDeploymentClient,vercel:vercelDeploymentClient},
+    ledger:executionLedger,
+    idempotency:new IdempotencyGuard({ledger:executionLedger,ttlMs:config.executionPlatform?.idempotencyTtlMs||86400000}),
+    policy:controlPolicy,
+    preflight:controlPreflight,
+    artifacts:artifactManifest,
+    healthVerifier,
+    recovery:recoveryController,
+    checkpoints:checkpointStore,
+    controlLoop
   });
   const auditLog=new AuditLog({observability:null});
 
