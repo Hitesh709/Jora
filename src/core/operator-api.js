@@ -78,7 +78,7 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
-    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;
+    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;\n    this.autonomousProductBuilder=autonomousProductBuilder;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -251,6 +251,14 @@ export class OperatorApi {
       } catch(error) {
         return json(res,400,{accepted:false,status:"FAILED",error:error.message});
       }
+    }
+
+    if(method==="POST" && path==="/v1/build") {
+      if(!this.autonomousProductBuilder) return json(res,503,{error:"autonomous_product_builder_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.input) return json(res,400,{error:"input is required"});
+      try { return json(res,200,await this.autonomousProductBuilder.build({input:body.input,context:body.context||{}})); }
+      catch(error){ return json(res,400,{accepted:false,status:"FAILED",error:error.message}); }
     }
 
     if(method==="GET" && path==="/v1/status") {
