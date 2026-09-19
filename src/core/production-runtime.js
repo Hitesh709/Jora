@@ -65,6 +65,7 @@ import {AutonomousMissionRunner} from "./autonomous-mission-runner.js";
 import {JORA_MASTER_ROADMAP} from "./jora-1.01-1.50-roadmap.js";
 import {AutonomousProgramManager} from "./autonomous-program-manager.js";
 import {AutonomousArchitect} from "./autonomous-architect.js";
+import {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "./autonomous-planning.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -301,7 +302,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     metrics,
     governance
   });
-  const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability});
+  const architectureStore=new ArchitectureStore({store:new JsonStore({file:config.architecture?.stateFile||"./.jora/architectures.json"})});
+  await architectureStore.load();
+  const taskDAGOptimizer=new TaskDAGOptimizer();
+  const taskContractEngine=new TaskContractEngine();
+  const adaptiveExecutionPlanner=new AdaptiveExecutionPlanner();
+  const resourceScheduler=new ResourceAwareScheduler(config.resources||{});
+  const checkpointStore=new CheckpointStore({store:new JsonStore({file:config.mission?.checkpointStateFile||"./.jora/checkpoints.json"})});
+  const idempotencyGuard=new IdempotencyGuard();
+  const missionTransactions=new MissionTransactionManager();
+  const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability,architectureStore,taskDAGOptimizer,taskContractEngine});
   const missionRunner=new AutonomousMissionRunner({
     missionManager,
     maxCycles:config.mission?.maxCycles??Infinity,
@@ -388,7 +398,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       })
     : null;
   return {
-    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,
+    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
     executionStore,championStore,lineageStore,agentRegistry,programManager,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
