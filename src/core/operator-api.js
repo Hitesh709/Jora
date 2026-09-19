@@ -347,6 +347,41 @@ export class OperatorApi {
       })});
     }
 
+    if(method==="GET" && path==="/v3/customer/saas") {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      return json(res,200,this.executionPlatform.customerSaaS.status());
+    }
+    if(method==="GET" && path==="/v3/customer/dashboard") {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      return json(res,200,this.executionPlatform.customerSaaS.dashboard.overview({
+        tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined
+      }));
+    }
+    if(method==="GET" && path==="/v3/customer/users") {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      return json(res,200,{users:this.executionPlatform.customerSaaS.identity.list({tenantId:url.searchParams.get("tenantId")||undefined})});
+    }
+    if(method==="POST" && path==="/v3/customer/users") {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes); return json(res,201,await this.executionPlatform.customerSaaS.identity.create(body||{}));
+    }
+    if(method==="GET" && path==="/v3/customer/api-keys") {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      return json(res,200,{keys:this.executionPlatform.customerSaaS.apiKeys.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+    }
+    if(method==="POST" && path==="/v3/customer/api-keys") {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes); return json(res,201,await this.executionPlatform.customerSaaS.apiKeys.issue(body||{}));
+    }
+    if(method==="POST" && path.match(/^\/v3\/customer\/api-keys\/[^/]+\/revoke$/)) {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      const id=path.split("/")[4]; return json(res,200,await this.executionPlatform.customerSaaS.apiKeys.revoke(id));
+    }
+    if(method==="GET" && path==="/v3/customer/billing") {
+      if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
+      return json(res,200,{tenantId:url.searchParams.get("tenantId")||undefined,amount:this.executionPlatform.customerSaaS.billing.summary({tenantId:url.searchParams.get("tenantId")||undefined})});
+    }
+
     if(method==="GET" && path==="/v3/customer/factory") {
       if(!this.executionPlatform?.applicationFactory) return json(res,503,{error:"customer_factory_not_configured"});
       return json(res,200,this.executionPlatform.applicationFactory.status());
