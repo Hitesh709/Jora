@@ -309,6 +309,47 @@ export class OperatorApi {
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
 
+    if(method==="GET" && path==="/v2/control/events") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{events:await this.executionPlatform.ledger.list({limit:url.searchParams.get("limit")||100,operation:url.searchParams.get("operation")||undefined})});
+    }
+
+    if(method==="POST" && path==="/v2/control/evaluate") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,await this.executionPlatform.control({...body,context:{...(body.context||{}),tenantId}}));
+    }
+
+    if(method==="POST" && path==="/v2/control/idempotent") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.operation || typeof body.result!=="undefined") {
+        if(!body.operation) return json(res,400,{error:"operation is required"});
+      }
+      const key=body.idempotencyKey||req.headers["idempotency-key"];
+      if(!key) return json(res,400,{error:"idempotencyKey is required"});
+      return json(res,200,await this.executionPlatform.executeIdempotent({key,operation:body.operation,execute:async()=>body.result??{accepted:true,operation:body.operation}}));
+    }
+
+    if(method==="POST" && path==="/v2/control/verify-deployment") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,await this.executionPlatform.verifyDeployment(body||{}));
+    }
+
+    if(method==="POST" && path==="/v2/control/recover") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,await this.executionPlatform.recover(body||{}));
+    }
+
+    if(method==="POST" && path==="/v2/control/manifest") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.root) return json(res,400,{error:"root is required"});
+      return json(res,200,await this.executionPlatform.manifest(body));
+    }
+
     if(method==="GET" && path==="/v2/platform") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.status());
