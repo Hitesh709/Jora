@@ -167,7 +167,8 @@ export class ExecutionPlatformV2 {
       infrastructure:this.infrastructure.status().capabilities,
       externalExecution:this.externalExecution.status().capabilities,
       customerControl:this.customerControl.status().capabilities,
-      customerProduction:this.customerProduction.status().capabilities
+      customerProduction:this.customerProduction.status().capabilities,
+      applicationFactory:this.applicationFactory.status().capabilities
     };
   }
   deliveryStatus(){return this.delivery.status();}
@@ -178,9 +179,9 @@ export class ExecutionPlatformV2 {
   evaluateDeliveryReview(input){return this.delivery.evaluateReview(input);}
   optimizeDeliveryTeam(input){return this.delivery.optimizeTeam(input);}
 
-  async runTests({cwd,commandArgs=["test"]}={}) {
+  async runTests({cwd,commandArgs=["test"],timeoutMs}={}) {
     if(!this.testRunner)return {accepted:false,status:"TEST_RUNNER_NOT_CONNECTED"};
-    return this.testRunner({cwd,commandArgs});
+    return this.testRunner({cwd,commandArgs,timeoutMs});
   }
   async executeGitHub({operation,payload={}}={}) {
     if(!this.github)return {accepted:false,status:"GITHUB_NOT_CONNECTED",operation};
