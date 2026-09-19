@@ -12,6 +12,7 @@ test("v2.91 customer mission reaches production execution platform",async()=>{
   const project=customer.projects.create({tenantId:tenant.id,name:"SaaS"});
   const result=await platform.submit({tenantId:tenant.id,projectId:project.id,objective:"Build billing API"});
   assert.equal(result.status,"MISSION_EXECUTED");
+  assert.equal(result.mission.status,"READY_FOR_EXECUTION");
   assert.equal(calls.length,1);
 });
 
