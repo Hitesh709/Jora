@@ -7,7 +7,7 @@ function fakePool(){
   return {
     jobs,
     async query(sql,p=[]){
-      if(sql.includes("CREATE TABLE")||sql.includes("CREATE INDEX")) return {rows:[],rowCount:0};
+      if(sql.includes("CREATE TABLE")||sql.includes("CREATE INDEX")||sql.includes("ALTER TABLE")) return {rows:[],rowCount:0};
       if(sql.startsWith("INSERT INTO jora_jobs")){
         const row={id:p[0],namespace:p[1],command:p[2],constraints:JSON.parse(p[3]),context:JSON.parse(p[4]),status:"QUEUED",attempts:0};
         jobs.push(row);return {rows:[row],rowCount:1};
