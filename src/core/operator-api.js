@@ -347,6 +347,36 @@ export class OperatorApi {
       })});
     }
 
+    if(method==="GET" && path==="/v3/customer/operations") {
+      if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
+      return json(res,200,this.executionPlatform.customerOperations.status());
+    }
+    if(method==="POST" && path==="/v3/customer/operations/observe") {
+      if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,200,await this.executionPlatform.customerObserve(body||{}));}
+      catch(error){return json(res,400,{accepted:false,status:"OBSERVATION_FAILED",error:error.message});}
+    }
+    if(method==="GET" && path==="/v3/customer/incidents") {
+      if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
+      return json(res,200,{incidents:this.executionPlatform.customerOperations.incidents.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+    }
+    if(method==="GET" && path==="/v3/customer/health") {
+      if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
+      return json(res,200,{events:this.executionPlatform.customerOperations.monitor.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+    }
+    if(method==="POST" && path==="/v3/customer/learning") {
+      if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,201,await this.executionPlatform.customerLearn(body||{}));
+    }
+    if(method==="GET" && path==="/v3/customer/optimization") {
+      if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
+      return json(res,200,this.executionPlatform.customerOperations.optimization.recommend({
+        tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined
+      }));
+    }
+
     if(method==="GET" && path==="/v3/customer/saas") {
       if(!this.executionPlatform?.customerSaaS) return json(res,503,{error:"customer_saas_not_configured"});
       return json(res,200,this.executionPlatform.customerSaaS.status());
