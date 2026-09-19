@@ -25,9 +25,17 @@ export class GovernanceStateMachine {
   constructor({store=null,auditLog=null}={}) { this.store=store; this.auditLog=auditLog; this.states=new Map(); }
   current(executionId){ return this.states.get(executionId)?.state??null; }
   canTransition(from,to){ return Boolean(TRANSITIONS[from]?.includes(to)); }
+  async _restore(executionId) {
+    if(this.states.has(executionId) || !this.store?.get) return this.current(executionId);
+    const execution=await this.store.get(executionId);
+    const transitions=(execution?.trace??[]).filter(e=>e.type==="GOVERNANCE_TRANSITION");
+    const last=transitions.at(-1);
+    if(last) this.states.set(executionId,{state:last.to,updatedAt:last.at});
+    return this.current(executionId);
+  }
   async transition({executionId,to,actorId="system",tenantId="default",metadata={}}={}) {
     if(!executionId) throw new Error("executionId is required");
-    const from=this.current(executionId)??"REQUESTED";
+    const from=(await this._restore(executionId))??"REQUESTED";
     if(!this.canTransition(from,to)) {
       const error=new Error(`invalid governance transition: ${from} -> ${to}`);
       error.code="INVALID_GOVERNANCE_TRANSITION";
