@@ -380,6 +380,26 @@ export class OperatorApi {
       return json(res,200,this.executionPlatform.resilience.flags.set(body.name,body));
     }
 
+    if(method==="GET" && path==="/v2/release") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,this.executionPlatform.releaseStatus());
+    }
+    if(method==="POST" && path==="/v2/release/promotion") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.evaluatePromotion(body||{}));
+    }
+    if(method==="POST" && path==="/v2/release/canary") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.evaluateCanary(body||{}));
+    }
+    if(method==="POST" && path==="/v2/release/verify") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.verifyRelease(body||{}));
+    }
+
     if(method==="GET" && path==="/v2/delivery") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.deliveryStatus());
