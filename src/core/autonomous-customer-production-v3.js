@@ -39,9 +39,12 @@ export class CustomerMissionOrchestrator {
         const delivery=await this.executionPlatform.externalEndToEnd(deliveryInput);
         const finalStatus=delivery?.status==="DELIVERED"?"DELIVERED":
           delivery?.status==="ROLLED_BACK"?"ROLLED_BACK":"FAILED";
-        return this.missionManager.transition(mission.id,finalStatus,{gate,planning,delivery});
+        const revision=delivery?.mutation?.result?.commit||delivery?.mutation?.commit||delivery?.commit||null;
+        const version=this.customer.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,revision,status:finalStatus,metadata:{deliveryStatus:delivery?.status}});
+        return this.missionManager.transition(mission.id,finalStatus,{gate,planning,delivery,version});
       }
-      return this.missionManager.transition(mission.id,"READY_FOR_EXECUTION",{gate,planning});
+      const version=this.customer.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,status:"PLANNED",metadata:{planning}});
+      return this.missionManager.transition(mission.id,"READY_FOR_EXECUTION",{gate,planning,version});
     } catch(error) {
       return this.missionManager.transition(mission.id,"FAILED",{error:error.message});
     }
