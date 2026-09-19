@@ -76,7 +76,7 @@ import {MutationStrategyEngine} from "./mutation-strategy-engine.js";
 import {EvolutionScheduler} from "./evolution-scheduler.js";
 import {ResearchLoop} from "./research-loop.js";
 import {ExecutionPlatformV2,PersistentLocalQueue,ApprovalGate,WorkerPool,WebhookDeploymentClient} from "./execution-platform-v2.js";
-import {ExecutionLedger,IdempotencyGuard,PolicyEngine as ControlPolicyEngine,PreflightGate,ArtifactManifest,DeploymentHealthVerifier,RollbackCoordinator,RecoveryController,FactoryCheckpointStore,AutonomousControlLoop} from "./autonomous-control-plane-v2.js";
+import {ExecutionLedger,IdempotencyGuard as V2IdempotencyGuard,PolicyEngine as ControlPolicyEngine,PreflightGate,ArtifactManifest,DeploymentHealthVerifier,RollbackCoordinator,RecoveryController,FactoryCheckpointStore,AutonomousControlLoop} from "./autonomous-control-plane-v2.js";
 import {ProductUnderstandingEngine} from "./product-understanding-engine.js";
 import {ArchitecturePlanningEngine} from "./architecture-planning-engine.js";
 import {TaskDAGGenerationEngine} from "./task-dag-generation-engine.js";
@@ -307,7 +307,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     workerPool,
     deploymentClients:{railway:railwayDeploymentClient,vercel:vercelDeploymentClient},
     ledger:executionLedger,
-    idempotency:new IdempotencyGuard({ledger:executionLedger,ttlMs:config.executionPlatform?.idempotencyTtlMs||86400000}),
+    idempotency:new V2IdempotencyGuard({ledger:executionLedger,ttlMs:config.executionPlatform?.idempotencyTtlMs||86400000}),
     policy:controlPolicy,
     preflight:controlPreflight,
     artifacts:artifactManifest,
