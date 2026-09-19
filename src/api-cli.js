@@ -16,7 +16,7 @@ try {
     apiKey:process.env.KILO_API_KEY,
     allowAnonymous:true
   }));
-  if(!providers.size) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
+  if(!config.model.apiKey && !config.models.anthropicApiKey) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
   const modelGateway=new MultiModelGateway({providers,defaultModel:config.model.defaultModel||"openai",fallbackModels:config.model.fallbackModels});
   const composed=await createProductionJoraRuntime({config,modelGateway});
   if(!composed.api) throw new Error("JORA_API_ENABLED=true is required");
