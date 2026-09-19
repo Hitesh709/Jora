@@ -87,7 +87,15 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
-    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;\n    this.autonomousProductBuilder=autonomousProductBuilder;\n    this.autonomousCodingOrchestrator=autonomousCodingOrchestrator;\n    this.autonomousEngineeringLoop=autonomousEngineeringLoop;\n    this.selfImprovingEngineeringCore=selfImprovingEngineeringCore;\n    this.autonomousSoftwareFactory=autonomousSoftwareFactory;
+    this.auditLog=auditLog;
+    this.productUnderstanding=productUnderstanding;
+    this.architecturePlanner=architecturePlanner;
+    this.taskDAGGenerator=taskDAGGenerator;
+    this.autonomousProductBuilder=autonomousProductBuilder;
+    this.autonomousCodingOrchestrator=autonomousCodingOrchestrator;
+    this.autonomousEngineeringLoop=autonomousEngineeringLoop;
+    this.selfImprovingEngineeringCore=selfImprovingEngineeringCore;
+    this.autonomousSoftwareFactory=autonomousSoftwareFactory;
     this.executionPlatform=executionPlatform;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
