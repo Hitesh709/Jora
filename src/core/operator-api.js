@@ -27,6 +27,27 @@ async function readBody(req,maxBytes=1_000_000) {
   catch { throw new Error("invalid JSON body"); }
 }
 
+const OPENCODE_FREE_MODELS=[
+  ["opencode-mimo-v2.5-free","MiMo-V2.5 Free","mimo-v2.5-free"],
+  ["opencode-laguna-s-2.1-free","Laguna S 2.1 Free","laguna-s-2.1-free"],
+  ["opencode-ling-3.0-tiny-free","Ling 3.0-tiny Free","ling-3.0-tiny-free"],
+  ["opencode-longcat-2.0-free","LongCat-2.0 Free","longcat-2.0-free"],
+  ["opencode-north-mini-code-free","North Mini Code Free","north-mini-code-free"],
+  ["opencode-nemotron-3-ultra-free","Nemotron 3 Ultra Free","nemotron-3-ultra-free"],
+  ["opencode-deepseek-v4-flash-free","DeepSeek V4 Flash Free","deepseek-v4-flash-free"]
+];
+
+async function getOpenCodeFreeAvailability() {
+  try {
+    const response=await fetch(process.env.JORA_OPENCODE_FREE_MODELS_URL||"https://opencode.ai/zen/v1/models",{signal:AbortSignal.timeout(8000)});
+    if(!response.ok) return {reachable:false,models:new Set()};
+    const payload=await response.json();
+    return {reachable:true,models:new Set((payload.data||[]).map(x=>x.id))};
+  } catch {
+    return {reachable:false,models:new Set()};
+  }
+}
+
 function safeExecution(execution) {
   if(!execution) return null;
   return {
@@ -836,15 +857,22 @@ export class OperatorApi {
 
     if(method==="GET" && path==="/v1/providers") {
       const status=this.modelGateway?.status?.()||{models:[]};
-      return json(res,200,{
-        providers:status.models.map(model=>({
-          id:model,
-          available:true,
-          free:model==="kilo-free",
-          label:model==="kilo-free"?"Kilo Auto Free":"Jora"
-        })),
-        defaultModel:status.defaultModel
-      });
+      const live=await getOpenCodeFreeAvailability();
+      const providers=status.models.map(model=>({
+        id:model,
+        available:true,
+        free:model==="kilo-free"||model.startsWith("opencode-"),
+        label:model==="kilo-free"?"Kilo Auto Free":model.startsWith("opencode-")?(OPENCODE_FREE_MODELS.find(x=>x[0]===model)?.[1]||model):"Jora"
+      }));
+      for(const [id,label,modelId] of OPENCODE_FREE_MODELS) {
+        const item=providers.find(x=>x.id===id);
+        if(item) {
+          item.available=live.reachable ? live.models.has(modelId) : null;
+          item.provider="OpenCode";
+          item.model=modelId;
+        }
+      }
+      return json(res,200,{providers,defaultModel:status.defaultModel,liveCheck:live.reachable,checkedAt:new Date().toISOString()});
     }
 
     if(method==="POST" && path==="/v1/execute") {
