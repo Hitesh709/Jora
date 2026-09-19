@@ -323,6 +323,18 @@ export class OperatorApi {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,{records:this.executionPlatform.customerProduction.lineage.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
     }
+    if(method==="GET" && path==="/v3/customer/workspaces") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{workspaces:this.executionPlatform.customerControl.workspaces.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+    }
+    if(method==="GET" && path==="/v3/customer/versions") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{versions:this.executionPlatform.customerControl.versions.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined,limit:Number(url.searchParams.get("limit")||100)})});
+    }
+    if(method==="GET" && path==="/v3/customer/usage/detail") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{usage:this.executionPlatform.customerControl.meter.list({tenantId:url.searchParams.get("tenantId")||undefined,limit:Number(url.searchParams.get("limit")||100)})});
+    }
 
     if(method==="GET" && path==="/v2/customer") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
