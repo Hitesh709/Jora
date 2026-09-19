@@ -332,7 +332,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   const customerQuota=new QuotaGuard({limits:customerConfig.quotas||{},plans:customerConfig.plans||{}});
   const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions});
-  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory});
+  const customerLineageStore=new JsonStore({file:customerConfig.lineageStateFile||"./.jora/customer-lineage.json"});
+  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory,artifactLineageStore:customerLineageStore});
   await customerControl.load();
 
   const externalExecution=new ExternalExecutionControlPlaneV2({
