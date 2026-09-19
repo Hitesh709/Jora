@@ -88,6 +88,7 @@ import {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
 import {ProductionInfrastructureControlPlane,StartupConfigValidator,ReadinessProbe,GracefulShutdownCoordinator,DependencyHealthRegistry,DurableStateRecoveryScanner,RuntimeResourceGuard,RuntimeConfigSnapshot} from "./production-infrastructure-control-plane-v2.js";
 import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapter,DeploymentStatusPoller,ProductionHealthVerifier,AutomaticRollbackExecutor,ExecutionEvidenceStore,ExternalExecutionControlPlaneV2} from "./external-execution-control-plane-v2.js";
 import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter,CustomerWorkspaceRegistry,CustomerVersionRegistry,CustomerRepositoryFactory} from "./customer-control-plane-v2.js";
+import {CustomerApplicationFactoryControlPlane,CustomerArtifactSecurityGate,CustomerBuildValidationGate,CustomerTestCommandController,CustomerDeliveryRecordStore,CustomerProductionUrlRegistry} from "./customer-application-factory-v3.70.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -331,7 +332,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     privateRepositories:customerConfig.privateRepositories!==false
   });
   const customerQuota=new QuotaGuard({limits:customerConfig.quotas||{},plans:customerConfig.plans||{}});
-  const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions});
+  const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory});
   const customerLineageStore=new JsonStore({file:customerConfig.lineageStateFile||"./.jora/customer-lineage.json"});
   const customerDeliveryStore=new JsonStore({file:customerConfig.deliveryStateFile||"./.jora/customer-deliveries.json"});
   const customerProductionUrlStore=new JsonStore({file:customerConfig.productionUrlStateFile||"./.jora/customer-production-urls.json"});
