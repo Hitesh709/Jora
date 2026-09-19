@@ -1,0 +1,1 @@
+export class DAGOptimizationEngine{constructor(){this.version="1.84.0";}optimize({dag,metrics={}}={}){return{accepted:true,status:"DAG_OPTIMIZATION_PROPOSED",version:this.version,changes:[{action:"increase safe parallelism",maxParallelism:4},{action:"reduce redundant verification",preserveRequiredChecks:true}],basedOn:metrics,dagId:dag?.id||null};}}
