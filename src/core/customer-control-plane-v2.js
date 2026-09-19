@@ -25,6 +25,7 @@ export class ProjectRegistry {
     this.projects.set(id,project); this.persist(); return project;
   }
   get(id){return this.projects.get(id)||null;}
+  async attachRepository(id,repository){const p=this.projects.get(id);if(!p)return null;p.repository=repository;p.updatedAt=new Date().toISOString();await this.persist();return p;}
   list(tenantId){return [...this.projects.values()].filter(p=>!tenantId||p.tenantId===tenantId);}
   async persist(){await storeWrite(this.store,[...this.projects.values()]);}
 }
