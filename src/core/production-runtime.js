@@ -65,6 +65,9 @@ import {AutonomousMissionRunner} from "./autonomous-mission-runner.js";
 import {JORA_MASTER_ROADMAP} from "./jora-1.01-1.50-roadmap.js";
 import {AutonomousProgramManager} from "./autonomous-program-manager.js";
 import {AutonomousArchitect} from "./autonomous-architect.js";
+import {SelfTaskGenerator} from "./task-generator.js";
+import {AgentRuntime} from "./agent-runtime.js";
+import {ToolRegistry} from "./tool-registry.js";
 import {ArchitectureRegressionIntelligence,SystemDependencyIntelligence,AutonomousSecurityArchitect,PolicyDrivenAutonomy,AutonomousIncidentCommander,SLOAwareRecoveryController,ContinuousEvolutionController,AutonomousProgramDirector,AutonomousArchitectCore} from "./autonomous-architect-core.js";
 import {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "./autonomous-planning.js";
 import {AgentCapabilityRegistry,AgentRoutingEngine,AgentNegotiationProtocol,ParallelSpecialistOrchestrator,SharedArtifactWorkspace,CollaborativeReviewGraph,AgentQualityGate,AgentLifecycleManager,AgentTeamOptimizer} from "./specialist-intelligence.js";
@@ -193,7 +196,9 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const capabilityRegistry=new AgentCapabilityRegistry({registry:agentRegistry});
   const agentRouter=new AgentRoutingEngine({registry:agentRegistry,capabilityRegistry});
   const negotiationProtocol=new AgentNegotiationProtocol();
-  const parallelSpecialists=new ParallelSpecialistOrchestrator({runtime:null,concurrency:config.evolution?.agentConcurrency??4});
+  const agentToolRegistry=new ToolRegistry();
+  const agentRuntime=new AgentRuntime({toolRegistry:agentToolRegistry,modelGateway,memory:agentMemory,retriever:knowledgeRetriever});
+  const parallelSpecialists=new ParallelSpecialistOrchestrator({runtime:agentRuntime,concurrency:config.evolution?.agentConcurrency??4});
   const artifactWorkspace=new SharedArtifactWorkspace();
   const reviewGraph=new CollaborativeReviewGraph({registry:agentRegistry});
   const agentQualityGate=new AgentQualityGate();
@@ -255,7 +260,18 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
 
   const roadmap=new RoadmapEngine({roadmap:JORA_MASTER_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
   await roadmap.load();
-  const missionManager=new MissionManager({roadmap,maxTasksPerCycle:config.mission?.tasksPerCycle??1});
+  const taskGenerator=new SelfTaskGenerator({
+    model:{
+      generate:async ({objective,snapshot,limit=1})=>{
+        const response=await modelGateway.complete({messages:[{role:"system",content:"Return ONLY a JSON array of implementation tasks. Do not invent repository facts. Each task must have title, description, priority and dependencies."},{role:"user",content:`Objective: ${objective}\nSnapshot: ${JSON.stringify(snapshot).slice(0,10000)}\nLimit: ${limit}`}]});
+        const raw=response?.content??response?.output??"";
+        const match=String(raw).match(/\[[\s\S]*\]/);
+        if(!match) return [];
+        return JSON.parse(match[0]).slice(0,limit);
+      }
+    }
+  });
+  const missionManager=new MissionManager({roadmap,taskGenerator,maxTasksPerCycle:config.mission?.tasksPerCycle??1});
   await missionManager.initialize();
 
   const observability=new ObservabilityStore({
@@ -453,7 +469,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       })
     : null;
   return {
-    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
+    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,agentRuntime,agentToolRegistry,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
     executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
