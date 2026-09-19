@@ -115,3 +115,5 @@ export { JORA_1_01_1_50_ROADMAP, JORA_MASTER_ROADMAP } from "./core/jora-1.01-1.
 export { AutonomousArchitect } from "./core/autonomous-architect.js";
 
 export {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "./core/autonomous-planning.js";
+
+export {KnowledgeIngestionPipeline,KnowledgeIndex,EvidenceAwareRetriever,ProvenanceManager,KnowledgeConflictResolver,MemoryConsolidationEngine,FailurePatternLibrary,StrategyEffectivenessModel,ExperienceGuidedPlanner,ContinuousLearningLoop} from "./core/autonomous-knowledge.js";
