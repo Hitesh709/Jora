@@ -78,7 +78,7 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
-    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;
+    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;\n    this.taskDAGGenerator=taskDAGGenerator;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -234,6 +234,20 @@ export class OperatorApi {
           context:{...(body.context??{}),tenantId}
         });
         return json(res,200,result);
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"FAILED",error:error.message});
+      }
+    }
+
+    if(method==="POST" && path==="/v1/tasks/dag") {
+      if(!this.taskDAGGenerator) return json(res,503,{error:"task_dag_generator_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.architecture) return json(res,400,{error:"architecture is required"});
+      try {
+        return json(res,200,this.taskDAGGenerator.generate({
+          specification:body.specification,
+          architecture:body.architecture
+        }));
       } catch(error) {
         return json(res,400,{accepted:false,status:"FAILED",error:error.message});
       }
