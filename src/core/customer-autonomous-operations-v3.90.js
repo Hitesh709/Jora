@@ -16,7 +16,7 @@ export class CustomerIncidentDetector {
     const failed=["FAILED","DOWN","TIMEOUT","UNHEALTHY"].includes(String(health?.status||"").toUpperCase());
     if(!failed)return {incident:false,status:"HEALTHY"};
     const incident={id:"incident_"+randomUUID(),tenantId,projectId,missionId,status:"OPEN",reason:"PRODUCTION_HEALTH_FAILED",health,createdAt:new Date().toISOString()};
-    this.incidents.push(incident);return {incident:true,status:"INCIDENT_OPEN",incident};
+    this.incidents.push(incident);return {incident:true,status:"INCIDENT_OPEN",incidentRecord:incident};
   }
   list({tenantId,projectId}={}){return this.incidents.filter(x=>(!tenantId||x.tenantId===tenantId)&&(!projectId||x.projectId===projectId)).slice().reverse();}
 }
@@ -36,7 +36,7 @@ export class CustomerAutonomousOperations {
   async observe(input={}) {
     const event=await this.monitor.observe(input);
     const incident=this.incidents.evaluate({...input,health:event});
-    if(incident.incident) return {event,incident,recovery:await this.recovery.recover({incident:incident.incident,rollbackPayload:{tenantId:input.tenantId,projectId:input.projectId,missionId:input.missionId}})};
+    if(incident.incident) return {event,incident,recovery:await this.recovery.recover({incident:incident.incidentRecord,rollbackPayload:{tenantId:input.tenantId,projectId:input.projectId,missionId:input.missionId}})};
     return {event,incident};
   }
   status(){return {monitoring:true,incidentDetection:true,automaticRecovery:Boolean(this.recovery?.recovery)};}
