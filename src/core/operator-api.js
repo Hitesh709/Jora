@@ -7,7 +7,7 @@ import {AccessController} from "./access-controller.js";
 
 function json(res,status,payload,headers={}) {
   const body=JSON.stringify(payload);
-  res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store",...headers});
+  res.writeHead(status,{"content-type":"application/json; charset=utf-8","cache-control":"no-store","access-control-allow-origin":"*","access-control-allow-headers":"Authorization, Content-Type","access-control-allow-methods":"GET, POST, OPTIONS",...headers});
   res.end(body);
 }
 
@@ -129,6 +129,11 @@ export class OperatorApi {
     const url=new URL(req.url??"/",`http://${this.host}`);
     const method=req.method??"GET";
     const path=url.pathname;
+
+    if(method==="OPTIONS") {
+      res.writeHead(204,{"access-control-allow-origin":"*","access-control-allow-headers":"Authorization, Content-Type","access-control-allow-methods":"GET, POST, OPTIONS"});
+      res.end(); return;
+    }
 
     if(method==="GET" && path==="/health") {
       return json(res,200,{status:"ok",service:"jora",timestamp:new Date().toISOString()});
