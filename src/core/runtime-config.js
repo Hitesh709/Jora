@@ -13,13 +13,8 @@ export function runtimeConfig(env=process.env){
     mission:{enabled:env.JORA_MISSION_ENABLED==="true",tasksPerCycle:Number(env.JORA_MISSION_TASKS_PER_CYCLE||1),maxCycles:env.JORA_MISSION_MAX_CYCLES?Number(env.JORA_MISSION_MAX_CYCLES):Infinity,intervalMs:Number(env.JORA_MISSION_INTERVAL_MS||0),roadmapStateFile:env.JORA_MISSION_ROADMAP_STATE_FILE||"./.jora/roadmap.json"},
     memory:{agentStateFile:env.JORA_AGENT_MEMORY_STATE_FILE||"./.jora/agent-memory.json",knowledgeStateFile:env.JORA_KNOWLEDGE_STATE_FILE||"./.jora/knowledge.json",maxRecords:Number(env.JORA_AGENT_MEMORY_MAX_RECORDS||5000),knowledgeRecords:Number(env.JORA_KNOWLEDGE_MAX_RECORDS||10000)},
     observabilityStateFile:env.JORA_OBSERVABILITY_STATE_FILE||"./.jora/observability.json",
-    ci:{
-      timeoutMs:Number(env.JORA_CI_TIMEOUT_MS||600000),
-      pollMs:Number(env.JORA_CI_POLL_MS||5000)
-    },
-    autonomous:{
-      maxCycles:Number(env.JORA_AUTONOMOUS_MAX_CYCLES||4)
-    },
+    ci:{timeoutMs:Number(env.JORA_CI_TIMEOUT_MS||600000),pollMs:Number(env.JORA_CI_POLL_MS||5000)},
+    autonomous:{maxCycles:Number(env.JORA_AUTONOMOUS_MAX_CYCLES||4)},
     deployment:{
       enabled:env.JORA_DEPLOYMENT_ENABLED==="true",
       webhookUrl:env.JORA_DEPLOYMENT_WEBHOOK_URL,
@@ -39,63 +34,22 @@ export function runtimeConfig(env=process.env){
         healthUrl:env.JORA_PRODUCTION_HEALTHCHECK_URL||env.JORA_HEALTHCHECK_URL,
         healthAttempts:Number(env.JORA_PRODUCTION_HEALTHCHECK_ATTEMPTS||env.JORA_HEALTHCHECK_ATTEMPTS||3),
         healthIntervalMs:Number(env.JORA_PRODUCTION_HEALTHCHECK_INTERVAL_MS||env.JORA_HEALTHCHECK_INTERVAL_MS||2000)
-      }
+      },
+      railway:{webhookUrl:env.JORA_RAILWAY_DEPLOYMENT_WEBHOOK_URL},
+      vercel:{webhookUrl:env.JORA_VERCEL_DEPLOYMENT_WEBHOOK_URL}
     },
-    operationalHealth:{
-      enabled:env.JORA_OPERATIONAL_HEALTH_ENABLED==="true",
-      intervalMs:Number(env.JORA_OPERATIONAL_HEALTH_INTERVAL_MS||30000),
-      thresholds:{
-        failureRate:Number(env.JORA_ALERT_FAILURE_RATE||0.5),
-        queueDepth:Number(env.JORA_ALERT_QUEUE_DEPTH||100),
-        staleWorkerMs:Number(env.JORA_ALERT_STALE_WORKER_MS||120000),
-        latencyMs:Number(env.JORA_ALERT_LATENCY_MS||120000)
-      }
-    },
-    security:{
-      enabled:env.JORA_SECURITY_ENABLED!=="false",
-      maxFindings:Number(env.JORA_SECURITY_MAX_FINDINGS||100),
-      scanCode:env.JORA_SECURITY_SCAN_CODE!=="false"
-    },
-    slo:{
-      enabled:env.JORA_SLO_ENABLED==="true",
-      availability:Number(env.JORA_SLO_AVAILABILITY||0.99),
-      maxFailureRate:Number(env.JORA_SLO_MAX_FAILURE_RATE||0.1),
-      maxLatencyMs:Number(env.JORA_SLO_MAX_LATENCY_MS||10000),
-      maxQueueBacklog:Number(env.JORA_SLO_MAX_QUEUE_BACKLOG||100),
-      intervalMs:Number(env.JORA_SLO_INTERVAL_MS||30000)
-    },
-    recovery:{
-      policy:{
-        HIGH_FAILURE_RATE:env.JORA_RECOVERY_FAILURE_RATE_ACTION||"REPAIR",
-        HIGH_LATENCY:env.JORA_RECOVERY_LATENCY_ACTION||"REPAIR",
-        STALE_WORKER:env.JORA_RECOVERY_STALE_WORKER_ACTION||"WORKER_RECOVERY",
-        QUEUE_BACKLOG:env.JORA_RECOVERY_QUEUE_ACTION||"QUEUE_RECOVERY"
-      }
-    },
-    api:{
-      enabled:env.JORA_API_ENABLED==="true",
-      host:env.JORA_API_HOST||(env.PORT?"0.0.0.0":"127.0.0.1"),
-      port:Number(env.JORA_API_PORT||env.PORT||8787),
-      authToken:env.JORA_API_AUTH_TOKEN,
-      maxBodyBytes:Number(env.JORA_API_MAX_BODY_BYTES||1000000),
-      rateLimitPerMinute:Number(env.JORA_API_RATE_LIMIT_PER_MINUTE||120),
-      accessTokens:env.JORA_API_ACCESS_TOKENS
-    },
-    distributed:{
-      enabled:env.JORA_DISTRIBUTED_ENABLED==="true",
-      databaseUrl:env.JORA_DATABASE_URL||env.DATABASE_URL,
-      leaseNamespace:env.JORA_LEASE_NAMESPACE||"jora-worker",
-      queueNamespace:env.JORA_QUEUE_NAMESPACE||"jora",
-      leaseTtlMs:Number(env.JORA_LEASE_TTL_MS||120000),
-      maxConnections:Number(env.JORA_DATABASE_MAX_CONNECTIONS||5),
-      owner:env.JORA_WORKER_ID||"jora-worker"
-    },
-    worker:{
-      intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),
-      maxCycles:env.JORA_MAX_CYCLES?Number(env.JORA_MAX_CYCLES):Infinity,
-      stateFile:env.JORA_WORKER_STATE_FILE||"./.jora/worker.json",
-      heartbeatMs:Number(env.JORA_WORKER_HEARTBEAT_MS||10000),
-      staleAfterMs:Number(env.JORA_WORKER_STALE_AFTER_MS||120000)
+    operationalHealth:{enabled:env.JORA_OPERATIONAL_HEALTH_ENABLED==="true",intervalMs:Number(env.JORA_OPERATIONAL_HEALTH_INTERVAL_MS||30000),thresholds:{failureRate:Number(env.JORA_ALERT_FAILURE_RATE||0.5),queueDepth:Number(env.JORA_ALERT_QUEUE_DEPTH||100),staleWorkerMs:Number(env.JORA_ALERT_STALE_WORKER_MS||120000),latencyMs:Number(env.JORA_ALERT_LATENCY_MS||120000)}},
+    security:{enabled:env.JORA_SECURITY_ENABLED!=="false",maxFindings:Number(env.JORA_SECURITY_MAX_FINDINGS||100),scanCode:env.JORA_SECURITY_SCAN_CODE!=="false"},
+    slo:{enabled:env.JORA_SLO_ENABLED==="true",availability:Number(env.JORA_SLO_AVAILABILITY||0.99),maxFailureRate:Number(env.JORA_SLO_MAX_FAILURE_RATE||0.1),maxLatencyMs:Number(env.JORA_SLO_MAX_LATENCY_MS||10000),maxQueueBacklog:Number(env.JORA_SLO_MAX_QUEUE_BACKLOG||100),intervalMs:Number(env.JORA_SLO_INTERVAL_MS||30000)},
+    recovery:{policy:{HIGH_FAILURE_RATE:env.JORA_RECOVERY_FAILURE_RATE_ACTION||"REPAIR",HIGH_LATENCY:env.JORA_RECOVERY_LATENCY_ACTION||"REPAIR",STALE_WORKER:env.JORA_RECOVERY_STALE_WORKER_ACTION||"WORKER_RECOVERY",QUEUE_BACKLOG:env.JORA_RECOVERY_QUEUE_ACTION||"QUEUE_RECOVERY"}},
+    api:{enabled:env.JORA_API_ENABLED==="true",host:env.JORA_API_HOST||(env.PORT?"0.0.0.0":"127.0.0.1"),port:Number(env.JORA_API_PORT||env.PORT||8787),authToken:env.JORA_API_AUTH_TOKEN,maxBodyBytes:Number(env.JORA_API_MAX_BODY_BYTES||1000000),rateLimitPerMinute:Number(env.JORA_API_RATE_LIMIT_PER_MINUTE||120),accessTokens:env.JORA_API_ACCESS_TOKENS},
+    distributed:{enabled:env.JORA_DISTRIBUTED_ENABLED==="true",databaseUrl:env.JORA_DATABASE_URL||env.DATABASE_URL,leaseNamespace:env.JORA_LEASE_NAMESPACE||"jora-worker",queueNamespace:env.JORA_QUEUE_NAMESPACE||"jora",leaseTtlMs:Number(env.JORA_LEASE_TTL_MS||120000),maxConnections:Number(env.JORA_DATABASE_MAX_CONNECTIONS||5),owner:env.JORA_WORKER_ID||"jora-worker"},
+    worker:{intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),maxCycles:env.JORA_MAX_CYCLES?Number(env.JORA_MAX_CYCLES):Infinity,stateFile:env.JORA_WORKER_STATE_FILE||"./.jora/worker.json",heartbeatMs:Number(env.JORA_WORKER_HEARTBEAT_MS||10000),staleAfterMs:Number(env.JORA_WORKER_STALE_AFTER_MS||120000)},
+    executionPlatform:{
+      localQueueFile:env.JORA_LOCAL_QUEUE_FILE||"./.jora/v2-queue.json",
+      workerConcurrency:Number(env.JORA_WORKER_CONCURRENCY||2),
+      autoApproveLowRisk:env.JORA_AUTO_APPROVE_LOW_RISK!=="false",
+      enabled:env.JORA_EXECUTION_PLATFORM_ENABLED!=="false"
     }
   };
 }
