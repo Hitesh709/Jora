@@ -4,7 +4,7 @@ export class AutonomousEvolutionController {
   async run({command,context={},startGeneration=1}={}) {
     const generations=[];let champion=context.champion??null;
     for(let generation=startGeneration;generation<=this.maxGenerations&&!this.stopRequested;generation++){
-      const priorLessons=this.learningMemory?.lessons?.()??[];
+      const priorLessons=await this.learningMemory?.lessons?.()??[];
       const generated=await this.generationEngine.generate({command,context:{...context,champion,priorLessons},generation});
       const experiment=await this.experimentEngine?.run?.({candidates:generated.candidates.map(x=>x.candidate),metadata:{generation,priorLessons}});
       const selected=this.selector?.select?.({candidate:generated.best?.candidate,champion})??{selected:Boolean(generated.best),candidateScore:0};
