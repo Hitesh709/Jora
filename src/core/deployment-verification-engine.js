@@ -1,0 +1,1 @@
+export class DeploymentVerificationEngine{constructor(){this.version="1.69.0";}verify({deployment={}}={}){return{accepted:true,status:"DEPLOYMENT_VERIFICATION_PLANNED",version:this.version,checks:["healthcheck","startup","api-smoke","rollback-readiness"],deployment};}}
