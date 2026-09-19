@@ -49,27 +49,40 @@ async function refresh(){
     if(!health.ok) throw new Error("health "+health.status);
     setBanner("API ONLINE","Railway Jora API is reachable. Checking authenticated control-plane data.","ok");
   }catch(e){setBanner("API OFFLINE","Frontend is online, but the configured Jora API cannot be reached: "+e.message,"bad");return}
-  try{
-    const [s,m,e,j,p,a,inc]=await Promise.all([get("/v1/status"),get("/v1/metrics"),get("/v1/executions?limit=10"),get("/v2/jobs?limit=10"),get("/v2/platform"),get("/v2/approvals"),get("/v1/incidents?limit=20")]);
-    document.getElementById("system").textContent=s.status;
+  const endpoints=[
+    ["status","/v1/status"],["metrics","/v1/metrics"],["executions","/v1/executions?limit=10"],
+    ["jobs","/v2/jobs?limit=10"],["platform","/v2/platform"],["approvals","/v2/approvals"],["incidents","/v1/incidents?limit=20"]
+  ];
+  const results=await Promise.allSettled(endpoints.map(([,p])=>get(p)));
+  const data=Object.fromEntries(endpoints.map(([name],_),i=>[name,results[i].status==="fulfilled"?results[i].value:null]));
+  const failures=endpoints.filter(([,],i)=>results[i].status==="rejected").map(([name],i)=>({name,error:results[endpoints.findIndex(([n])=>n===name)]?.reason?.message||"request failed"}));
+  const authFailure=results.some(r=>r.status==="rejected"&&r.reason?.status===401);
+
+  const s=data.status,m=data.metrics,e=data.executions,j=data.jobs,p=data.platform,a=data.approvals,inc=data.incidents;
+  if(s){
+    document.getElementById("system").textContent=s.status||"OK";
     document.getElementById("system").className="value ok";
     document.getElementById("worker").textContent=s.worker?.worker?.status||s.worker?.status||"IDLE";
     document.getElementById("executions").textContent=s.executions?.total??0;
     document.getElementById("uptime").textContent=Math.round((s.uptimeMs||0)/1000)+"s";
-    document.getElementById("factory").textContent=p.version||"2.10.0";
-    document.getElementById("approvals").textContent=(a.approvals||[]).length;
-    document.getElementById("metrics").textContent=JSON.stringify(m,null,2);
-    document.getElementById("recent").textContent=JSON.stringify(e.executions,null,2);
-    document.getElementById("jobs").textContent=JSON.stringify(j.jobs,null,2);
-    document.getElementById("approvalList").textContent=JSON.stringify(a.approvals,null,2);
-    document.getElementById("incidents").textContent=JSON.stringify(inc.incidents,null,2);
-    document.getElementById("caps").innerHTML=Object.entries(p.capabilities||{}).map(([k,v])=>'<span class="cap">'+k+': '+(typeof v==="object"?JSON.stringify(v):v)+'</span>').join("");
-    setBanner("Jora Control Plane ONLINE","API, execution platform and authenticated telemetry are available.","ok");
-  }catch(e){
-    if(e.status===401){setBanner("API ONLINE · AUTH REQUIRED","The Railway API is reachable, but /v1 and /v2 control endpoints require the Bearer token. Enter it above.","warn")}
-    else setBanner("API ONLINE · CONTROL PLANE UNAVAILABLE","Health endpoint works, but authenticated control-plane requests failed: "+e.message,"warn");
-    document.getElementById("system").textContent="AUTH REQUIRED";document.getElementById("system").className="value warn";
+  } else {
+    document.getElementById("system").textContent=authFailure?"AUTH REQUIRED":"DEGRADED";
+    document.getElementById("system").className="value "+(authFailure?"warn":"bad");
   }
+  if(p){
+    document.getElementById("factory").textContent=p.version||"2.10.0";
+    document.getElementById("caps").innerHTML=Object.entries(p.capabilities||{}).map(([k,v])=>'<span class="cap">'+k+': '+(typeof v==="object"?JSON.stringify(v):v)+'</span>').join("");
+  }
+  if(a) document.getElementById("approvals").textContent=(a.approvals||[]).length;
+  if(m) document.getElementById("metrics").textContent=JSON.stringify(m,null,2);
+  if(e) document.getElementById("recent").textContent=JSON.stringify(e.executions,null,2);
+  if(j) document.getElementById("jobs").textContent=JSON.stringify(j.jobs,null,2);
+  if(a) document.getElementById("approvalList").textContent=JSON.stringify(a.approvals,null,2);
+  if(inc) document.getElementById("incidents").textContent=JSON.stringify(inc.incidents,null,2);
+
+  if(authFailure) setBanner("API ONLINE · AUTH REQUIRED","The Railway API is reachable, but one or more control endpoints require the Bearer token. Enter it above.","warn");
+  else if(failures.length) setBanner("Jora Control Plane DEGRADED","API is reachable. Some control-plane endpoints failed: "+failures.map(x=>x.name).join(", ")+".","warn");
+  else setBanner("Jora Control Plane ONLINE","API, execution platform and authenticated telemetry are available.","ok");
 }
 refresh();setInterval(refresh,10000);
 </script></body></html>
