@@ -113,3 +113,5 @@ export { AutonomousProgramManager } from "./core/autonomous-program-manager.js";
 export { JORA_1_00_ROADMAP } from "./core/jora-1.00-roadmap.js";
 export { JORA_1_01_1_50_ROADMAP, JORA_MASTER_ROADMAP } from "./core/jora-1.01-1.50-roadmap.js";
 export { AutonomousArchitect } from "./core/autonomous-architect.js";
+
+export {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "./core/autonomous-planning.js";
