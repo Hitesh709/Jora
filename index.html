@@ -81,6 +81,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <select id="provider" onchange="providerChanged()">
 <option value="jora">Jora AI — default</option>
 <option value="kilo-free">Kilo Auto Free — Free coding</option>
+<option value="opencode-free">OpenCode Free — Free coding</option>
 </select>
 <div id="providerInfo" class="muted" style="margin:-5px 0 12px"></div>
 <div class="panel" style="margin-top:8px;padding:12px;background:#10141a">
@@ -98,12 +99,13 @@ function providerChanged(){
   localStorage.setItem("jora_provider",p);
   const info={
     jora:"Jora uses the model configured on the Jora backend.",
-    "kilo-free":"Kilo Auto Free routes Jora requests to available free coding models. No user API key is required. Free-model availability and limits can change."
+    "kilo-free":"Kilo Auto Free routes Jora requests to available free coding models. No user API key is required. Free-model availability and limits can change.",
+    "opencode-free":"OpenCode Free routes Jora requests to OpenCode free coding models. No user API key is required for free chat models; availability can change."
   }[p]||"";
   providerInfo.textContent=info;
   const state=document.getElementById("providerState");
   const stateText=document.getElementById("providerStateText");
-  state.textContent=p==="kilo-free"?"● Free agent selected":"● Jora selected";
+  state.textContent=p==="kilo-free"?"● Kilo Free selected":p==="opencode-free"?"● OpenCode Free selected":"● Jora selected";
   stateText.textContent=p==="kilo-free"
     ?"Selected. Jora will use Kilo Auto Free for the next coding request."
     :"Selected. Jora will use its configured model for the next request.";
