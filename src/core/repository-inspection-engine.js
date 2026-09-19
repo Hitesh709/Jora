@@ -1,0 +1,1 @@
+export class RepositoryInspectionEngine{constructor(){this.version="1.61.0";}inspect({repository={}}={}){return{accepted:true,status:"REPOSITORY_INSPECTED",version:this.version,repository,findings:["structure","dependencies","test-surface","deployment-surface"],constraints:["preserve existing interfaces","validate changes before release"]};}}
