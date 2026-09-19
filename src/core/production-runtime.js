@@ -90,6 +90,7 @@ import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapte
 import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter,CustomerWorkspaceRegistry,CustomerVersionRegistry,CustomerRepositoryFactory} from "./customer-control-plane-v2.js";
 import {CustomerApplicationFactoryControlPlane,CustomerArtifactSecurityGate,CustomerBuildValidationGate,CustomerTestCommandController,CustomerDeliveryRecordStore,CustomerProductionUrlRegistry} from "./customer-application-factory-v3.70.js";
 import {CustomerSaaSControlPlaneV3,CustomerIdentityDirectory,CustomerApiKeyManager,CustomerPlanBillingController} from "./customer-saas-control-plane-v3.80.js";
+import {CustomerAutonomousOperationsControlPlane,CustomerProductionMonitor,CustomerLearningEngine} from "./customer-autonomous-operations-v3.90.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -351,7 +352,13 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory,artifactLineageStore:customerLineageStore});
   await customerControl.load();
   const customerSaaS=new CustomerSaaSControlPlaneV3({customerControl,applicationFactory:customerApplicationFactory,identity:customerIdentity,apiKeys:customerApiKeys,billing:customerBilling});
+  const customerOperations=new CustomerAutonomousOperationsControlPlane({
+    monitor:new CustomerProductionMonitor({store:new JsonStore({file:customerConfig.healthStateFile||"./.jora/customer-health.json"})}),
+    learning:new CustomerLearningEngine({store:new JsonStore({file:customerConfig.learningStateFile||"./.jora/customer-learning.json"})}),
+    recovery:async payload=>executionPlatform?.recover?.(payload)
+  });
   await customerSaaS.load();
+  await customerOperations.load();
 
   const externalExecution=new ExternalExecutionControlPlaneV2({
     github:new GitHubExecutionAdapter({repository:remoteRepository}),
@@ -390,7 +397,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     architecturePlanner,
     taskDAGGenerator,
     projectBuilder,
-    repositoryFactory:customerRepositoryFactory,applicationFactory:customerApplicationFactory,customerSaaS
+    repositoryFactory:customerRepositoryFactory,applicationFactory:customerApplicationFactory,customerSaaS,customerOperations
   });
   customerRouter.executionPlatform=executionPlatform;
   await executionPlatform.customerProduction.lineage.load();
