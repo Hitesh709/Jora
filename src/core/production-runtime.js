@@ -420,7 +420,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   const healthConfig=config.operationalHealth??{};
   const healthMonitor=healthConfig.enabled
-    ? new OperationalHealthMonitor({metrics,observability,worker,queue:queueStore,thresholds:healthConfig.thresholds,onAlert:async alert=>{const incident=await incidentManager.open(alert); await incidentManager.startRecovery(incident.id,{action:recovery.policy[alert.alertType]}); const result=await recovery.handle(alert); if(String(result.status).includes("FAILED")) await incidentManager.failRecovery(incident.id,result.error); else await incidentManager.resolve(incident.id,result); return result;}})
+    ? new OperationalHealthMonitor({metrics,observability,worker,queue:queueStore,thresholds:healthConfig.thresholds,onAlert:async alert=>incidentCommander.handle(alert)})
     : null;
   let healthTimer=null;
   if(healthMonitor) {
