@@ -325,7 +325,7 @@ export class OperatorApi {
       return json(res,200,this.executionPlatform.requestApproval(body||{}));
     }
 
-    const approvalMatch=path.match(/^\\/v2\\/approvals\\/([^/]+)\\/(approve|reject)$/);
+    const approvalMatch=path.match(/^\/v2\/approvals\/([^/]+)\/(approve|reject)$/);
     if(method==="POST" && approvalMatch) {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
