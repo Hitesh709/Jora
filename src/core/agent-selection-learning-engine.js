@@ -1,0 +1,1 @@
+export class AgentSelectionLearningEngine{constructor(){this.version="1.87.0";}learn({performance=[]}={}){return{accepted:true,status:"AGENT_SELECTION_POLICY_UPDATED",version:this.version,policy:{useObservedTaskPerformance:true,minimumSampleSize:3},signals:performance.filter(p=>p.sampleSize>=3).map(p=>({taskId:p.taskId,specialist:p.specialist,successRate:p.successRate}))};}}
