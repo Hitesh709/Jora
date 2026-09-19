@@ -11,6 +11,7 @@ export class AutonomousArchitect {
     architectureStore=null,
     taskDAGOptimizer=null,
     taskContractEngine=null,
+    experiencePlanner=null,
     maxAlternatives=3
   }={}) {
     this.modelGateway=modelGateway;
@@ -21,6 +22,7 @@ export class AutonomousArchitect {
     this.architectureStore=architectureStore;
     this.taskDAGOptimizer=taskDAGOptimizer;
     this.taskContractEngine=taskContractEngine;
+    this.experiencePlanner=experiencePlanner;
     this.maxAlternatives=Math.max(2,Math.min(5,maxAlternatives));
     this.contractVersion=1;
   }
@@ -210,6 +212,7 @@ export class AutonomousArchitect {
     let taskDAG=this.compileTaskDAG(contract);
     if(this.taskDAGOptimizer) taskDAG=this.taskDAGOptimizer.optimize(taskDAG).tasks;
     if(this.taskContractEngine) taskDAG=taskDAG.map(task=>this.taskContractEngine.compile(task,{evidenceRequired:["tests","security","evaluation"]}));
+    if(this.experiencePlanner) { const planned=[]; for(const task of taskDAG) planned.push(await this.experiencePlanner.plan(task)); taskDAG=planned; }
     const agentTeam=this.compileAgentTeam(contract);
     const plan={version:"1.50",requirements,alternatives,decision,contract,validation,taskDAG,agentTeam};
     const persisted=await this.architectureStore?.saveContract?.(contract,{decision,parentArchitectureId:context.parentArchitectureId});
