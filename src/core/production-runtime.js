@@ -65,6 +65,7 @@ import {AutonomousMissionRunner} from "./autonomous-mission-runner.js";
 import {JORA_MASTER_ROADMAP} from "./jora-1.01-1.50-roadmap.js";
 import {AutonomousProgramManager} from "./autonomous-program-manager.js";
 import {AutonomousArchitect} from "./autonomous-architect.js";
+import {ArchitectureRegressionIntelligence,SystemDependencyIntelligence,AutonomousSecurityArchitect,PolicyDrivenAutonomy,AutonomousIncidentCommander,SLOAwareRecoveryController,ContinuousEvolutionController,AutonomousProgramDirector,AutonomousArchitectCore} from "./autonomous-architect-core.js";
 import {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "./autonomous-planning.js";
 import {AgentCapabilityRegistry,AgentRoutingEngine,AgentNegotiationProtocol,ParallelSpecialistOrchestrator,SharedArtifactWorkspace,CollaborativeReviewGraph,AgentQualityGate,AgentLifecycleManager,AgentTeamOptimizer} from "./specialist-intelligence.js";
 import {KnowledgeIngestionPipeline,KnowledgeIndex,EvidenceAwareRetriever,ProvenanceManager,KnowledgeConflictResolver,MemoryConsolidationEngine,FailurePatternLibrary,StrategyEffectivenessModel,ExperienceGuidedPlanner,ContinuousLearningLoop} from "./autonomous-knowledge.js";
@@ -333,6 +334,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const idempotencyGuard=new IdempotencyGuard();
   const missionTransactions=new MissionTransactionManager();
   const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability,architectureStore,taskDAGOptimizer,taskContractEngine,experiencePlanner});
+  const architectureRegression=new ArchitectureRegressionIntelligence({historyStore:observability,threshold:config.architecture?.regressionThreshold??0.05});
+  const dependencyIntelligence=new SystemDependencyIntelligence();
+  const securityArchitect=new AutonomousSecurityArchitect({policyEngine});
+  const policyDrivenAutonomy=new PolicyDrivenAutonomy({policyEngine});
+  const evolutionController=new ContinuousEvolutionController({evolution:autonomousEvolution,observability});
   const missionRunner=new AutonomousMissionRunner({
     missionManager,
     maxCycles:config.mission?.maxCycles??Infinity,
@@ -352,7 +358,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     cycle:async ({cycle,command,context})=>{
       const objective=command??"Complete Jora roadmap autonomously";
       let architecturePlan=null;
-      try { architecturePlan=await autonomousArchitect.plan({objective,context}); } catch (error) {
+      try { architecturePlan=await architectCore.plan({objective,context}); } catch (error) {
         await observability.append?.({type:"ARCHITECTURE_PLAN_FAILED",objective,error:error.message,at:new Date().toISOString()});
       }
       try {
@@ -384,9 +390,23 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     observability
   });
   programManager.autonomousArchitect=autonomousArchitect;
+  programManager.architectCore=architectCore;
   const recoveryConfig=config.recovery??{};
   const recovery=new RecoveryOrchestrator({observability,worker,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
   const incidentManager=new IncidentManager({observability});
+  const incidentCommander=new AutonomousIncidentCommander({incidentManager,recovery,observability});
+  const sloRecovery=new SLOAwareRecoveryController({metrics,recovery,observability,slos:config.slo??{}});
+  const architectCore=new AutonomousArchitectCore({
+    architect:autonomousArchitect,
+    dependencyIntelligence,
+    architectureRegression,
+    securityArchitect,
+    policy:policyDrivenAutonomy,
+    evolutionController,
+    incidentCommander,
+    sloRecovery,
+    observability
+  });
   const healthConfig=config.operationalHealth??{};
   const healthMonitor=healthConfig.enabled
     ? new OperationalHealthMonitor({metrics,observability,worker,queue:queueStore,thresholds:healthConfig.thresholds,onAlert:async alert=>{const incident=await incidentManager.open(alert); await incidentManager.startRecovery(incident.id,{action:recovery.policy[alert.alertType]}); const result=await recovery.handle(alert); if(String(result.status).includes("FAILED")) await incidentManager.failRecovery(incident.id,result.error); else await incidentManager.resolve(incident.id,result); return result;}})
@@ -422,7 +442,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       })
     : null;
   return {
-    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
+    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
     executionStore,championStore,lineageStore,agentRegistry,programManager,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
