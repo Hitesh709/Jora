@@ -16,12 +16,24 @@ try {
     apiKey:process.env.KILO_API_KEY,
     allowAnonymous:true
   }));
-  providers.set("opencode-free",new OpenAICompatibleProvider({
-    baseUrl:process.env.JORA_OPENCODE_FREE_BASE_URL||"https://opencode.ai/inference/openai/v1",
-    model:process.env.JORA_OPENCODE_FREE_MODEL||"mimo-v2.5-free",
-    apiKey:process.env.OPENCODE_API_KEY,
-    allowAnonymous:true
-  }));
+  const openCodeFreeBaseUrl=process.env.JORA_OPENCODE_FREE_BASE_URL||"https://opencode.ai/zen/v1";
+  const openCodeFreeModels=[
+    ["mimo-v2.5-free","MiMo-V2.5 Free"],
+    ["laguna-s-2.1-free","Laguna S 2.1 Free"],
+    ["ling-3.0-tiny-free","Ling 3.0-tiny Free"],
+    ["longcat-2.0-free","LongCat-2.0 Free"],
+    ["north-mini-code-free","North Mini Code Free"],
+    ["nemotron-3-ultra-free","Nemotron 3 Ultra Free"],
+    ["deepseek-v4-flash-free","DeepSeek V4 Flash Free"]
+  ];
+  for(const [model] of openCodeFreeModels){
+    providers.set("opencode-"+model,new OpenAICompatibleProvider({
+      baseUrl:openCodeFreeBaseUrl,
+      model,
+      apiKey:process.env.OPENCODE_API_KEY,
+      allowAnonymous:true
+    }));
+  }
   if(!config.model.apiKey && !config.models.anthropicApiKey) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
   const modelGateway=new MultiModelGateway({providers,defaultModel:config.model.defaultModel||"openai",fallbackModels:config.model.fallbackModels});
   const composed=await createProductionJoraRuntime({config,modelGateway});
