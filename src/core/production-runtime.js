@@ -488,7 +488,15 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         incidentManager,
         programManager,
         accessController,
-        auditLog
+        auditLog,
+        productUnderstanding,
+        architecturePlanner,
+        taskDAGGenerator,
+        autonomousProductBuilder,
+        autonomousCodingOrchestrator,
+        autonomousEngineeringLoop,
+        selfImprovingEngineeringCore,
+        autonomousSoftwareFactory
       })
     : null;
   return {
