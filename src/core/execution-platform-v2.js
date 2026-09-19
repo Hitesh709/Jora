@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {randomUUID} from "node:crypto";
+import {ExecutionLedger,IdempotencyGuard,PolicyEngine,PreflightGate,ArtifactManifest,DeploymentHealthVerifier,RollbackCoordinator,RecoveryController,FactoryCheckpointStore,AutonomousControlLoop} from "./autonomous-control-plane-v2.js";
 
 export class ApprovalGate {
   constructor({autoApproveLowRisk=true}={}) {
@@ -107,12 +108,21 @@ export class WebhookDeploymentClient {
 }
 
 export class ExecutionPlatformV2 {
-  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={}}={}) {
+  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null}={}) {
     this.version="2.10.0";
     this.github=github;this.sandbox=sandbox;this.testRunner=testRunner;this.queue=queue;
     this.approvalGate=approvalGate??new ApprovalGate();
     this.workerPool=workerPool??new WorkerPool();
     this.deploymentClients=deploymentClients;
+    this.ledger=ledger??new ExecutionLedger();
+    this.idempotency=idempotency??new IdempotencyGuard({ledger:this.ledger});
+    this.policy=policy??new PolicyEngine();
+    this.preflight=preflight??new PreflightGate({policyEngine:this.policy});
+    this.artifacts=artifacts??new ArtifactManifest();
+    this.healthVerifier=healthVerifier??new DeploymentHealthVerifier();
+    this.checkpoints=checkpoints??new FactoryCheckpointStore();
+    this.recovery=recovery;
+    this.controlLoop=controlLoop??new AutonomousControlLoop({ledger:this.ledger,policy:this.policy,preflight:this.preflight,checkpoints:this.checkpoints});
   }
   status() {
     return {
@@ -130,7 +140,8 @@ export class ExecutionPlatformV2 {
         deployment:{railway:Boolean(this.deploymentClients.railway),vercel:Boolean(this.deploymentClients.vercel)}
       },
       workers:this.workerPool.status(),
-      pendingApprovals:this.approvalGate.list().length
+      pendingApprovals:this.approvalGate.list().length,
+      controlPlane:{ledger:true,idempotency:true,policy:true,preflight:true,artifactManifest:true,healthVerification:true,recovery:Boolean(this.recovery),checkpoints:true}
     };
   }
   async runTests({cwd,commandArgs=["test"]}={}) {
@@ -142,6 +153,20 @@ export class ExecutionPlatformV2 {
     if(typeof this.github[operation]!=="function") throw new Error("unsupported GitHub operation: "+operation);
     return {accepted:true,status:"GITHUB_OPERATION_COMPLETED",operation,result:await this.github[operation](payload)};
   }
+
+  async executeIdempotent({key,operation,execute}={}){
+    if(!operation)throw new Error("operation is required");
+    const prior=await this.idempotency.check(key);
+    if(prior.replay)return {replayed:true,status:"IDEMPOTENT_REPLAY",result:prior.result};
+    const result=await execute();
+    this.idempotency.remember(key,result);
+    await this.ledger.append({operation,idempotencyKey:key,status:"COMPLETED",result});
+    return {replayed:false,status:"COMPLETED",result};
+  }
+  async control(input={}){return this.controlLoop.evaluate(input);}
+  async verifyDeployment(input={}){return this.healthVerifier.verify(input);}
+  async recover(input={}){if(!this.recovery)return {recovered:false,status:"RECOVERY_NOT_CONFIGURED"};return this.recovery.recover(input);}
+  async manifest(input={}){return this.artifacts.build(input);}
   requestApproval(input){return this.approvalGate.evaluate(input);}
   approve(id){return this.approvalGate.approve(id);}
   reject(id,reason){return this.approvalGate.reject(id,reason);}
