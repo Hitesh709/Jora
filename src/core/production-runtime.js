@@ -62,7 +62,7 @@ import {SharedTeamMemory} from "./shared-team-memory.js";
 import {RoadmapEngine} from "./roadmap-engine.js";
 import {MissionManager} from "./mission-manager.js";
 import {AutonomousMissionRunner} from "./autonomous-mission-runner.js";
-import {JORA_1_00_ROADMAP} from "./jora-1.00-roadmap.js";
+import {JORA_MASTER_ROADMAP} from "./jora-1.01-1.50-roadmap.js";
 import {AutonomousProgramManager} from "./autonomous-program-manager.js";
 
 class CandidateEvaluator {
@@ -229,7 +229,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const metrics=new MetricsCollector();
   const auditLog=new AuditLog({observability:null});
 
-  const roadmap=new RoadmapEngine({roadmap:JORA_1_00_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
+  const roadmap=new RoadmapEngine({roadmap:JORA_MASTER_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
   await roadmap.load();
   const missionManager=new MissionManager({roadmap,maxTasksPerCycle:config.mission?.tasksPerCycle??1});
   await missionManager.initialize();
