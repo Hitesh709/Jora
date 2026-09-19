@@ -236,3 +236,29 @@ Jora v0.23.0 adds an immutable hash-chained AuditLog. Audit records include acto
 Jora now has a machine-enforced PolicyEngine and PolicyRegistry. Autonomous execution and promotion are policy-gated, policy decisions carry tenant/actor context, and policy decisions are written to the audit stream. Runtime policy configuration supports action denials, tenant allowlists, minimum benchmark/quality thresholds, security requirements, and policy versioning.
 
 Environment controls include JORA_POLICY_ENABLED, JORA_POLICY_VERSION, JORA_POLICY_DENY_ACTIONS, JORA_POLICY_ALLOWED_TENANTS, JORA_POLICY_MIN_BENCHMARK, JORA_POLICY_MIN_QUALITY, and JORA_POLICY_REQUIRE_SECURITY.
+
+
+## v1.41–v1.50 Autonomous Architect Core audit
+
+The v1.41–v1.50 integration now connects architecture planning, architecture regression, dependency intelligence, security architecture, policy gates, incident command, SLO recovery, evolution and program direction.
+
+Recent hardening:
+- dynamic mission tasks are persisted into the roadmap instead of being transient;
+- synthesized task IDs are collision-safe and unknown dependencies are filtered;
+- governance state can be reconstructed from persisted execution traces after restart;
+- PostgreSQL queue retries are bounded with exponential backoff and a DEAD_LETTER terminal state;
+- architecture regression is gated before an architecture plan becomes the persisted baseline;
+- specialist parallel orchestration is connected to a real AgentRuntime;
+- learning records are generated from actual mission outcomes rather than a pre-attempt placeholder;
+- the bootstrap command now uses the production autonomous runtime rather than the original safety stub.
+
+### Remaining integration work
+
+The architecture is broad, but these items still require deeper end-to-end integration before claiming every roadmap milestone is fully operational:
+1. Specialist negotiation, collaborative review, lifecycle management and team optimization are implemented as services but are not yet mandatory gates in every production delivery.
+2. Shared artifact workspace is currently process-local rather than durable/distributed.
+3. Agent team execution has a parallel orchestration service, while the default mission execution path still executes roadmap work through the main Jora runtime.
+4. SLO-aware recovery exists as a controller, but should be connected directly to the production health decision loop with explicit SLO configuration and incident correlation.
+5. Continuous evolution exists as a controller, but autonomous program execution does not yet automatically run a complete evolution generation after every eligible mission without an explicit evolution trigger.
+6. The historical version ledger is incomplete: the repository documents v0.11–v0.24 and has code/release commits around v0.31–v0.55, but there is no canonical machine-readable v0.01–v0.55 milestone registry equivalent to the v0.56–v1.50 roadmap. Those historical milestones need reconciliation against Git history before a strict "every version verified" claim.
+7. Fresh full-suite CI verification is still required after the latest integration commits.
