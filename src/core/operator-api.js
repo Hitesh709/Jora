@@ -362,6 +362,24 @@ export class OperatorApi {
       return json(res,200,{events:this.executionPlatform.reliability.eventBus.list(url.searchParams.get("limit")||100)});
     }
 
+    if(method==="POST" && path==="/v2/resilience/evaluate") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.resilienceEvaluate(body||{}));
+    }
+
+    if(method==="GET" && path==="/v2/resilience/incidents") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{incidents:this.executionPlatform.resilience.incidents.list()});
+    }
+
+    if(method==="POST" && path==="/v2/resilience/feature-flags") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.name) return json(res,400,{error:"name is required"});
+      return json(res,200,this.executionPlatform.resilience.flags.set(body.name,body));
+    }
+
     if(method==="GET" && path==="/v2/platform") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.status());
