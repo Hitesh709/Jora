@@ -309,6 +309,21 @@ export class OperatorApi {
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
 
+    if(method==="GET" && path==="/v3/customer") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,this.executionPlatform.customerProduction.status());
+    }
+    if(method==="POST" && path==="/v3/customer/execute") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,202,await this.executionPlatform.customerProduction.submit(body||{}));}
+      catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+    if(method==="GET" && path==="/v3/customer/lineage") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{records:this.executionPlatform.customerProduction.lineage.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+    }
+
     if(method==="GET" && path==="/v2/customer") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.customerControl.status());
