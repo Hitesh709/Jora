@@ -114,11 +114,15 @@ export class AutonomousProgramDirector {
     if(!objective?.trim()) throw new Error("objective is required");
     const tenantId=context.tenantId??"default";
     await this.policy?.authorize?.({stage:"PLAN",tenantId,context});
-    const architecture=await this.architect.plan({objective,context});
+    const architecture=context.architecturePlan??await this.architect.plan({objective,context});
     await this.policy?.authorize?.({stage:"EXECUTE",tenantId,context:{...context,architecture}});
     const mission=await this.missionRunner.run({objective,context:{...context,architecturePlan:architecture},maxCycles});
+    let evolution=null;
+    if(this.evolutionController && context.autoEvolve===true && mission.status==="COMPLETED") {
+      evolution=await this.evolutionController.evolve({command:objective,context:{...context,architecturePlan:architecture,mission}});
+    }
     await this.observability?.append?.({type:"PROGRAM_DIRECTOR_EXECUTED",objective,status:mission.status,architectureId:architecture.contract?.id??null,at:new Date().toISOString()});
-    return {status:mission.status,architecture,mission};
+    return {status:mission.status,architecture,mission,evolution};
   }
 }
 
