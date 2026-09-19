@@ -1,0 +1,1 @@
+export class TestGenerationEngine{constructor(){this.version="1.64.0";}generate({artifacts=[]}={}){return{accepted:true,status:"TEST_PLAN_GENERATED",version:this.version,tests:artifacts.map(a=>({artifactId:a.id,cases:["happy_path","validation","failure_recovery"]}))};}}
