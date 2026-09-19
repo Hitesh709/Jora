@@ -1,8 +1,8 @@
 import {randomUUID} from "node:crypto";
 
 export class CustomerMissionOrchestrator {
-  constructor({missionManager,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null}={}) {
-    Object.assign(this,{missionManager,executionPlatform,productUnderstanding,architecturePlanner,taskDAGGenerator});
+  constructor({missionManager,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
+    Object.assign(this,{missionManager,executionPlatform,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory});
   }
   async execute(mission,{context={}}={}) {
     this.missionManager.transition(mission.id,"RUNNING");
@@ -27,9 +27,39 @@ export class CustomerMissionOrchestrator {
       const planning={specification,architecture:architecture?.plan??architecture,dag:dag?.dag??dag};
       this.missionManager.transition(mission.id,"PLANNED",planning);
 
-      if(context.delivery && typeof this.executionPlatform?.externalEndToEnd==="function") {
+      let build=null;
+      let deliveryContext=context.delivery?{...context.delivery}:null;
+      const project=this.executionPlatform?.customerControl?.projects?.get?.(mission.projectId);
+      if(this.projectBuilder && this.repositoryFactory && project?.repository) {
+        const remote=this.repositoryFactory.repositoryFor(project.repository);
+        if(remote) {
+          const workspacePath=project.workspace?.path||context.workspacePath;
+          if(workspacePath) {
+            const workspaceModule=await import("./workspace-repository.js");
+            const workspace=new workspaceModule.WorkspaceRepository({root:workspacePath,remoteRepository:remote});
+            await workspace.prepareCandidate(mission.id,remote.branch);
+            build=await this.projectBuilder.build({
+              command:mission.objective,
+              specification,
+              context:{...baseContext,architecture:planning.architecture,dag:planning.dag},
+              repository:workspace
+            });
+            const files=await workspace.snapshot();
+            deliveryContext={
+              branch:workspace.candidateBranch,
+              base:remote.branch,
+              files,
+              message:"Jora customer mission "+mission.id,
+              title:"Jora: "+mission.objective.slice(0,80),
+              payload:{repository:project.repository}
+            };
+          }
+        }
+      }
+
+      if(deliveryContext && typeof this.executionPlatform?.externalEndToEnd==="function") {
         const deliveryInput={
-          ...context.delivery,
+          ...deliveryContext,
           payload:{
             ...(context.delivery.payload||{}),
             tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
@@ -41,10 +71,10 @@ export class CustomerMissionOrchestrator {
           delivery?.status==="ROLLED_BACK"?"ROLLED_BACK":"FAILED";
         const revision=delivery?.mutation?.result?.commit||delivery?.mutation?.commit||delivery?.commit||null;
         const version=this.customer.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,revision,status:finalStatus,metadata:{deliveryStatus:delivery?.status}});
-        return this.missionManager.transition(mission.id,finalStatus,{gate,planning,delivery,version});
+        return this.missionManager.transition(mission.id,finalStatus,{gate,planning,build,delivery,version});
       }
       const version=this.customer.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,status:"PLANNED",metadata:{planning}});
-      return this.missionManager.transition(mission.id,"READY_FOR_EXECUTION",{gate,planning,version});
+      return this.missionManager.transition(mission.id,"READY_FOR_EXECUTION",{gate,planning,build,version});
     } catch(error) {
       return this.missionManager.transition(mission.id,"FAILED",{error:error.message});
     }
@@ -91,7 +121,7 @@ export class CustomerProductionPipeline {
 }
 
 export class AutonomousCustomerProductionPlatform {
-  constructor({customerControl,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null}={}) {
+  constructor({customerControl,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
     this.version="3.10.0";
     this.customer=customerControl;
     this.execution=executionPlatform;
