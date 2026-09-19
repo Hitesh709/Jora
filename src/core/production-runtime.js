@@ -144,6 +144,10 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   if(!config) throw new Error("config is required");
   if(!modelGateway) throw new Error("modelGateway is required");
 
+  const observability=new ObservabilityStore({
+    store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})
+  });
+
   const remoteRepository=config.github?.token && config.github?.owner && config.github?.repo
     ? new GitHubRestRepository(config.github)
     : null;
@@ -276,10 +280,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   const missionManager=new MissionManager({roadmap,taskGenerator,maxTasksPerCycle:config.mission?.tasksPerCycle??1});
   await missionManager.initialize();
-
-  const observability=new ObservabilityStore({
-    store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})
-  });
 
   auditLog.observability=observability;
   policyEngine.auditLog=observability;
