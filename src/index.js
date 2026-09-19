@@ -121,3 +121,5 @@ export {KnowledgeIngestionPipeline,KnowledgeIndex,EvidenceAwareRetriever,Provena
 export {AgentCapabilityRegistry,AgentRoutingEngine,AgentNegotiationProtocol,ParallelSpecialistOrchestrator,SharedArtifactWorkspace,CollaborativeReviewGraph,AgentQualityGate,AgentLifecycleManager,AgentTeamOptimizer} from "./core/specialist-intelligence.js";
 
 export {ArchitectureRegressionIntelligence,SystemDependencyIntelligence,AutonomousSecurityArchitect,PolicyDrivenAutonomy,AutonomousIncidentCommander,SLOAwareRecoveryController,ContinuousEvolutionController,AutonomousProgramDirector,AutonomousArchitectCore} from "./core/autonomous-architect-core.js";
+
+export { WebSearchProvider } from "./core/web-search-provider.js";
