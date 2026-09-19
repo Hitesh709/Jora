@@ -151,17 +151,16 @@ export class CustomerProductionPipeline {
 }
 
 export class AutonomousCustomerProductionPlatform {
-  constructor({customerControl,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
+  constructor({customerControl,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null}={}) {
     this.version="3.50.0";
     this.customer=customerControl;
     this.execution=executionPlatform;
-    this.applicationFactory=applicationFactory??null;
     this.productUnderstanding=productUnderstanding;
     this.architecturePlanner=architecturePlanner;
     this.taskDAGGenerator=taskDAGGenerator;
     this.policy=new CustomerPolicyGate();
     this.orchestrator=new CustomerMissionOrchestrator({
-      missionManager:customerControl.missions,customerControl,executionPlatform,
+      missionManager:customerControl.missions,customerControl,executionPlatform,applicationFactory,
       productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory
     });
     this.lifecycle=new CustomerLifecycleEngine({missions:customerControl.missions,orchestrator:this.orchestrator});
