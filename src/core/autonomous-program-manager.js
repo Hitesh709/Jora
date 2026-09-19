@@ -22,7 +22,8 @@ export class AutonomousProgramManager {
   async run({objective="Complete Jora roadmap autonomously",context={},maxCycles=Infinity}={}) {
     await this.initialize();
     let architecturePlan=null;
-    if(this.autonomousArchitect?.plan) architecturePlan=await this.autonomousArchitect.plan({objective,context});
+    if(this.architectCore?.plan) architecturePlan=await this.architectCore.plan({objective,context});
+    else if(this.autonomousArchitect?.plan) architecturePlan=await this.autonomousArchitect.plan({objective,context});
     const missionContext={...context,architecturePlan};
     await this.observability?.append?.({type:"MISSION_STARTED",objective,architectureId:architecturePlan?.contract?.id??null,at:new Date().toISOString()});
     const result=await this.missionRunner.run({objective,context:missionContext,maxCycles});
