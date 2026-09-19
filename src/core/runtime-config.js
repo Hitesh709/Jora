@@ -47,6 +47,10 @@ export function runtimeConfig(env=process.env){
     worker:{intervalMs:Number(env.JORA_WORK_INTERVAL_MS||60000),maxCycles:env.JORA_MAX_CYCLES?Number(env.JORA_MAX_CYCLES):Infinity,stateFile:env.JORA_WORKER_STATE_FILE||"./.jora/worker.json",heartbeatMs:Number(env.JORA_WORKER_HEARTBEAT_MS||10000),staleAfterMs:Number(env.JORA_WORKER_STALE_AFTER_MS||120000)},
     executionPlatform:{
       localQueueFile:env.JORA_LOCAL_QUEUE_FILE||"./.jora/v2-queue.json",
+      ledgerFile:env.JORA_EXECUTION_LEDGER_FILE||"./.jora/v2-execution-ledger.json",
+      checkpointFile:env.JORA_CHECKPOINT_FILE||"./.jora/v2-checkpoints.json",
+      idempotencyTtlMs:Number(env.JORA_IDEMPOTENCY_TTL_MS||86400000),
+      healthTimeoutMs:Number(env.JORA_DEPLOYMENT_HEALTH_TIMEOUT_MS||10000),
       workerConcurrency:Number(env.JORA_WORKER_CONCURRENCY||2),
       autoApproveLowRisk:env.JORA_AUTO_APPROVE_LOW_RISK!=="false",
       enabled:env.JORA_EXECUTION_PLATFORM_ENABLED!=="false"
