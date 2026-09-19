@@ -66,6 +66,7 @@ import {JORA_MASTER_ROADMAP} from "./jora-1.01-1.50-roadmap.js";
 import {AutonomousProgramManager} from "./autonomous-program-manager.js";
 import {AutonomousArchitect} from "./autonomous-architect.js";
 import {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "./autonomous-planning.js";
+import {KnowledgeIngestionPipeline,KnowledgeIndex,EvidenceAwareRetriever,ProvenanceManager,KnowledgeConflictResolver,MemoryConsolidationEngine,FailurePatternLibrary,StrategyEffectivenessModel,ExperienceGuidedPlanner,ContinuousLearningLoop} from "./autonomous-knowledge.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -180,6 +181,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const knowledgeStore=new KnowledgeStore({store:new JsonStore({file:config.memory?.knowledgeStateFile||"./.jora/knowledge.json"}),maxRecords:config.memory?.knowledgeRecords??10000});
   await knowledgeStore.load();
   const knowledgeRetriever=new KnowledgeRetriever({knowledgeStore,agentMemory});
+  const knowledgeIngestion=new KnowledgeIngestionPipeline({knowledgeStore});
+  const knowledgeIndex=new KnowledgeIndex({knowledgeStore});
+  const evidenceRetriever=new EvidenceAwareRetriever({knowledgeStore,agentMemory});
+  const provenanceManager=new ProvenanceManager();
+  const conflictResolver=new KnowledgeConflictResolver();
   const sharedTeamMemory=new SharedTeamMemory({memory:agentMemory});
   const agentFactory=new AgentFactory({planner,projectFactory:factory,registry:agentRegistry});
   const evolution=new EvolutionEngine({evaluator});
@@ -204,6 +210,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const experimentEngine=new ExperimentEngine({benchmarkStore});
   const learningMemory=new LearningMemory({maxRecords:config.evolution?.learningRecords??10000,store:new JsonStore({file:config.evolution?.learningStateFile||"./.jora/learning.json"})});
   await learningMemory.load();
+  const memoryConsolidation=new MemoryConsolidationEngine({learningMemory,knowledgeStore});
+  const failurePatterns=new FailurePatternLibrary({knowledgeStore});
+  const strategyModel=new StrategyEffectivenessModel({learningMemory});
+  const experiencePlanner=new ExperienceGuidedPlanner({strategyModel,learningMemory});
+  const continuousLearning=new ContinuousLearningLoop({learningMemory,knowledgeStore,consolidator:memoryConsolidation});
   const populationEngine=new MultiGenerationEngine({delivery,population,maxCandidates:config.evolution?.populationSize??8});
   const autonomousEvolution=new AutonomousEvolutionController({generationEngine:populationEngine,experimentEngine,learningMemory,scheduler:evolutionScheduler,selector:championSelector,maxGenerations:config.evolution?.maxGenerations??10});
 
@@ -311,7 +322,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const checkpointStore=new CheckpointStore({store:new JsonStore({file:config.mission?.checkpointStateFile||"./.jora/checkpoints.json"})});
   const idempotencyGuard=new IdempotencyGuard();
   const missionTransactions=new MissionTransactionManager();
-  const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability,architectureStore,taskDAGOptimizer,taskContractEngine});
+  const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability,architectureStore,taskDAGOptimizer,taskContractEngine,experiencePlanner});
   const missionRunner=new AutonomousMissionRunner({
     missionManager,
     maxCycles:config.mission?.maxCycles??Infinity,
@@ -398,7 +409,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       })
     : null;
   return {
-    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
+    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
     executionStore,championStore,lineageStore,agentRegistry,programManager,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
