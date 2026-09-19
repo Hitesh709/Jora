@@ -7,8 +7,9 @@ import {createProductionJoraRuntime} from "./core/production-runtime.js";
 
 try {
   const config=runtimeConfig();
-  if(!config.model.apiKey) throw new Error("OPENAI_API_KEY is required for API runtime");
-  const provider=new OpenAICompatibleProvider(config.model);
+  const provider=config.model.apiKey
+    ? new OpenAICompatibleProvider(config.model)
+    : {complete:async()=>{throw new Error("OPENAI_API_KEY is required for model-backed operations");}};
   const modelGateway=new ModelGateway({
     providers:new Map([["default",provider]]),
     defaultModel:"default"
