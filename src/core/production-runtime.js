@@ -87,7 +87,7 @@ import {SelfImprovingEngineeringCore} from "./self-improving-engineering-core.js
 import {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
 import {ProductionInfrastructureControlPlane,StartupConfigValidator,ReadinessProbe,GracefulShutdownCoordinator,DependencyHealthRegistry,DurableStateRecoveryScanner,RuntimeResourceGuard,RuntimeConfigSnapshot} from "./production-infrastructure-control-plane-v2.js";
 import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapter,DeploymentStatusPoller,ProductionHealthVerifier,AutomaticRollbackExecutor,ExecutionEvidenceStore,ExternalExecutionControlPlaneV2} from "./external-execution-control-plane-v2.js";
-import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter,CustomerWorkspaceRegistry,CustomerVersionRegistry} from "./customer-control-plane-v2.js";
+import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter,CustomerWorkspaceRegistry,CustomerVersionRegistry,CustomerRepositoryFactory} from "./customer-control-plane-v2.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -325,9 +325,14 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const customerMeter=new UsageMeter({store:new JsonStore({file:customerConfig.usageStateFile||"./.jora/customer-usage.json"})});
   const customerWorkspaces=new CustomerWorkspaceRegistry({store:new JsonStore({file:customerConfig.workspaceStateFile||"./.jora/customer-workspaces.json"})});
   const customerVersions=new CustomerVersionRegistry();
+  const customerRepositoryFactory=new CustomerRepositoryFactory({
+    github:remoteRepository,
+    organization:customerConfig.githubOrganization||config.github?.customerOrganization||null,
+    privateRepositories:customerConfig.privateRepositories!==false
+  });
   const customerQuota=new QuotaGuard({limits:customerConfig.quotas||{},plans:customerConfig.plans||{}});
   const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions});
-  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions});
+  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory});
   await customerControl.load();
 
   const externalExecution=new ExternalExecutionControlPlaneV2({
