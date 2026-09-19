@@ -21,7 +21,13 @@ export class MissionManager {
     if(planned.length) return planned;
     if(!this.taskGenerator||!objective) return [];
     const generated=await this.taskGenerator.generate({objective,snapshot:{roadmap:this.roadmap.progress(),context},limit});
-    return generated.map((task,i)=>({id:task.id??`DYNAMIC-${Date.now()}-${i}`,title:task.title,description:task.description,priority:task.priority??0,dependencies:task.dependencies??[]}));
+    const added=[];
+    for(const [i,task] of generated.entries()) {
+      const normalized={id:task.id??`DYNAMIC-${Date.now()}-${i}`,title:task.title,description:task.description,priority:task.priority??0,dependencies:task.dependencies??[]};
+      added.push(this.roadmap.addTask(normalized));
+    }
+    await this.roadmap.save();
+    return added;
   }
 
   async claim(taskOrId) {
