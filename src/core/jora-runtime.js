@@ -1,5 +1,5 @@
 export class JoraRuntime {
-  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null,metrics=null,governance=null}={}) {
+  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null,metrics=null,governance=null,policyEngine=null}={}) {
     if (!builder || !controller) throw new Error("builder and controller are required");
     this.builder=builder;
     this.controller=controller;
@@ -9,6 +9,7 @@ export class JoraRuntime {
     this.deploymentController=deploymentController;
     this.metrics=metrics;
     this.governance=governance;
+    this.policyEngine=policyEngine;
   }
 
   async execute({command,constraints={},context={}}={}) {
@@ -56,9 +57,33 @@ export class JoraRuntime {
       });
 
       await governance.transition("PROMOTION_CHECK",{status:result.status});
-      if(result.status==="PROMOTED") await governance.transition("PROMOTED");
+      if(result.status==="PROMOTED") {
+        await this.policyEngine?.enforce?.({
+          action:"PROMOTE",
+          tenantId:context.tenantId??"default",
+          actorId:context.actorId??"system",
+          context:{executionId:execution?.id,result},
+          metrics:{
+            benchmarkScore:result.benchmarkScore??result.evaluation?.benchmarkScore??0,
+            qualityScore:result.qualityScore??result.evaluation?.qualityScore??0,
+            securityPassed:result.security?.passed??result.securityPassed
+          }
+        });
+        await governance.transition("PROMOTED");
+      }
       else await governance.transition("REJECTED",{status:result.status});
       if(result.status==="PROMOTED" && this.deploymentController) {
+        await this.policyEngine?.enforce?.({
+          action:"DEPLOY",
+          tenantId:context.tenantId??"default",
+          actorId:context.actorId??"system",
+          context:{executionId:execution?.id,result},
+          metrics:{
+            benchmarkScore:result.benchmarkScore??result.evaluation?.benchmarkScore??0,
+            qualityScore:result.qualityScore??result.evaluation?.qualityScore??0,
+            securityPassed:result.security?.passed??result.securityPassed
+          }
+        });
         const deployment=await this.deploymentController.deploy({
           candidate:result.champion??result.candidate,
           version:result.champion?.version??result.version,
