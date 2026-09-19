@@ -11,7 +11,7 @@ test("v3.81 production monitor records health events",async()=>{
 test("v3.82 incident detector opens on failed health",()=>{
  const detector=new CustomerIncidentDetector();
  const result=detector.evaluate({tenantId:"t",projectId:"p",health:{status:"DOWN"}});
- assert.equal(result.incident,true); assert.equal(result.status,"INCIDENT_OPEN"); assert.equal(result.incident.reason,"PRODUCTION_HEALTH_FAILED"); assert.equal(detector.list({tenantId:"t"}).length,1);
+ assert.equal(result.incident.incident,true); assert.equal(result.status,"INCIDENT_OPEN"); assert.equal(result.incident.incident.reason,"PRODUCTION_HEALTH_FAILED"); assert.equal(detector.list({tenantId:"t"}).length,1);
 });
 
 test("v3.85 learning persists outcomes",async()=>{
