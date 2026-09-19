@@ -1,66 +1,28 @@
 #!/usr/bin/env node
 
-import {
-  ExecutionStore,
-  InMemoryRepository,
-  SelfDevelopmentEngine,
-  SelfInspector,
-  SelfTaskGenerator
-} from "./index.js";
+import {runtimeConfig} from "./core/runtime-config.js";
+import {ModelGateway} from "./core/model-gateway.js";
+import {OpenAICompatibleProvider} from "./core/openai-compatible-provider.js";
+import {createProductionJoraRuntime} from "./core/production-runtime.js";
 
-const objective = process.argv.slice(2).join(" ").trim() ||
-  "Evolve Jora into a production-grade autonomous AI software engineering platform.";
+const objective=process.argv.slice(2).join(" ").trim()||"Evolve Jora into a production-grade autonomous AI software engineering platform.";
 
-const repository = new InMemoryRepository();
-const store = new ExecutionStore();
-
-const inspector = new SelfInspector({repository});
-const taskGenerator = new SelfTaskGenerator({
-  model: {
-    async generate({objective: goal}) {
-      return [{
-        id: `BOOTSTRAP-${Date.now()}`,
-        title: "Bootstrap self-development integration",
-        description: goal,
-        priority: 100,
-        agentId: "jora-code-master"
-      }];
+try {
+  const config=runtimeConfig();
+  if(!config.model.apiKey) throw new Error("OPENAI_API_KEY is required for autonomous self-build");
+  const provider=new OpenAICompatibleProvider(config.model);
+  const modelGateway=new ModelGateway({providers:new Map([["default",provider]]),defaultModel:"default"});
+  const composed=await createProductionJoraRuntime({config,modelGateway});
+  const result=await composed.runtime.improve({
+    command:objective,
+    context:{
+      workspace:config.workspace,
+      champion:composed.championStore.get(),
+      championStore:composed.championStore
     }
-  }
-});
-
-const executor = {
-  async execute(task) {
-    return {
-      passed: false,
-      error: "Bootstrap executor is a safety stub. Connect a real Code Master + isolated sandbox before autonomous execution."
-    };
-  },
-  async diagnose({result}) {
-    return {reason: result.error, nextAction: "Configure a real executor and isolated sandbox adapter."};
-  }
-};
-
-const evaluator = {
-  async evaluate({result}) {
-    return {
-      passed: result?.passed === true,
-      testsPassed: result?.passed === true,
-      securityPassed: false,
-      benchmarkScore: 0,
-      qualityScore: 0,
-      reason: result?.error
-    };
-  }
-};
-
-const engine = new SelfDevelopmentEngine({
-  inspector,
-  taskGenerator,
-  executor,
-  evaluator,
-  store
-});
-
-const result = await engine.run({objective, cycles: 1});
-console.log(JSON.stringify(result, null, 2));
+  });
+  console.log(JSON.stringify({objective,status:result.status,cycles:result.cycles,jobId:result.jobId},null,2));
+} catch(error) {
+  console.error(JSON.stringify({status:"FAILED",error:error.message},null,2));
+  process.exitCode=1;
+}
