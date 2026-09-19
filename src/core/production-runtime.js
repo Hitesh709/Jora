@@ -214,7 +214,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const failurePatterns=new FailurePatternLibrary({knowledgeStore});
   const strategyModel=new StrategyEffectivenessModel({learningMemory});
   const experiencePlanner=new ExperienceGuidedPlanner({strategyModel,learningMemory});
-  const continuousLearning=new ContinuousLearningLoop({learningMemory,knowledgeStore,consolidator:memoryConsolidation});
+  const continuousLearning=new ContinuousLearningLoop({learningMemory,knowledgeStore,consolidator:memoryConsolidation,observability});
   const populationEngine=new MultiGenerationEngine({delivery,population,maxCandidates:config.evolution?.populationSize??8});
   const autonomousEvolution=new AutonomousEvolutionController({generationEngine:populationEngine,experimentEngine,learningMemory,scheduler:evolutionScheduler,selector:championSelector,maxGenerations:config.evolution?.maxGenerations??10});
 
