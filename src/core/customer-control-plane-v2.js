@@ -125,10 +125,11 @@ export class CustomerExecutionRouter {
 
 export class CustomerControlPlaneV2 {
   constructor({tenantRegistry=null,projects=null,missions=null,quota=null,meter=null,router=null,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null}={}) {
-    this.version="3.42.0";
+    this.version="3.50.0";
     this.tenants=tenantRegistry??new CustomerTenantRegistry(); this.projects=projects??new ProjectRegistry(); this.missions=missions??new CustomerMissionManager();
     this.quota=quota??new QuotaGuard(); this.meter=meter??new UsageMeter(); this.workspaces=workspaceRegistry??new CustomerWorkspaceRegistry(); this.versions=versionRegistry??new CustomerVersionRegistry(); this.repositoryFactory=repositoryFactory??null;
-    this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,workspaceRegistry:this.workspaces,versionRegistry:this.versions});
+    this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,executionPlatform:null,workspaceRegistry:this.workspaces,versionRegistry:this.versions,repositoryFactory:this.repositoryFactory});
+    this.artifactLineageStore=null;
   }
   async load(){await Promise.all([this.tenants.load(),this.projects.load(),this.missions.load(),this.meter.load(),this.workspaces.load(),this.versions.load()]);}
   status(){return {version:this.version,capabilities:{tenantLifecycle:true,projectIsolation:true,usageMetering:true,quotaEnforcement:true,customerMissions:true,executionRouting:true,durableCustomerState:Boolean(this.tenants.store||this.projects.store||this.missions.store||this.meter.store),workspaces:true,projectVersions:true,planQuotas:true,customerIsolation:true,repositoryProvisioning:Boolean(this.repositoryFactory)}};}
