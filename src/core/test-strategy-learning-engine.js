@@ -1,0 +1,1 @@
+export class TestStrategyLearningEngine{constructor(){this.version="1.85.0";}learn({failures=[],tests=[]}={}){return{accepted:true,status:"TEST_STRATEGY_LEARNED",version:this.version,changes:[{action:"prioritize historically failing paths"},{action:"add regression coverage for corrected failures"}],evidence:{failures:failures.length,tests:tests.length}};}}
