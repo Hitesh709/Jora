@@ -1,0 +1,1 @@
+export class TestExecutionAgent{constructor({runner=null}={}){this.runner=runner;this.version="1.73.0";}async run({commands=[]}={}){return{accepted:true,status:"TEST_EXECUTION_REQUESTED",version:this.version,commands,policy:{stopOnFailure:true,captureOutput:true}};}}
