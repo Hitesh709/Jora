@@ -99,7 +99,7 @@ export class CustomerRepositoryFactory {
 }
 
 export class CustomerExecutionRouter {
-  constructor({tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry=null,versionRegistry=null}={}) {Object.assign(this,{tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry,versionRegistry});}
+  constructor({tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null}={}) {Object.assign(this,{tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry,versionRegistry});}
   async submit({tenantId,projectId,objective,constraints={},metric="missions",quotaCurrent=null,workspacePath=null}={}) {
     const tenant=await this.tenantRegistry.get(tenantId); if(!tenant)return {accepted:false,status:"TENANT_NOT_FOUND"};
     if(tenant.status!=="ACTIVE")return {accepted:false,status:"TENANT_NOT_ACTIVE",tenantId};
@@ -117,9 +117,9 @@ export class CustomerControlPlaneV2 {
   constructor({tenantRegistry=null,projects=null,missions=null,quota=null,meter=null,router=null,workspaceRegistry=null,versionRegistry=null}={}) {
     this.version="3.20.0";
     this.tenants=tenantRegistry??new CustomerTenantRegistry(); this.projects=projects??new ProjectRegistry(); this.missions=missions??new CustomerMissionManager();
-    this.quota=quota??new QuotaGuard(); this.meter=meter??new UsageMeter(); this.workspaces=workspaceRegistry??new CustomerWorkspaceRegistry(); this.versions=versionRegistry??new CustomerVersionRegistry();
+    this.quota=quota??new QuotaGuard(); this.meter=meter??new UsageMeter(); this.workspaces=workspaceRegistry??new CustomerWorkspaceRegistry(); this.versions=versionRegistry??new CustomerVersionRegistry(); this.repositoryFactory=repositoryFactory??null;
     this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,workspaceRegistry:this.workspaces,versionRegistry:this.versions});
   }
   async load(){await Promise.all([this.tenants.load(),this.projects.load(),this.missions.load(),this.meter.load(),this.workspaces.load()]);}
-  status(){return {version:this.version,capabilities:{tenantLifecycle:true,projectIsolation:true,usageMetering:true,quotaEnforcement:true,customerMissions:true,executionRouting:true,durableCustomerState:Boolean(this.tenants.store||this.projects.store||this.missions.store||this.meter.store),workspaces:true,projectVersions:true,planQuotas:true,customerIsolation:true}};}
+  status(){return {version:this.version,capabilities:{tenantLifecycle:true,projectIsolation:true,usageMetering:true,quotaEnforcement:true,customerMissions:true,executionRouting:true,durableCustomerState:Boolean(this.tenants.store||this.projects.store||this.missions.store||this.meter.store),workspaces:true,projectVersions:true,planQuotas:true,customerIsolation:true,repositoryProvisioning:Boolean(this.repositoryFactory)}};}
 }
