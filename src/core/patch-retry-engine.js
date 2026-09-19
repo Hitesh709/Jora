@@ -1,0 +1,1 @@
+export class PatchRetryEngine{constructor(){this.version="1.67.0";}plan({diagnoses=[],attempt=1}={}){return{accepted:true,status:"PATCH_RETRY_PLANNED",version:this.version,attempt,patches:diagnoses.map(d=>({taskId:d.taskId,action:d.nextAction,maxAttempts:3}))};}}
