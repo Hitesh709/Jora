@@ -309,6 +309,30 @@ export class OperatorApi {
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
 
+    if(method==="GET" && path==="/v2/external") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,this.executionPlatform.externalExecution.status());
+    }
+
+    if(method==="POST" && path==="/v2/external/execute") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,200,await this.executionPlatform.externalExecute(body||{}));}
+      catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+
+    if(method==="POST" && path==="/v2/external/end-to-end") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,200,await this.executionPlatform.externalEndToEnd(body||{}));}
+      catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+
+    if(method==="GET" && path==="/v2/external/evidence") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{records:this.executionPlatform.externalExecution.evidence.list({limit:url.searchParams.get("limit")||100})});
+    }
+
     if(method==="GET" && path==="/v2/control/events") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,{events:await this.executionPlatform.ledger.list({limit:url.searchParams.get("limit")||100,operation:url.searchParams.get("operation")||undefined})});
