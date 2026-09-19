@@ -3,6 +3,7 @@ import path from "node:path";
 import {randomUUID} from "node:crypto";
 import {ExecutionLedger,IdempotencyGuard,PolicyEngine,PreflightGate,ArtifactManifest,DeploymentHealthVerifier,RollbackCoordinator,RecoveryController,FactoryCheckpointStore,AutonomousControlLoop} from "./autonomous-control-plane-v2.js";
 import {ReliabilityControlPlane} from "./reliability-control-plane-v2.js";
+import {ResilienceControlPlane} from "./resilience-control-plane-v2.js";
 
 export class ApprovalGate {
   constructor({autoApproveLowRisk=true}={}) {
@@ -109,7 +110,7 @@ export class WebhookDeploymentClient {
 }
 
 export class ExecutionPlatformV2 {
-  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null}={}) {
+  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null}={}) {
     this.version="2.10.0";
     this.github=github;this.sandbox=sandbox;this.testRunner=testRunner;this.queue=queue;
     this.approvalGate=approvalGate??new ApprovalGate();
@@ -125,6 +126,7 @@ export class ExecutionPlatformV2 {
     this.recovery=recovery;
     this.controlLoop=controlLoop??new AutonomousControlLoop({ledger:this.ledger,policy:this.policy,preflight:this.preflight,checkpoints:this.checkpoints});
     this.reliability=reliability??new ReliabilityControlPlane();
+    this.resilience=resilience??new ResilienceControlPlane();
   }
   status() {
     return {
@@ -144,7 +146,8 @@ export class ExecutionPlatformV2 {
       workers:this.workerPool.status(),
       pendingApprovals:this.approvalGate.list().length,
       controlPlane:{ledger:true,idempotency:true,policy:true,preflight:true,artifactManifest:true,healthVerification:true,recovery:Boolean(this.recovery),checkpoints:true},
-      reliability:{multiTenant:true,rateBudget:true,circuitBreaker:true,sandboxPolicy:true,costMeter:true,eventBus:true}
+      reliability:{multiTenant:true,rateBudget:true,circuitBreaker:true,sandboxPolicy:true,costMeter:true,eventBus:true},
+      resilience:{slo:true,backpressure:true,retry:true,failureClassification:true,incidentCorrelation:true,changeRisk:true,deploymentStrategy:true,featureFlags:true,disasterRecovery:true}
     };
   }
   async runTests({cwd,commandArgs=["test"]}={}) {
@@ -171,6 +174,7 @@ export class ExecutionPlatformV2 {
   async recover(input={}){if(!this.recovery)return {recovered:false,status:"RECOVERY_NOT_CONFIGURED"};return this.recovery.recover(input);}
   async manifest(input={}){return this.artifacts.build(input);}
   async reliabilityPreflight(input={}){return this.reliability.preflight(input);}
+  resilienceEvaluate(input={}){return this.resilience.evaluate(input);}
   requestApproval(input){return this.approvalGate.evaluate(input);}
   approve(id){return this.approvalGate.approve(id);}
   reject(id,reason){return this.approvalGate.reject(id,reason);}
