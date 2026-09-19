@@ -13,6 +13,7 @@ import {AutonomousCustomerProductionPlatform} from "./autonomous-customer-produc
 import {CustomerApplicationFactoryControlPlane,CustomerArtifactSecurityGate,CustomerBuildValidationGate,CustomerTestCommandController,CustomerDeliveryRecordStore,CustomerProductionUrlRegistry} from "./customer-application-factory-v3.70.js";
 import {CustomerSaaSControlPlaneV3} from "./customer-saas-control-plane-v3.80.js";
 import {CustomerAutonomousOperationsControlPlane} from "./customer-autonomous-operations-v3.90.js";
+import {CustomerPlatformV4} from "./customer-platform-v4.0.js";
 
 export class ApprovalGate {
   constructor({autoApproveLowRisk=true}={}) {
@@ -119,7 +120,7 @@ export class WebhookDeploymentClient {
 }
 
 export class ExecutionPlatformV2 {
-  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null,customerProduction=null,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null,customerSaaS=null,customerOperations=null}={}) {
+  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null,customerProduction=null,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null,customerSaaS=null,customerOperations=null,customerPlatformV4=null}={}) {
     this.version="2.70.0";
     this.github=github;this.sandbox=sandbox;this.testRunner=testRunner;this.queue=queue;
     this.approvalGate=approvalGate??new ApprovalGate();
@@ -144,6 +145,7 @@ export class ExecutionPlatformV2 {
     this.applicationFactory=applicationFactory??new CustomerApplicationFactoryControlPlane();
     this.customerSaaS=customerSaaS??new CustomerSaaSControlPlaneV3({customerControl:this.customerControl,applicationFactory:this.applicationFactory});
     this.customerOperations=customerOperations??new CustomerAutonomousOperationsControlPlane();
+    this.customerPlatformV4=customerPlatformV4??new CustomerPlatformV4();
     this.customerProduction=customerProduction??new AutonomousCustomerProductionPlatform({customerControl:this.customerControl,executionPlatform:this,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory,applicationFactory:this.applicationFactory});
   }
   status() {
@@ -174,7 +176,8 @@ export class ExecutionPlatformV2 {
       customerProduction:this.customerProduction.status().capabilities,
       applicationFactory:this.applicationFactory.status().capabilities,
       customerSaaS:this.customerSaaS.status().capabilities,
-      customerOperations:this.customerOperations.status().capabilities
+      customerOperations:this.customerOperations.status().capabilities,
+      customerPlatformV4:this.customerPlatformV4.status().capabilities
     };
   }
   deliveryStatus(){return this.delivery.status();}
@@ -216,6 +219,10 @@ export class ExecutionPlatformV2 {
   async customerSubmit(input={}) { return this.customerProduction.submit(input); }
   async customerObserve(input={}) { return this.customerOperations.observe(input); }
   async customerLearn(input={}) { return this.customerOperations.learn(input); }
+  customerGovern(input={}) { return this.customerPlatformV4.governance.evaluate(input); }
+  customerGrantRole(input={}) { return this.customerPlatformV4.access.grant(input); }
+  customerSLA(input={}) { return this.customerPlatformV4.sla.evaluate(input); }
+  customerRecordSLA(input={}) { return this.customerPlatformV4.sla.record(input); }
   async externalExecute({operation,payload={}}={}) { return this.externalExecution.execute({operation,payload}); }
   async externalEndToEnd(input={}) { return this.externalExecution.endToEnd(input); }
   async deploy({provider,target,payload={}}={}) {
