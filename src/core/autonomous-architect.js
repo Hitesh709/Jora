@@ -9,6 +9,8 @@ export class AutonomousArchitect {
     policyEngine=null,
     observability=null,
     architectureStore=null,
+    taskDAGOptimizer=null,
+    taskContractEngine=null,
     maxAlternatives=3
   }={}) {
     this.modelGateway=modelGateway;
@@ -17,6 +19,8 @@ export class AutonomousArchitect {
     this.policyEngine=policyEngine;
     this.observability=observability;
     this.architectureStore=architectureStore;
+    this.taskDAGOptimizer=taskDAGOptimizer;
+    this.taskContractEngine=taskContractEngine;
     this.maxAlternatives=Math.max(2,Math.min(5,maxAlternatives));
     this.contractVersion=1;
   }
@@ -203,7 +207,9 @@ export class AutonomousArchitect {
     const contract=this.buildContract({requirements,decision,context});
     const validation=this.validateContract(contract);
     if(!validation.passed) throw new Error(validation.errors.join("; "));
-    const taskDAG=this.compileTaskDAG(contract);
+    let taskDAG=this.compileTaskDAG(contract);
+    if(this.taskDAGOptimizer) taskDAG=this.taskDAGOptimizer.optimize(taskDAG).tasks;
+    if(this.taskContractEngine) taskDAG=taskDAG.map(task=>this.taskContractEngine.compile(task,{evidenceRequired:["tests","security","evaluation"]}));
     const agentTeam=this.compileAgentTeam(contract);
     const plan={version:"1.50",requirements,alternatives,decision,contract,validation,taskDAG,agentTeam};
     const persisted=await this.architectureStore?.saveContract?.(contract,{decision,parentArchitectureId:context.parentArchitectureId});
