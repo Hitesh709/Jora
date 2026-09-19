@@ -38,7 +38,8 @@ export class CustomerMissionOrchestrator {
           if(workspacePath) {
             const workspaceModule=await import("./workspace-repository.js");
             const workspace=new workspaceModule.WorkspaceRepository({root:workspacePath,remoteRepository:remote});
-            await workspace.prepareCandidate(mission.id,remote.branch);
+            await workspace.ensureReady();
+            await workspace.prepareCandidate(mission.id,workspace.baseBranch||"HEAD");
             build=await this.projectBuilder.build({
               command:mission.objective,
               specification,
@@ -83,7 +84,7 @@ export class CustomerMissionOrchestrator {
         const finalStatus=delivery?.status==="DELIVERED"?"DELIVERED":
           delivery?.status==="ROLLED_BACK"?"ROLLED_BACK":"FAILED";
         const revision=delivery?.mutation?.result?.commit||delivery?.mutation?.commit||delivery?.commit||null;
-        const version=this.customer.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,revision,status:finalStatus,metadata:{deliveryStatus:delivery?.status}});
+        const version=customer?.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,revision,status:finalStatus,metadata:{deliveryStatus:delivery?.status}});
         return this.missionManager.transition(mission.id,finalStatus,{gate,planning,build,delivery,version});
       }
       const version=this.customer.versions?.record({tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,status:"PLANNED",metadata:{planning}});
