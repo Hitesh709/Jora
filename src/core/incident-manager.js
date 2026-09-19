@@ -4,7 +4,22 @@ export class IncidentManager {
   constructor({observability=null,maxIncidents=500}={}) {
     this.observability=observability; this.maxIncidents=maxIncidents; this.incidents=new Map(); this.loaded=false;
   }
-  async initialize() { if(this.loaded) return; const events=this.observability?.list ? await this.observability.list({limit:this.maxIncidents}) : []; for(const e of events){ if(!e.incidentId) continue; if(e.type==="INCIDENT_OPENED" && e.id) this.incidents.set(e.incidentId,{...e,id:e.incidentId}); } this.loaded=true; }
+  async initialize() {
+    if(this.loaded) return;
+    const events=this.observability?.list ? await this.observability.list({limit:this.maxIncidents}) : [];
+    for(const e of events){
+      if(!e.incidentId) continue;
+      const existing=this.incidents.get(e.incidentId);
+      if(e.type==="INCIDENT_OPENED") this.incidents.set(e.incidentId,{...e,id:e.incidentId});
+      else if(existing) {
+        if(e.type==="INCIDENT_UPDATED"){existing.occurrences=e.occurrences??existing.occurrences;existing.lastSeenAt=e.lastSeenAt??existing.lastSeenAt;}
+        if(e.type==="INCIDENT_RECOVERY"){existing.status="RECOVERING";existing.recovery=e.recovery;}
+        if(e.type==="INCIDENT_RESOLVED"){existing.status="RESOLVED";existing.resolvedAt=e.at??existing.resolvedAt;existing.resolution=e.result??null;}
+        if(e.type==="INCIDENT_ESCALATED"){existing.status="ESCALATED";existing.escalation=e.error??null;}
+      }
+    }
+    this.loaded=true;
+  }
   async open(alert) { await this.initialize();
     const existing=[...this.incidents.values()].find(i=>i.alertType===alert.alertType && i.status!=="RESOLVED");
     if(existing) { existing.occurrences++; existing.lastSeenAt=new Date().toISOString(); await this.observability?.record({type:"INCIDENT_UPDATED",incidentId:existing.id,occurrences:existing.occurrences}); return existing; }
