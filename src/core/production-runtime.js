@@ -348,6 +348,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     evidence:externalEvidence
   });
 
+  customerRouter.executionPlatform=executionPlatform;
   const executionPlatform=new ExecutionPlatformV2({
     github:remoteRepository,
     sandbox,
@@ -370,7 +371,9 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     customerControl,
     productUnderstanding,
     architecturePlanner,
-    taskDAGGenerator
+    taskDAGGenerator,
+    projectBuilder,
+    repositoryFactory:customerRepositoryFactory
   });
   const auditLog=new AuditLog({observability:null});
 
