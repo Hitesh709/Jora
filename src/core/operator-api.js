@@ -348,6 +348,21 @@ export class OperatorApi {
       const body=await readBody(req,this.maxBodyBytes);
       return json(res,201,this.executionPlatform.customerControl.projects.create(body||{}));
     }
+    if(method==="POST" && path==="/v3/customer/repository") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      const control=this.executionPlatform.customerControl;
+      try {
+        const tenant=await control.tenants.get(body.tenantId);
+        const project=control.projects.get(body.projectId);
+        if(!tenant) return json(res,404,{accepted:false,status:"TENANT_NOT_FOUND"});
+        if(!project||project.tenantId!==tenant.id) return json(res,403,{accepted:false,status:"PROJECT_ACCESS_DENIED"});
+        const result=await control.repositoryFactory?.provision({tenantId:tenant.id,projectId:project.id,name:body.name||project.name,description:body.description||"",repositoryName:body.repositoryName});
+        if(!result?.accepted) return json(res,503,result||{accepted:false,status:"REPOSITORY_PROVISIONER_NOT_CONFIGURED"});
+        const updated=await control.projects.attachRepository(project.id,result.repository);
+        return json(res,201,{...result,project:updated});
+      } catch(error) { return json(res,400,{accepted:false,status:"REPOSITORY_PROVISION_FAILED",error:error.message}); }
+    }
     if(method==="POST" && path==="/v2/customer/missions") {
       const body=await readBody(req,this.maxBodyBytes);
       return json(res,202,await this.executionPlatform.customerSubmit(body||{}));
