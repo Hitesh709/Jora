@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {AccessController} from "./access-controller.js";
 import {WebSearchProvider} from "./web-search-provider.js";
+import {withModelSelection} from "./multi-model-gateway.js";
 
 function json(res,status,payload,headers={}) {
   const body=JSON.stringify(payload);
@@ -69,7 +70,8 @@ export class OperatorApi {
     selfImprovingEngineeringCore=null,
     autonomousSoftwareFactory=null,
     executionPlatform=null,
-    searchProvider=null
+    searchProvider=null,
+    modelGateway=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -100,6 +102,7 @@ export class OperatorApi {
     this.autonomousSoftwareFactory=autonomousSoftwareFactory;
     this.executionPlatform=executionPlatform;
     this.searchProvider=searchProvider||new WebSearchProvider();
+    this.modelGateway=modelGateway;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -831,21 +834,39 @@ export class OperatorApi {
       }
     }
 
+    if(method==="GET" && path==="/v1/providers") {
+      const status=this.modelGateway?.status?.()||{models:[]};
+      return json(res,200,{
+        providers:status.models.map(model=>({
+          id:model,
+          available:true,
+          free:model==="kilo-free",
+          label:model==="kilo-free"?"Kilo Auto Free":"Jora"
+        })),
+        defaultModel:status.defaultModel
+      });
+    }
+
     if(method==="POST" && path==="/v1/execute") {
       const body=await readBody(req,this.maxBodyBytes);
       if(typeof body.command!=="string" || !body.command.trim()) {
         return json(res,400,{error:"command is required"});
       }
       const requestId=randomUUID();
+      const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "";
+      if(selectedProvider && !this.modelGateway?.status?.().models?.includes(selectedProvider)) {
+        return json(res,400,{requestId,accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Selected AI provider is not available on this Jora backend",provider:selectedProvider});
+      }
       try {
-        const result=await this.runtime.execute({
+        const execute=()=>this.runtime.execute({
           command:body.command.trim(),
           constraints:body.constraints??{},
           context:{...(body.context??{}),apiRequestId:requestId,tenantId}
         });
-        return json(res,200,{requestId,accepted:true,status:result.status,result});
+        const result=selectedProvider ? await withModelSelection(selectedProvider,execute) : await execute();
+        return json(res,200,{requestId,accepted:true,status:result.status,result,provider:selectedProvider||null});
       } catch(error) {
-        return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message});
+        return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message,provider:selectedProvider||null});
       }
     }
 
