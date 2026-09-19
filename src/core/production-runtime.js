@@ -376,6 +376,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     repositoryFactory:customerRepositoryFactory
   });
   customerRouter.executionPlatform=executionPlatform;
+  await executionPlatform.customerProduction.lineage.load();
   const auditLog=new AuditLog({observability:null});
 
   const roadmap=new RoadmapEngine({roadmap:JORA_MASTER_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
