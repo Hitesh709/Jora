@@ -18,7 +18,7 @@ main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62p
 textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outline:0;background:transparent;color:#fff;padding:8px}.composeRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.modes{display:flex;gap:5px;overflow:auto}.mode{border:1px solid #303744;background:#171b23;color:#aeb7c5;border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px}.mode.active{background:#26303d;color:#fff;border-color:#4b5668}.send{border:0;border-radius:8px;background:#fff;color:#111;padding:9px 15px;font-weight:700;cursor:pointer}.send:disabled{opacity:.5}
 .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.quick button{border:1px solid #292f39;background:#12161d;color:#cdd3dd;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.quick button:hover{background:#181d26}
 .panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
-.overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
+.overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input,.modal select{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
 @media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.content{padding:18px 14px 90px}.hero{padding:34px 0 22px}.hero h1{font-size:27px}.grid{grid-template-columns:repeat(2,1fr)}.top{padding:0 14px}.quick{grid-template-columns:1fr}.msg.user{margin-left:0}}
 </style></head>
 <body>
@@ -74,11 +74,50 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
     <div class="panel"><h3>Incidents</h3><pre id="incidents">Loading…</pre></div>
   </section>
 </div></main></div>
-<div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div><input id="api" placeholder="https://your-jora-api.up.railway.app"><input id="token" type="password" placeholder="Bearer token"><div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="send" onclick="saveSettings()">Connect</button></div></div></div>
+<div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div>
+<label class="muted">Jora backend</label><input id="api" placeholder="https://your-jora-api.up.railway.app">
+<label class="muted">Bearer token</label><input id="token" type="password" placeholder="Bearer token">
+<label class="muted">AI service / coding provider</label>
+<select id="provider" onchange="providerChanged()">
+<option value="jora">Jora server model</option>
+<option value="copilot-free">GitHub Copilot Free — $0</option>
+<option value="gemini-free">Gemini Code Assist — Free</option>
+<option value="amazon-q-free">Amazon Q Developer — Free tier</option>
+<option value="kilo-free">Kilo Code Auto Free</option>
+<option value="cline-free">Cline + free models</option>
+<option value="freebuff">Freebuff — free coding agent</option>
+<option value="openrouter-free">OpenRouter — free models</option>
+<option value="ollama">Ollama — local / no API cost</option>
+<option value="custom">Custom OpenAI-compatible provider</option>
+</select>
+<div id="providerInfo" class="muted" style="margin:-5px 0 12px"></div>
+<div id="providerFields" style="display:none"><label class="muted">API key (stored only in this browser)</label><input id="providerKey" type="password" placeholder="Optional provider API key"><label class="muted">Model / endpoint</label><input id="providerModel" placeholder="Model name or endpoint"></div>
+<div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="send" onclick="saveSettings()">Save connection</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
+const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send"),providerInput=document.getElementById("provider"),providerInfo=document.getElementById("providerInfo"),providerKey=document.getElementById("providerKey"),providerModel=document.getElementById("providerModel");
 apiInput.value=localStorage.getItem("jora_api_base")||defaultApi;
+providerInput.value=localStorage.getItem("jora_provider")||"jora";
+providerKey.value=localStorage.getItem("jora_provider_key")||"";
+providerModel.value=localStorage.getItem("jora_provider_model")||"";
+function providerChanged(){
+  const p=providerInput.value;
+  const info={
+    jora:"Use the AI model configured by the Jora backend.",
+    "copilot-free":"Free individual Copilot tier; sign in to GitHub. Jora does not collect your GitHub password.",
+    "gemini-free":"Google offers a free individual coding-assistant tier; use your Google account and follow Google's current quota.",
+    "amazon-q-free":"AWS provides a perpetual Free tier with monthly limits; useful for IDE and AWS-focused coding.",
+    "kilo-free":"Kilo offers Auto Free and other free-model options; limits/models can change.",
+    "cline-free":"Cline is an open-source agent; its free model promotions are limited-time and model availability changes.",
+    freebuff:"Freebuff offers a free coding-agent service supported by ads; availability can depend on region.",
+    "openrouter-free":"OpenRouter currently offers free models with rate limits; a free API key is required.",
+    ollama:"Run open models locally. No per-request API bill when inference runs on your own hardware.",
+    custom:"Bring any OpenAI-compatible endpoint and API key."
+  }[p]||"";
+  providerInfo.textContent=info;
+  document.getElementById("providerFields").style.display=["openrouter-free","ollama","custom"].includes(p)?"block":"none";
+}
+providerChanged();
 let mode="agent";
 function base(){return apiInput.value.replace(/\/$/,"")}
 function headers(){const t=tokenInput.value;return t?{Authorization:"Bearer "+t,"Content-Type":"application/json"}:{"Content-Type":"application/json"}}
@@ -123,7 +162,13 @@ function formatSearchResult(d){
 }
 function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
-function saveSettings(){localStorage.setItem("jora_api_base",base());closeSettings();checkBackend()}
+function saveSettings(){
+  localStorage.setItem("jora_api_base",base());
+  localStorage.setItem("jora_provider",providerInput.value);
+  localStorage.setItem("jora_provider_key",providerKey.value);
+  localStorage.setItem("jora_provider_model",providerModel.value);
+  closeSettings();checkBackend()
+}
 function newChat(){document.getElementById("messages").innerHTML='<div class="msg system">New Jora task. What should I build or solve?</div>';promptInput.focus()}
 function showView(view){
   ["chat","projects","runs","control"].forEach(v=>document.getElementById(v+"View").style.display=v===view?"block":"none");
