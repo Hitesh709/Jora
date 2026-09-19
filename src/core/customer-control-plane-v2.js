@@ -102,7 +102,8 @@ export class CustomerRepositoryFactory {
 
   async provision({tenantId,projectId,name,description="",repositoryName=null}={}) {
     if(!this.github?.provisionRepository) return {accepted:false,status:"GITHUB_REPOSITORY_PROVISIONER_NOT_CONFIGURED"};
-    const repo=await this.github.provisionRepository({name:repositoryName||name,description,private:this.privateRepositories,organization:this.organization});
+    const cleanName=String(repositoryName||name).trim().replace(/[^a-zA-Z0-9._-]/g,"-").replace(/^-+|-+$/g,"").slice(0,100);
+    const repo=await this.github.provisionRepository({name:cleanName,description,private:this.privateRepositories,organization:this.organization});
     return {accepted:true,status:"REPOSITORY_PROVISIONED",tenantId,projectId,repository:{owner:repo.owner?.login||repo.organization?.login||this.organization,name:repo.name,fullName:repo.full_name,cloneUrl:repo.clone_url,htmlUrl:repo.html_url,defaultBranch:repo.default_branch}};
   }
 }
