@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import {runtimeConfig} from "./core/runtime-config.js";
-import {ModelGateway} from "./core/model-gateway.js";
+import {MultiModelGateway,AnthropicProvider} from "./core/multi-model-gateway.js";
 import {OpenAICompatibleProvider} from "./core/openai-compatible-provider.js";
 import {createProductionJoraRuntime} from "./core/production-runtime.js";
 
@@ -10,8 +10,10 @@ const objective=process.argv.slice(2).join(" ").trim()||"Evolve Jora into a prod
 try {
   const config=runtimeConfig();
   if(!config.model.apiKey) throw new Error("OPENAI_API_KEY is required for autonomous self-build");
-  const provider=new OpenAICompatibleProvider(config.model);
-  const modelGateway=new ModelGateway({providers:new Map([["default",provider]]),defaultModel:"default"});
+  const providers=new Map();
+  if(config.model.apiKey) providers.set("openai",new OpenAICompatibleProvider(config.model));
+  if(config.models.anthropicApiKey) providers.set("claude",new AnthropicProvider(config.models));
+  const modelGateway=new MultiModelGateway({providers,defaultModel:config.model.defaultModel||"openai",fallbackModels:config.model.fallbackModels});
   const composed=await createProductionJoraRuntime({config,modelGateway});
   const result=await composed.runtime.improve({
     command:objective,
