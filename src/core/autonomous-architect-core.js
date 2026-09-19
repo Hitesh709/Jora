@@ -80,7 +80,7 @@ export class AutonomousIncidentCommander {
 }
 
 export class SLOAwareRecoveryController {
-  constructor({metrics=null,recovery=null,observability=null,slos={}}={}){this.metrics=metrics;this.recovery=recovery;this.observability=observability;this.slos={availability:slos.availability??0.99,maxFailureRate:slos.maxFailureRate??0.1,maxLatencyMs:slos.maxLatencyMs??10000,maxQueueBacklog:slos.maxQueueBacklog??100};}
+  constructor({metrics=null,recovery=null,incidentCommander=null,observability=null,slos={}}={}){this.metrics=metrics;this.recovery=recovery;this.incidentCommander=incidentCommander;this.observability=observability;this.slos={availability:slos.availability??0.99,maxFailureRate:slos.maxFailureRate??0.1,maxLatencyMs:slos.maxLatencyMs??10000,maxQueueBacklog:slos.maxQueueBacklog??100};}
   assess(snapshot={}){
     const metric=this.metrics?.snapshot?.()??{};
     const failureRate=Number(snapshot.failureRate??metric.execution?.failureRate??0);
@@ -92,7 +92,7 @@ export class SLOAwareRecoveryController {
     const assessment=this.assess(snapshot);
     if(assessment.healthy) return {status:"NO_ACTION",assessment};
     const alert={alertType:assessment.violations.failureRate?"HIGH_FAILURE_RATE":assessment.violations.latency?"HIGH_LATENCY":"QUEUE_BACKLOG",assessment};
-    const result=await this.recovery?.handle?.(alert)??{status:"NO_RECOVERY_HANDLER"};
+    const result=this.incidentCommander?.handle ? await this.incidentCommander.handle(alert) : await this.recovery?.handle?.(alert)??{status:"NO_RECOVERY_HANDLER"};
     await this.observability?.append?.({type:"SLO_RECOVERY",alert,result,at:new Date().toISOString()});
     return {status:"RECOVERY_REQUESTED",assessment,result};
   }
