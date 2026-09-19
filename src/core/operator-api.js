@@ -347,6 +347,23 @@ export class OperatorApi {
       })});
     }
 
+    if(method==="GET" && path==="/v3/customer/factory") {
+      if(!this.executionPlatform?.applicationFactory) return json(res,503,{error:"customer_factory_not_configured"});
+      return json(res,200,this.executionPlatform.applicationFactory.status());
+    }
+    if(method==="GET" && path==="/v3/customer/deliveries") {
+      if(!this.executionPlatform?.applicationFactory) return json(res,503,{error:"customer_factory_not_configured"});
+      return json(res,200,{deliveries:this.executionPlatform.applicationFactory.deliveries.list({
+        tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined,
+        missionId:url.searchParams.get("missionId")||undefined,limit:Number(url.searchParams.get("limit")||100)
+      })});
+    }
+    if(method==="GET" && path==="/v3/customer/production-urls") {
+      if(!this.executionPlatform?.applicationFactory) return json(res,503,{error:"customer_factory_not_configured"});
+      return json(res,200,{urls:this.executionPlatform.applicationFactory.productionUrls.list({
+        tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined,limit:Number(url.searchParams.get("limit")||100)
+      })});
+    }
     if(method==="GET" && path==="/v3/customer/usage/detail") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,{usage:this.executionPlatform.customerControl.meter.list({tenantId:url.searchParams.get("tenantId")||undefined,limit:Number(url.searchParams.get("limit")||100)})});
