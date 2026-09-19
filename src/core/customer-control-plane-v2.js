@@ -115,7 +115,8 @@ export class CustomerExecutionRouter {
     const project=this.projectRegistry.get(projectId); if(!project||project.tenantId!==tenantId)return {accepted:false,status:"PROJECT_ACCESS_DENIED"};
     const current=quotaCurrent===null?this.meter.summarize({tenantId})[metric]||0:quotaCurrent;
     const quota=this.quotaGuard.evaluate({tenantId,tenant,metric,current,requested:1}); if(!quota.allowed)return {accepted:false,status:"QUOTA_EXCEEDED",quota};
-    const workspace=this.workspaceRegistry?await this.workspaceRegistry.ensure({tenantId,projectId,path:workspacePath||project.workspace||null,environment:project.environment,repository:project.repository}):null;
+    const resolvedWorkspacePath=workspacePath||project.workspace||"./.jora/customer-workspaces/"+tenantId+"/"+projectId;
+    const workspace=this.workspaceRegistry?await this.workspaceRegistry.ensure({tenantId,projectId,path:resolvedWorkspacePath,environment:project.environment,repository:project.repository}):null;
     const mission=this.missionManager.create({tenantId,projectId,objective,constraints});
     this.meter.record({tenantId,projectId,metric,quantity:1,metadata:{missionId:mission.id}});
     return {accepted:true,status:"MISSION_ACCEPTED",mission,quota,workspace};
