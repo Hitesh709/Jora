@@ -208,6 +208,26 @@ export class GitHubRestRepository {
     return {passed:false,status:"TIMEOUT",headSha,branch,runs:seen};
   }
 
+  async createPullRequest({title,body="",head,base=this.branch,draft=false}={}) {
+    if(!title||!head) throw new Error("title and head are required");
+    return this.request("/repos/"+this.owner+"/"+this.repo+"/pulls",{
+      method:"POST",
+      body:JSON.stringify({title,body,head,base,draft})
+    });
+  }
+
+  async getPullRequest(number) {
+    if(!number) throw new Error("pull request number is required");
+    return this.request("/repos/"+this.owner+"/"+this.repo+"/pulls/"+encodeURIComponent(number));
+  }
+
+  async listPullRequests({state="open",head=null,base=null,perPage=50}={}) {
+    const params=new URLSearchParams({state,per_page:String(perPage)});
+    if(head) params.set("head",head);
+    if(base) params.set("base",base);
+    return this.request("/repos/"+this.owner+"/"+this.repo+"/pulls?"+params.toString());
+  }
+
   async commit(message){
     return {
       committed:false,
