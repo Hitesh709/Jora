@@ -155,6 +155,7 @@ export class AutonomousCustomerProductionPlatform {
     this.version="3.50.0";
     this.customer=customerControl;
     this.execution=executionPlatform;
+    this.applicationFactory=applicationFactory??null;
     this.productUnderstanding=productUnderstanding;
     this.architecturePlanner=architecturePlanner;
     this.taskDAGGenerator=taskDAGGenerator;
