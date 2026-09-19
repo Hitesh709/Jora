@@ -89,6 +89,15 @@ export class CustomerVersionRegistry {
   list({tenantId,projectId,limit=100}={}){return this.versions.filter(v=>(!tenantId||v.tenantId===tenantId)&&(!projectId||v.projectId===projectId)).slice(-limit).reverse();}
 }
 
+export class CustomerRepositoryFactory {
+  constructor({github=null,organization=null,privateRepositories=true}={}) { this.github=github; this.organization=organization; this.privateRepositories=privateRepositories; }
+  async provision({tenantId,projectId,name,description="",repositoryName=null}={}) {
+    if(!this.github?.provisionRepository) return {accepted:false,status:"GITHUB_REPOSITORY_PROVISIONER_NOT_CONFIGURED"};
+    const repo=await this.github.provisionRepository({name:repositoryName||name,description,private:this.privateRepositories,organization:this.organization});
+    return {accepted:true,status:"REPOSITORY_PROVISIONED",tenantId,projectId,repository:{owner:repo.owner?.login||repo.organization?.login||this.organization,name:repo.name,fullName:repo.full_name,cloneUrl:repo.clone_url,htmlUrl:repo.html_url,defaultBranch:repo.default_branch}};
+  }
+}
+
 export class CustomerExecutionRouter {
   constructor({tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry=null,versionRegistry=null}={}) {Object.assign(this,{tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry,versionRegistry});}
   async submit({tenantId,projectId,objective,constraints={},metric="missions",quotaCurrent=null,workspacePath=null}={}) {
