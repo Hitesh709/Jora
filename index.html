@@ -120,7 +120,9 @@ function providerChanged(){
   state.textContent=p==="kilo-free"?"● Kilo Free selected":p.startsWith("opencode-")?"● OpenCode free model selected":"● Jora selected";
   stateText.textContent=p==="kilo-free"
     ?"Selected. Jora will use Kilo Auto Free for the next coding request."
-    :"Selected. Jora will use its configured model for the next request.";
+    :p.startsWith("opencode-")
+      ?"Selected. Jora will use this OpenCode free model for the next coding request."
+      :"Selected. Jora will use its configured model for the next request.";
 }
 
 let mode="agent";
