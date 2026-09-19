@@ -4,7 +4,7 @@ export class ModelProjectBuilder {
     this.modelGateway=modelGateway; this.repository=repository;
   }
 
-  async build({command,specification,context={}}={}) {
+  async build({command,specification,context={},repository=this.repository}={}) {
     const repair=context.repairFeedback
       ? " This is a repair cycle. Diagnose the supplied failure evidence, preserve working behavior, and return corrected complete files. Failure evidence: "+JSON.stringify({
           diagnosis:context.repairFeedback.diagnosis,
@@ -26,8 +26,8 @@ export class ModelProjectBuilder {
     const written=[];
     for(const file of parsed.files){
       if(!file?.path||typeof file.content!=="string") throw new Error("Invalid generated file");
-      written.push(await this.repository.write(file.path,file.content,null));
+      written.push(await repository.write(file.path,file.content));
     }
-    return {status:"SUCCEEDED",files:written,model:response.model,cycle:context.cycle??1,repairCycle:Boolean(context.repairFeedback)};
+    return {status:"SUCCEEDED",files:written,model:response.model,cycle:context.cycle??1,repairCycle:Boolean(context.repairFeedback),repository};
   }
 }
