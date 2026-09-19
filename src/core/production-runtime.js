@@ -74,7 +74,7 @@ import {AgentCapabilityRegistry,AgentRoutingEngine,AgentNegotiationProtocol,Para
 import {KnowledgeIngestionPipeline,KnowledgeIndex,EvidenceAwareRetriever,ProvenanceManager,KnowledgeConflictResolver,MemoryConsolidationEngine,FailurePatternLibrary,StrategyEffectivenessModel,ExperienceGuidedPlanner,ContinuousLearningLoop} from "./autonomous-knowledge.js";
 import {MutationStrategyEngine} from "./mutation-strategy-engine.js";
 import {EvolutionScheduler} from "./evolution-scheduler.js";
-import {ResearchLoop} from "./research-loop.js";\nimport {ProductUnderstandingEngine} from "./product-understanding-engine.js";\nimport {ArchitecturePlanningEngine} from "./architecture-planning-engine.js";\nimport {TaskDAGGenerationEngine} from "./task-dag-generation-engine.js";\nimport {AutonomousProductBuilder} from "./autonomous-product-builder.js";\nimport {AutonomousCodingOrchestrator} from "./autonomous-coding-orchestrator.js";
+import {ResearchLoop} from "./research-loop.js";\nimport {ProductUnderstandingEngine} from "./product-understanding-engine.js";\nimport {ArchitecturePlanningEngine} from "./architecture-planning-engine.js";\nimport {TaskDAGGenerationEngine} from "./task-dag-generation-engine.js";\nimport {AutonomousProductBuilder} from "./autonomous-product-builder.js";\nimport {AutonomousCodingOrchestrator} from "./autonomous-coding-orchestrator.js";\nimport {AutonomousEngineeringLoop} from "./autonomous-engineering-loop.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -262,7 +262,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     policyEngine
   });
 
-  const metrics=new MetricsCollector();\n  const productUnderstanding=new ProductUnderstandingEngine({modelGateway});\n  const architecturePlanner=new ArchitecturePlanningEngine({modelGateway,productUnderstanding});\n  const taskDAGGenerator=new TaskDAGGenerationEngine({modelGateway});\n  const autonomousProductBuilder=new AutonomousProductBuilder({runtime:null,modelGateway});\n  const autonomousCodingOrchestrator=new AutonomousCodingOrchestrator();
+  const metrics=new MetricsCollector();\n  const productUnderstanding=new ProductUnderstandingEngine({modelGateway});\n  const architecturePlanner=new ArchitecturePlanningEngine({modelGateway,productUnderstanding});\n  const taskDAGGenerator=new TaskDAGGenerationEngine({modelGateway});\n  const autonomousProductBuilder=new AutonomousProductBuilder({runtime:null,modelGateway});\n  const autonomousCodingOrchestrator=new AutonomousCodingOrchestrator();\n  const autonomousEngineeringLoop=new AutonomousEngineeringLoop();
   const auditLog=new AuditLog({observability:null});
 
   const roadmap=new RoadmapEngine({roadmap:JORA_MASTER_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
@@ -493,6 +493,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,agentRuntime,agentToolRegistry,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
-    executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,autonomousEngineeringLoop,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
