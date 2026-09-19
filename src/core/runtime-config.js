@@ -9,6 +9,7 @@ export function runtimeConfig(env=process.env){
     benchmarkStateFile:env.JORA_BENCHMARK_STATE_FILE||"./.jora/benchmarks.json",
     lineageStateFile:env.JORA_LINEAGE_STATE_FILE||"./.jora/lineage.json",
     evolution:{populationSize:Number(env.JORA_EVOLUTION_POPULATION_SIZE||8),maxGenerations:Number(env.JORA_EVOLUTION_MAX_GENERATIONS||10),concurrency:Number(env.JORA_EVOLUTION_CONCURRENCY||4),learningRecords:Number(env.JORA_EVOLUTION_LEARNING_RECORDS||10000),learningStateFile:env.JORA_LEARNING_STATE_FILE||"./.jora/learning.json"},
+    architecture:{stateFile:env.JORA_ARCHITECTURE_STATE_FILE||"./.jora/architectures.json",regressionThreshold:Number(env.JORA_ARCHITECTURE_REGRESSION_THRESHOLD||0.05)},
     mission:{enabled:env.JORA_MISSION_ENABLED==="true",tasksPerCycle:Number(env.JORA_MISSION_TASKS_PER_CYCLE||1),maxCycles:env.JORA_MISSION_MAX_CYCLES?Number(env.JORA_MISSION_MAX_CYCLES):Infinity,intervalMs:Number(env.JORA_MISSION_INTERVAL_MS||0),roadmapStateFile:env.JORA_MISSION_ROADMAP_STATE_FILE||"./.jora/roadmap.json"},
     memory:{agentStateFile:env.JORA_AGENT_MEMORY_STATE_FILE||"./.jora/agent-memory.json",knowledgeStateFile:env.JORA_KNOWLEDGE_STATE_FILE||"./.jora/knowledge.json",maxRecords:Number(env.JORA_AGENT_MEMORY_MAX_RECORDS||5000),knowledgeRecords:Number(env.JORA_KNOWLEDGE_MAX_RECORDS||10000)},
     observabilityStateFile:env.JORA_OBSERVABILITY_STATE_FILE||"./.jora/observability.json",
@@ -60,7 +61,8 @@ export function runtimeConfig(env=process.env){
       availability:Number(env.JORA_SLO_AVAILABILITY||0.99),
       maxFailureRate:Number(env.JORA_SLO_MAX_FAILURE_RATE||0.1),
       maxLatencyMs:Number(env.JORA_SLO_MAX_LATENCY_MS||10000),
-      maxQueueBacklog:Number(env.JORA_SLO_MAX_QUEUE_BACKLOG||100)
+      maxQueueBacklog:Number(env.JORA_SLO_MAX_QUEUE_BACKLOG||100),
+      intervalMs:Number(env.JORA_SLO_INTERVAL_MS||30000)
     },
     recovery:{
       policy:{
