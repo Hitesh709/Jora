@@ -331,6 +331,22 @@ export class OperatorApi {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,{versions:this.executionPlatform.customerControl.versions.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined,limit:Number(url.searchParams.get("limit")||100)})});
     }
+    if(method==="POST" && path==="/v3/customer/execute") {
+      if(!this.executionPlatform?.customerSubmit) return json(res,503,{error:"customer_production_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const result=await this.executionPlatform.customerSubmit(body||{});
+        return json(res,result?.status==="MISSION_EXECUTED"?200:202,result);
+      } catch(error) { return json(res,400,{accepted:false,status:"CUSTOMER_EXECUTION_FAILED",error:error.message}); }
+    }
+    if(method==="GET" && path==="/v3/customer/lineage") {
+      if(!this.executionPlatform?.customerProduction?.lineage) return json(res,503,{error:"customer_lineage_not_configured"});
+      return json(res,200,{records:this.executionPlatform.customerProduction.lineage.list({
+        tenantId:url.searchParams.get("tenantId")||undefined,
+        projectId:url.searchParams.get("projectId")||undefined
+      })});
+    }
+
     if(method==="GET" && path==="/v3/customer/usage/detail") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,{usage:this.executionPlatform.customerControl.meter.list({tenantId:url.searchParams.get("tenantId")||undefined,limit:Number(url.searchParams.get("limit")||100)})});
