@@ -10,6 +10,12 @@ try {
   const providers=new Map();
   if(config.model.apiKey) providers.set("openai",new OpenAICompatibleProvider(config.model));
   if(config.models.anthropicApiKey) providers.set("claude",new AnthropicProvider(config.models));
+  providers.set("kilo-free",new OpenAICompatibleProvider({
+    baseUrl:process.env.JORA_KILO_FREE_BASE_URL||"https://api.kilo.ai/api/gateway",
+    model:"kilo-auto/free",
+    apiKey:process.env.KILO_API_KEY,
+    allowAnonymous:true
+  }));
   if(!providers.size) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
   const modelGateway=new MultiModelGateway({providers,defaultModel:config.model.defaultModel||"openai",fallbackModels:config.model.fallbackModels});
   const composed=await createProductionJoraRuntime({config,modelGateway});
