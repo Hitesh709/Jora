@@ -377,6 +377,24 @@ export class OperatorApi {
       }));
     }
 
+    if(method==="GET" && path==="/v4/agents/status") return json(res,200,this.executionPlatform?.agentSwarm?.status?.()||{});
+    if(method==="POST" && path==="/v4/agents/route") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.agentRoute(body||{}));
+    }
+    if(method==="POST" && path==="/v4/agents/execute") {
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,200,await this.executionPlatform.agentExecute(body||{}));}catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+    if(method==="POST" && path==="/v4/agents/execute-many") {
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,200,await this.executionPlatform.agentExecuteMany(Array.isArray(body)?body:(body.tasks||[])));}catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+    if(method==="POST" && path==="/v4/agents/review") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.agentReview(body||{}));
+    }
+
     if(method==="GET" && path==="/v4/customer/platform") return json(res,200,this.executionPlatform?.customerPlatformV4?.status?.()||{});
     if(method==="POST" && path==="/v4/customer/roles") {
       const body=await readBody(req,this.maxBodyBytes);
