@@ -642,7 +642,8 @@ Limit: ${limit}`}]});
         selfImprovingEngineeringCore,
         autonomousSoftwareFactory,
         executionPlatform,
-        searchProvider
+        searchProvider,
+        modelGateway
       })
     : null;
   return {
