@@ -87,6 +87,7 @@ import {SelfImprovingEngineeringCore} from "./self-improving-engineering-core.js
 import {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
 import {ProductionInfrastructureControlPlane,StartupConfigValidator,ReadinessProbe,GracefulShutdownCoordinator,DependencyHealthRegistry,DurableStateRecoveryScanner,RuntimeResourceGuard,RuntimeConfigSnapshot} from "./production-infrastructure-control-plane-v2.js";
 import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapter,DeploymentStatusPoller,ProductionHealthVerifier,AutomaticRollbackExecutor,ExecutionEvidenceStore,ExternalExecutionControlPlaneV2} from "./external-execution-control-plane-v2.js";
+import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter} from "./customer-control-plane-v2.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -317,6 +318,14 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     const client=target==="vercel"?vercelDeploymentClient:railwayDeploymentClient;
     return client.deploy({target,payload});
   }});
+  const customerTenants=new CustomerTenantRegistry();
+  const customerProjects=new ProjectRegistry();
+  const customerMissions=new CustomerMissionManager();
+  const customerMeter=new UsageMeter();
+  const customerQuota=new QuotaGuard({limits:config.customer?.quotas||{}});
+  const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null});
+  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter});
+
   const externalExecution=new ExternalExecutionControlPlaneV2({
     github:new GitHubExecutionAdapter({repository:remoteRepository}),
     tests:new RealTestExecutionAdapter({runner:testRunner}),
@@ -348,7 +357,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     checkpoints:v2CheckpointStore,
     controlLoop,
     infrastructure,
-    externalExecution
+    externalExecution,
+    customerControl
   });
   const auditLog=new AuditLog({observability:null});
 
