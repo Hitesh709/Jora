@@ -1,6 +1,6 @@
 export function runtimeConfig(env=process.env){
   return {
-    model:{apiKey:env.OPENAI_API_KEY,baseUrl:env.JORA_MODEL_BASE_URL,model:env.JORA_MODEL,defaultModel:env.JORA_DEFAULT_MODEL||env.JORA_MODEL||"default",fallbackModels:(env.JORA_MODEL_FALLBACKS||"").split(",").map(x=>x.trim()).filter(Boolean)},
+    model:{apiKey:env.OPENAI_API_KEY,baseUrl:env.JORA_MODEL_BASE_URL,model:env.JORA_MODEL,defaultModel:env.JORA_DEFAULT_MODEL||env.JORA_MODEL||"openai",fallbackModels:(env.JORA_MODEL_FALLBACKS||"").split(",").map(x=>x.trim()).filter(Boolean)},
     models:{anthropicApiKey:env.ANTHROPIC_API_KEY,anthropicBaseUrl:env.JORA_ANTHROPIC_BASE_URL,anthropicModel:env.JORA_ANTHROPIC_MODEL||"claude-sonnet-4-5"},
     github:{token:env.GITHUB_TOKEN,owner:env.JORA_GITHUB_OWNER,repo:env.JORA_GITHUB_REPO,branch:env.JORA_GITHUB_BRANCH||"main"},
     workspace:env.JORA_WORKSPACE||"./.jora/workspace",
