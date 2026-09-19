@@ -44,6 +44,18 @@ export class CustomerMissionOrchestrator {
               context:{...baseContext,architecture:planning.architecture,dag:planning.dag},
               repository:workspace
             });
+            const localTests=await this.executionPlatform?.runTests?.({
+              cwd:workspacePath,
+              commandArgs:context.testCommandArgs||["test"]
+            });
+            build={...build,localTests};
+            if(localTests && localTests.ok===false) {
+              const version=this.customer.versions?.record({
+                tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
+                status:"LOCAL_TEST_FAILED",metadata:{localTests}
+              });
+              return this.missionManager.transition(mission.id,"FAILED",{gate,planning,build,version});
+            }
             const files=await workspace.snapshot();
             deliveryContext={
               branch:workspace.candidateBranch,
