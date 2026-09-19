@@ -55,6 +55,13 @@ export function runtimeConfig(env=process.env){
       maxFindings:Number(env.JORA_SECURITY_MAX_FINDINGS||100),
       scanCode:env.JORA_SECURITY_SCAN_CODE!=="false"
     },
+    slo:{
+      enabled:env.JORA_SLO_ENABLED==="true",
+      availability:Number(env.JORA_SLO_AVAILABILITY||0.99),
+      maxFailureRate:Number(env.JORA_SLO_MAX_FAILURE_RATE||0.1),
+      maxLatencyMs:Number(env.JORA_SLO_MAX_LATENCY_MS||10000),
+      maxQueueBacklog:Number(env.JORA_SLO_MAX_QUEUE_BACKLOG||100)
+    },
     recovery:{
       policy:{
         HIGH_FAILURE_RATE:env.JORA_RECOVERY_FAILURE_RATE_ACTION||"REPAIR",
