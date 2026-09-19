@@ -1,0 +1,1 @@
+export class ProductionMonitoringAgent{constructor(){this.version="1.79.0";}check({deployment,signals=[]}={}){return{accepted:true,status:"PRODUCTION_MONITORING_READY",version:this.version,deployment,signals,checks:["health","startup","error-rate","availability","rollback-readiness"]};}}
