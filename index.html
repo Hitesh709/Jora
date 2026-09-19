@@ -77,60 +77,38 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div>
 <label class="muted">Jora backend</label><input id="api" placeholder="https://your-jora-api.up.railway.app">
 <label class="muted">Bearer token</label><input id="token" type="password" placeholder="Bearer token">
-<label class="muted">AI service / coding provider</label>
+<label class="muted">AI agent</label>
 <select id="provider" onchange="providerChanged()">
-<option value="jora">Jora server model</option>
-<option value="copilot-free">GitHub Copilot Free — $0</option>
-<option value="gemini-free">Gemini Code Assist — Free</option>
-<option value="amazon-q-free">Amazon Q Developer — Free tier</option>
-<option value="kilo-free">Kilo Code Auto Free</option>
-<option value="cline-free">Cline + free models</option>
-<option value="freebuff">Freebuff — free coding agent</option>
-<option value="openrouter-free">OpenRouter — free models</option>
-<option value="ollama">Ollama — local / no API cost</option>
-<option value="custom">Custom OpenAI-compatible provider</option>
+<option value="jora">Jora AI — default</option>
+<option value="kilo-free">Kilo Auto Free — $0</option>
 </select>
 <div id="providerInfo" class="muted" style="margin:-5px 0 12px"></div>
-<div id="providerFields" style="display:none"><label class="muted">API key (stored only in this browser)</label><input id="providerKey" type="password" placeholder="Optional provider API key"><label class="muted">Model / endpoint</label><input id="providerModel" placeholder="Model name or endpoint"></div>
 <div class="panel" style="margin-top:8px;padding:12px;background:#10141a">
-<strong>Free coding services</strong>
-<div class="muted" style="margin:5px 0 8px">These are external services. Free quotas and availability can change. Jora does not claim they are unlimited.</div>
-<div style="display:grid;gap:6px;font-size:12px">
-<a href="https://github.com/features/copilot/plans" target="_blank" rel="noopener" style="color:#cdd3dd">GitHub Copilot Free →</a>
-<a href="https://developers.google.com/gemini-code-assist" target="_blank" rel="noopener" style="color:#cdd3dd">Gemini Code Assist →</a>
-<a href="https://aws.amazon.com/q/developer/" target="_blank" rel="noopener" style="color:#cdd3dd">Amazon Q Developer →</a>
-<a href="https://kilo.ai/" target="_blank" rel="noopener" style="color:#cdd3dd">Kilo Code Auto Free →</a>
-<a href="https://cline.bot/" target="_blank" rel="noopener" style="color:#cdd3dd">Cline →</a>
-<a href="https://freebuff.ai/" target="_blank" rel="noopener" style="color:#cdd3dd">Freebuff →</a>
-<a href="https://openrouter.ai/collections/free-models" target="_blank" rel="noopener" style="color:#cdd3dd">OpenRouter Free Models →</a>
-<a href="https://ollama.com/" target="_blank" rel="noopener" style="color:#cdd3dd">Ollama Local AI →</a>
-</div></div>
-<div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="send" onclick="saveSettings()">Save connection</button></div></div></div>
+<strong id="providerState">● Connected</strong>
+<div id="providerStateText" class="muted" style="margin-top:5px">Select an agent and Jora will use it for your next request. No API key or external link is required for the built-in free agent.</div>
+</div>
+<div class="actions"><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
 const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send"),providerInput=document.getElementById("provider"),providerInfo=document.getElementById("providerInfo"),providerKey=document.getElementById("providerKey"),providerModel=document.getElementById("providerModel");
 apiInput.value=localStorage.getItem("jora_api_base")||defaultApi;
 providerInput.value=localStorage.getItem("jora_provider")||"jora";
-providerKey.value=localStorage.getItem("jora_provider_key")||"";
-providerModel.value=localStorage.getItem("jora_provider_model")||"";
 function providerChanged(){
   const p=providerInput.value;
+  localStorage.setItem("jora_provider",p);
   const info={
-    jora:"Use the AI model configured by the Jora backend.",
-    "copilot-free":"Free individual Copilot tier; sign in to GitHub. Jora does not collect your GitHub password.",
-    "gemini-free":"Google offers a free individual coding-assistant tier; use your Google account and follow Google's current quota.",
-    "amazon-q-free":"AWS provides a perpetual Free tier with monthly limits; useful for IDE and AWS-focused coding.",
-    "kilo-free":"Kilo offers Auto Free and other free-model options; limits/models can change.",
-    "cline-free":"Cline is an open-source agent; its free model promotions are limited-time and model availability changes.",
-    freebuff:"Freebuff offers a free coding-agent service supported by ads; availability can depend on region.",
-    "openrouter-free":"OpenRouter currently offers free models with rate limits; a free API key is required.",
-    ollama:"Run open models locally. No per-request API bill when inference runs on your own hardware.",
-    custom:"Bring any OpenAI-compatible endpoint and API key."
+    jora:"Jora uses the model configured on the Jora backend.",
+    "kilo-free":"Kilo Auto Free routes Jora requests to available free coding models. No user API key is required. Free-model availability and limits can change."
   }[p]||"";
   providerInfo.textContent=info;
-  document.getElementById("providerFields").style.display=["openrouter-free","ollama","custom"].includes(p)?"block":"none";
+  const state=document.getElementById("providerState");
+  const stateText=document.getElementById("providerStateText");
+  state.textContent=p==="kilo-free"?"● Free agent selected":"● Jora selected";
+  stateText.textContent=p==="kilo-free"
+    ?"Connected. Your next Jora request will use Kilo Auto Free."
+    :"Connected. Your next Jora request will use the Jora backend model.";
 }
-providerChanged();
+
 let mode="agent";
 function base(){return apiInput.value.replace(/\/$/,"")}
 function headers(){const t=tokenInput.value;return t?{Authorization:"Bearer "+t,"Content-Type":"application/json"}:{"Content-Type":"application/json"}}
@@ -154,7 +132,7 @@ async function sendPrompt(){
       else addMessage(formatSearchResult(data),"assistant");
       return;
     }
-    const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode}})});
+    const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode,provider:localStorage.getItem("jora_provider")||"jora"}})});
     const data=await r.json().catch(()=>({error:"Invalid backend response"}));
     document.querySelector("#messages .msg.system:last-child")?.remove();
     if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
@@ -178,10 +156,9 @@ function closeSettings(){document.getElementById("settings").style.display="none
 function saveSettings(){
   localStorage.setItem("jora_api_base",base());
   localStorage.setItem("jora_provider",providerInput.value);
-  localStorage.setItem("jora_provider_key",providerKey.value);
-  localStorage.setItem("jora_provider_model",providerModel.value);
   closeSettings();checkBackend()
 }
+
 function newChat(){document.getElementById("messages").innerHTML='<div class="msg system">New Jora task. What should I build or solve?</div>';promptInput.focus()}
 function showView(view){
   ["chat","projects","runs","control"].forEach(v=>document.getElementById(v+"View").style.display=v===view?"block":"none");
