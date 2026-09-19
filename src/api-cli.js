@@ -16,6 +16,12 @@ try {
     apiKey:process.env.KILO_API_KEY,
     allowAnonymous:true
   }));
+  providers.set("opencode-free",new OpenAICompatibleProvider({
+    baseUrl:process.env.JORA_OPENCODE_FREE_BASE_URL||"https://opencode.ai/inference/openai/v1",
+    model:process.env.JORA_OPENCODE_FREE_MODEL||"mimo-v2.5-free",
+    apiKey:process.env.OPENCODE_API_KEY,
+    allowAnonymous:true
+  }));
   if(!config.model.apiKey && !config.models.anthropicApiKey) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
   const modelGateway=new MultiModelGateway({providers,defaultModel:config.model.defaultModel||"openai",fallbackModels:config.model.fallbackModels});
   const composed=await createProductionJoraRuntime({config,modelGateway});
