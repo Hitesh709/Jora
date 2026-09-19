@@ -1,0 +1,1 @@
+export class CodeModificationAgent{constructor({github=null}={}){this.github=github;this.version="1.72.0";}async plan({changes=[]}={}){return{accepted:true,status:"CODE_MODIFICATION_PLAN_READY",version:this.version,changes,policy:{writeMode:"controlled",requireValidation:true,requireApprovalForProtectedBranches:true}};}}
