@@ -66,6 +66,7 @@ import {JORA_MASTER_ROADMAP} from "./jora-1.01-1.50-roadmap.js";
 import {AutonomousProgramManager} from "./autonomous-program-manager.js";
 import {AutonomousArchitect} from "./autonomous-architect.js";
 import {ArchitectureStore,TaskDAGOptimizer,TaskContractEngine,AdaptiveExecutionPlanner,ResourceAwareScheduler,CheckpointStore,IdempotencyGuard,MissionTransactionManager} from "./autonomous-planning.js";
+import {AgentCapabilityRegistry,AgentRoutingEngine,AgentNegotiationProtocol,ParallelSpecialistOrchestrator,SharedArtifactWorkspace,CollaborativeReviewGraph,AgentQualityGate,AgentLifecycleManager,AgentTeamOptimizer} from "./specialist-intelligence.js";
 import {KnowledgeIngestionPipeline,KnowledgeIndex,EvidenceAwareRetriever,ProvenanceManager,KnowledgeConflictResolver,MemoryConsolidationEngine,FailurePatternLibrary,StrategyEffectivenessModel,ExperienceGuidedPlanner,ContinuousLearningLoop} from "./autonomous-knowledge.js";
 
 class CandidateEvaluator {
@@ -188,6 +189,15 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const conflictResolver=new KnowledgeConflictResolver();
   const sharedTeamMemory=new SharedTeamMemory({memory:agentMemory});
   const agentFactory=new AgentFactory({planner,projectFactory:factory,registry:agentRegistry});
+  const capabilityRegistry=new AgentCapabilityRegistry({registry:agentRegistry});
+  const agentRouter=new AgentRoutingEngine({registry:agentRegistry,capabilityRegistry});
+  const negotiationProtocol=new AgentNegotiationProtocol();
+  const parallelSpecialists=new ParallelSpecialistOrchestrator({runtime:null,concurrency:config.evolution?.agentConcurrency??4});
+  const artifactWorkspace=new SharedArtifactWorkspace();
+  const reviewGraph=new CollaborativeReviewGraph({registry:agentRegistry});
+  const agentQualityGate=new AgentQualityGate();
+  const agentLifecycle=new AgentLifecycleManager({registry:agentRegistry,factory:agentFactory});
+  const teamOptimizer=new AgentTeamOptimizer({registry:agentRegistry});
   const evolution=new EvolutionEngine({evaluator});
   const delivery=new AutonomousDelivery({agentFactory,evolution,maxRepairCycles:3});
   const builder=new ProductionAgentBuilder({planner,factory,delivery});
@@ -412,7 +422,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       })
     : null;
   return {
-    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
+    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
     executionStore,championStore,lineageStore,agentRegistry,programManager,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
