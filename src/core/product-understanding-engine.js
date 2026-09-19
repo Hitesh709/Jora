@@ -5,24 +5,24 @@ export class ProductUnderstandingEngine {
   }
 
   _clean(value="") {
-    return String(value??"").replace(/\\s+/g," ").trim();
+    return String(value??"").replace(/\s+/g," ").trim();
   }
 
   _extractConstraints(input) {
     const text=this._clean(input);
     const constraints=[];
     const patterns=[
-      [/\\b(?:within|in|under|below)\\s+(\\d+\\s*(?:days?|weeks?|months?))/i,"deadline"],
-      [/\\b(?:under|below|less than)\\s+([^,.!?]+)/i,"budget"],
-      [/\\b(?:must|should)\\s+(?:use|run on|support)\\s+([^,.!?]+)/i,"technology"],
-      [/\\b(?:for|targeting)\\s+([^,.!?]+?)\\s+(?:users?|customers?|people)\\b/i,"audience"]
+      [/\b(?:within|in|under|below)\s+(\\d+\\s*(?:days?|weeks?|months?))/i,"deadline"],
+      [/\b(?:under|below|less than)\s+([^,.!?]+)/i,"budget"],
+      [/\b(?:must|should)\s+(?:use|run on|support)\s+([^,.!?]+)/i,"technology"],
+      [/\b(?:for|targeting)\s+([^,.!?]+?)\s+(?:users?|customers?|people)\b/i,"audience"]
     ];
     for(const [pattern,type] of patterns) {
       const match=text.match(pattern);
       if(match) constraints.push({type,value:this._clean(match[1]),source:"user_text"});
     }
-    if(/\\bmobile\\b/i.test(text)) constraints.push({type:"platform",value:"mobile",source:"user_text"});
-    if(/\\bweb\\b|\\bwebsite\\b/i.test(text)) constraints.push({type:"platform",value:"web",source:"user_text"});
+    if(/\bmobile\b/i.test(text)) constraints.push({type:"platform",value:"mobile",source:"user_text"});
+    if(/\bweb\b|\bwebsite\b/i.test(text)) constraints.push({type:"platform",value:"web",source:"user_text"});
     return constraints;
   }
 
@@ -31,7 +31,7 @@ export class ProductUnderstandingEngine {
     const goals=[];
     const sentences=text.split(/[.!?]+/).map(x=>x.trim()).filter(Boolean);
     for(const sentence of sentences) {
-      const m=sentence.match(/^(?:build|create|make|develop|design|launch|automate|generate|add|implement)\\s+(.+)/i);
+      const m=sentence.match(/^(?:build|create|make|develop|design|launch|automate|generate|add|implement)\s+(.+)/i);
       if(m) goals.push(this._clean(m[1]));
     }
     if(!goals.length && text) goals.push(text);
@@ -41,11 +41,11 @@ export class ProductUnderstandingEngine {
   _ambiguities(input) {
     const text=this._clean(input);
     const checks=[
-      ["target_users",/\\b(?:for|target(?:ing)?)\\b/i],
-      ["platform",/\\b(?:web|website|mobile|android|ios|desktop)\\b/i],
-      ["success_criteria",/\\b(?:success|metric|kpi|acceptance|goal)\\b/i],
-      ["deadline",/\\b(?:today|tomorrow|day|week|month|deadline|by)\\b/i],
-      ["integrations",/\\b(?:api|integrat|connect|github|stripe|google|slack|database)\\b/i]
+      ["target_users",/\b(?:for|target(?:ing)?)\b/i],
+      ["platform",/\b(?:web|website|mobile|android|ios|desktop)\b/i],
+      ["success_criteria",/\b(?:success|metric|kpi|acceptance|goal)\b/i],
+      ["deadline",/\b(?:today|tomorrow|day|week|month|deadline|by)\b/i],
+      ["integrations",/\b(?:api|integrat|connect|github|stripe|google|slack|database)\b/i]
     ];
     return checks.filter(([,pattern])=>!pattern.test(text)).map(([field])=>({
       field,
