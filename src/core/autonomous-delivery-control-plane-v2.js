@@ -18,7 +18,7 @@ export class DurableTeamCollaboration {
 }
 
 export class SpecialistConsensusGate {
-  evaluate({proposal,reviewers=[]}={}){const valid=reviewers.filter(r=>r&&r.decision);const approvals=valid.filter(r=>String(r.decision).toUpperCase()==="APPROVE").length;const rejections=valid.filter(r=>String(r.decision).toUpperCase()==="REJECT").length;const required=Math.max(1,Math.ceil(Math.max(1,valid.length)/2));return {proposal,reviewers:valid,approvals,rejections,required,consensus:approvals>=required&&rejections===0,status:approvals>=required&&rejections===0?"CONSENSUS_REACHED":"CONSENSUS_PENDING"};}
+  evaluate({proposal,reviewers=[]}={}){const valid=reviewers.filter(r=>r&&r.decision);const approvals=valid.filter(r=>String(r.decision).toUpperCase()==="APPROVE").length;const rejections=valid.filter(r=>String(r.decision).toUpperCase()==="REJECT").length;const required=Math.max(1,Math.ceil(Math.max(1,valid.length)/2));return {proposal,reviewers:valid,approvals,rejections,required,consensus:approvals>=required,status:approvals>=required&&rejections===0?"CONSENSUS_REACHED":"CONSENSUS_PENDING"};}
 }
 
 export class CollaborativeReviewEngine {
