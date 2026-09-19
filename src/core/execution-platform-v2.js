@@ -15,6 +15,7 @@ import {CustomerSaaSControlPlaneV3} from "./customer-saas-control-plane-v3.80.js
 import {CustomerAutonomousOperationsControlPlane} from "./customer-autonomous-operations-v3.90.js";
 import {CustomerPlatformV4} from "./customer-platform-v4.0.js";
 import {AgentSwarmControlPlaneV4} from "./agent-swarm-v4.20.js";
+import {AgentTeamControlPlaneV4} from "./agent-team-v4.40.js";
 
 export class ApprovalGate {
   constructor({autoApproveLowRisk=true}={}) {
@@ -121,7 +122,7 @@ export class WebhookDeploymentClient {
 }
 
 export class ExecutionPlatformV2 {
-  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null,customerProduction=null,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null,customerSaaS=null,customerOperations=null,customerPlatformV4=null,agentSwarm=null,modelGateway=null}={}) {
+  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null,customerProduction=null,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null,customerSaaS=null,customerOperations=null,customerPlatformV4=null,agentSwarm=null,modelGateway=null,agentTeams=null}={}) {
     this.version="2.70.0";
     this.github=github;this.sandbox=sandbox;this.testRunner=testRunner;this.queue=queue;
     this.approvalGate=approvalGate??new ApprovalGate();
@@ -148,6 +149,7 @@ export class ExecutionPlatformV2 {
     this.customerOperations=customerOperations??new CustomerAutonomousOperationsControlPlane();
     this.customerPlatformV4=customerPlatformV4??new CustomerPlatformV4();
     this.agentSwarm=agentSwarm??new AgentSwarmControlPlaneV4({gateway:this.modelGateway});
+    this.agentTeams=agentTeams??new AgentTeamControlPlaneV4({swarm:this.agentSwarm.swarm});
     this.customerProduction=customerProduction??new AutonomousCustomerProductionPlatform({customerControl:this.customerControl,executionPlatform:this,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory,applicationFactory:this.applicationFactory});
   }
   status() {
@@ -180,7 +182,8 @@ export class ExecutionPlatformV2 {
       customerSaaS:this.customerSaaS.status().capabilities,
       customerOperations:this.customerOperations.status().capabilities,
       customerPlatformV4:this.customerPlatformV4.status().capabilities,
-      agentSwarm:this.agentSwarm.status().capabilities
+      agentSwarm:this.agentSwarm.status().capabilities,
+      agentTeams:this.agentTeams.status().capabilities
     };
   }
   deliveryStatus(){return this.delivery.status();}
@@ -229,6 +232,8 @@ export class ExecutionPlatformV2 {
   agentExecute(input={}) { return this.agentSwarm.execute(input); }
   agentExecuteMany(input=[]) { return this.agentSwarm.executeMany(input); }
   agentReview(input={}) { return this.agentSwarm.review(input); }
+  createAgentTeam(input={}) { return this.agentTeams.createTeam(input); }
+  agentTeamExecute(input={}) { return this.agentTeams.execute(input); }
   customerRecordSLA(input={}) { return this.customerPlatformV4.sla.record(input); }
   async externalExecute({operation,payload={}}={}) { return this.externalExecution.execute({operation,payload}); }
   async externalEndToEnd(input={}) { return this.externalExecution.endToEnd(input); }
