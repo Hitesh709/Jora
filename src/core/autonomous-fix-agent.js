@@ -1,0 +1,1 @@
+export class AutonomousFixAgent{constructor(){this.version="1.75.0";}plan({findings=[]}={}){return{accepted:true,status:"AUTONOMOUS_FIX_PLAN_READY",version:this.version,fixes:findings.map(f=>({taskId:f.taskId,action:"prepare-minimal-correction",requiresRevalidation:true}))};}}
