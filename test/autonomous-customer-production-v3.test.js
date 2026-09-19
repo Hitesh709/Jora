@@ -35,6 +35,6 @@ test("v2.94 artifact lineage records customer production result",async()=>{
 test("v3.00 exposes end-to-end customer production capabilities",()=>{
   const customer=new CustomerControlPlaneV2();
   const platform=new AutonomousCustomerProductionPlatform({customerControl:customer,executionPlatform:{}});
-  assert.equal(platform.status().version,"3.00.0");
+  assert.equal(platform.status().version,"3.50.0");
   assert.equal(platform.status().capabilities.productionPipeline,true);
 });
