@@ -77,20 +77,20 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div>
 <label class="muted">Jora backend</label><input id="api" placeholder="https://your-jora-api.up.railway.app">
 <label class="muted">Bearer token</label><input id="token" type="password" placeholder="Bearer token">
-<label class="muted">AI agent</label>
+<label class="muted">AI agent / coding engine</label>
 <select id="provider" onchange="providerChanged()">
 <option value="jora">Jora AI — default</option>
-<option value="kilo-free">Kilo Auto Free — $0</option>
+<option value="kilo-free">Kilo Auto Free — Free coding</option>
 </select>
 <div id="providerInfo" class="muted" style="margin:-5px 0 12px"></div>
 <div class="panel" style="margin-top:8px;padding:12px;background:#10141a">
 <strong id="providerState">● Connected</strong>
-<div id="providerStateText" class="muted" style="margin-top:5px">Select an agent and Jora will use it for your next request. No API key or external link is required for the built-in free agent.</div>
+<div id="providerStateText" class="muted" style="margin-top:5px">Choose Jora or the built-in free coding agent. Your choice is used for the next Jora request.</div>
 </div>
 <div class="actions"><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send"),providerInput=document.getElementById("provider"),providerInfo=document.getElementById("providerInfo"),providerKey=document.getElementById("providerKey"),providerModel=document.getElementById("providerModel");
+const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send"),providerInput=document.getElementById("provider"),providerInfo=document.getElementById("providerInfo");
 apiInput.value=localStorage.getItem("jora_api_base")||defaultApi;
 providerInput.value=localStorage.getItem("jora_provider")||"jora";
 function providerChanged(){
@@ -105,8 +105,8 @@ function providerChanged(){
   const stateText=document.getElementById("providerStateText");
   state.textContent=p==="kilo-free"?"● Free agent selected":"● Jora selected";
   stateText.textContent=p==="kilo-free"
-    ?"Connected. Your next Jora request will use Kilo Auto Free."
-    :"Connected. Your next Jora request will use the Jora backend model.";
+    ?"Selected. Jora will use Kilo Auto Free for the next coding request."
+    :"Selected. Jora will use its configured model for the next request.";
 }
 
 let mode="agent";
