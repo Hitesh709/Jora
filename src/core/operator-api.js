@@ -58,7 +58,15 @@ export class OperatorApi {
     programManager=null,
     rateLimitPerMinute=120,
     accessController=null,
-    auditLog=null
+    auditLog=null,
+    productUnderstanding=null,
+    architecturePlanner=null,
+    taskDAGGenerator=null,
+    autonomousProductBuilder=null,
+    autonomousCodingOrchestrator=null,
+    autonomousEngineeringLoop=null,
+    selfImprovingEngineeringCore=null,
+    autonomousSoftwareFactory=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
