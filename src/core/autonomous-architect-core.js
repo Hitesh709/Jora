@@ -127,7 +127,7 @@ export class AutonomousArchitectCore {
   async plan(input){
     const records=await this.architectureStore?.list?.()??[];
     const baseline=records.at(-1)??null;
-    const plan=await this.architect.plan(input);
+    const plan=await this.architect.plan({...input,persist:false});
     plan.securityArchitecture=this.securityArchitect.design({contract:plan.contract});
     plan.securityValidation=this.securityArchitect.validate(plan.securityArchitecture);
     if(!plan.securityValidation.passed) throw new Error(plan.securityValidation.errors.join("; "));
@@ -136,6 +136,8 @@ export class AutonomousArchitectCore {
       plan.architectureRegression=await this.architectureRegression.compare({candidate:plan.contract,baseline});
       if(!plan.architectureRegression.passed) throw new Error("architecture regression gate failed");
     }
+    const persisted=await this.architectureStore?.saveContract?.(plan.contract,{decision:plan.decision,parentArchitectureId:plan.contract.parentArchitectureId});
+    if(persisted) plan.contract=persisted;
     await this.observability?.append?.({type:"ARCHITECT_CORE_PLAN",architectureId:plan.contract.id,at:new Date().toISOString()});
     return plan;
   }
