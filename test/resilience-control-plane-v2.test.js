@@ -1,0 +1,12 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {SLOBudgetEngine,BackpressureController,RetryPolicyEngine,FailureClassificationEngine,IncidentCorrelationEngine,ChangeRiskEngine,DeploymentStrategyEngine,FeatureFlagEngine,ResilienceControlPlane} from "../src/core/resilience-control-plane-v2.js";
+test("v2.31 SLO budgets detect violations",()=>assert.equal(new SLOBudgetEngine({availability:.99}).evaluate({availability:.95}).healthy,false));
+test("v2.32 backpressure stops overloaded work",()=>assert.equal(new BackpressureController({maxQueue:2}).evaluate({queueDepth:2}).admit,false));
+test("v2.33 retry policy applies bounded backoff",()=>assert.equal(new RetryPolicyEngine({maxAttempts:3}).next({attempt:1}).retry,true));
+test("v2.34 failure classification identifies network retry",()=>assert.equal(new FailureClassificationEngine().classify({message:"ECONNRESET"}).retryable,true));
+test("v2.35 incidents correlate repeated events",()=>{const i=new IncidentCorrelationEngine();i.record({type:"NETWORK",source:"api"});assert.equal(i.record({type:"NETWORK",source:"api"}).count,2);});
+test("v2.36 change risk assesses production changes",()=>assert.equal(new ChangeRiskEngine().assess({production:true,filesChanged:20}).risk,"high"));
+test("v2.37 deployment strategy uses canary for high risk staging",()=>assert.equal(new DeploymentStrategyEngine().choose({risk:"high",hasStaging:true}).strategy,"CANARY"));
+test("v2.38 feature flags can be enabled",()=>{const f=new FeatureFlagEngine();f.set("x",{enabled:true});assert.equal(f.evaluate("x"),true);});
+test("v2.40 resilience plane evaluates all controls",()=>{const r=new ResilienceControlPlane();const x=r.evaluate({slo:{availability:1},backpressure:{queueDepth:0},change:{filesChanged:1},deployment:{risk:"low"}});assert.equal(x.version,"2.40.0");assert.equal(x.slo.healthy,true);});
