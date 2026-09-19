@@ -49,13 +49,14 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
       <textarea id="prompt" placeholder="Ask Jora anything about your software project…" onkeydown="keySend(event)"></textarea>
       <div class="composeRow"><div class="modes">
         <button class="mode active" data-mode="agent" onclick="setMode(this)">Agent</button>
-        <button class="mode" data-mode="research" onclick="setMode(this)">Research</button>
+        <button class="mode" data-mode="research" onclick="setMode(this)">🌐 Research</button>
         <button class="mode" data-mode="code" onclick="setMode(this)">Code</button>
         <button class="mode" data-mode="build" onclick="setMode(this)">Build</button>
       </div><button class="send" id="send" onclick="sendPrompt()">Send</button></div>
     </div></div>
     <div class="quick">
       <button onclick="quick('Build a production-ready web application for me. First understand the requirements, then create the architecture and implementation plan.')">🚀 Build a new application</button>
+      <button onclick="setResearchQuick()">🌐 Search the web</button>
       <button onclick="quick('Inspect my current project and identify the highest-priority engineering problems to fix next.')">🔎 Inspect a project</button>
       <button onclick="quick('Create a coding plan for the feature I describe, including files, tests, risks and deployment steps.')">🧩 Plan a feature</button>
       <button onclick="quick('Run a production-readiness review of this project: architecture, security, testing, reliability and deployment.')">🛡 Production review</button>
@@ -84,16 +85,26 @@ function headers(){const t=tokenInput.value;return t?{Authorization:"Bearer "+t,
 async function get(p){const r=await fetch(base()+p,{headers:headers(),cache:"no-store"});if(!r.ok){const e=new Error(r.status+" "+(await r.text()));e.status=r.status;throw e}return r.json()}
 function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",research:"What do you want Jora to research?",code:"Describe the code change you want…",build:"Describe the product you want built…"}[mode]}
 function quick(text){promptInput.value=text;promptInput.focus()}
+function setResearchQuick(){setMode(document.querySelector('.mode[data-mode="research"]'));promptInput.value="Search the web for the latest information about ";promptInput.focus();promptInput.setSelectionRange(promptInput.value.length,promptInput.value.length)}
 function keySend(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendPrompt()}}
 function addMessage(text,who){const d=document.createElement("div");d.className="msg "+who;d.textContent=text;document.getElementById("messages").appendChild(d);d.scrollIntoView({behavior:"smooth",block:"end"})}
 async function sendPrompt(){
   const command=promptInput.value.trim();if(!command)return;
-  addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage("Working…","system");
+  addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage(mode==="research"?"Searching the web…":"Working…","system");
   try{
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
+    if(mode==="research"){
+      const r=await fetch(base()+"/v1/search",{method:"POST",headers:headers(),body:JSON.stringify({query:command,maxResults:8})});
+      const data=await r.json().catch(()=>({error:"Invalid backend response"}));
+      document.querySelector("#messages .msg.system:last-child")?.remove();
+      if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
+      else if(!r.ok) addMessage(data.status==="SEARCH_NOT_CONFIGURED"?"Web search is not configured on the Jora backend yet. Configure JORA_SEARCH_PROVIDER plus a supported search API key.":("Search failed: "+(data.error||r.statusText)),"system");
+      else addMessage(formatSearchResult(data),"assistant");
+      return;
+    }
     const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode}})});
     const data=await r.json().catch(()=>({error:"Invalid backend response"}));
-    document.querySelector("#messages .msg.system:last-child").remove();
+    document.querySelector("#messages .msg.system:last-child")?.remove();
     if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
     else if(!r.ok) addMessage("Jora could not execute this request: "+(data.error||r.statusText),"system");
     else addMessage(formatResult(data),"assistant");
@@ -101,6 +112,15 @@ async function sendPrompt(){
   finally{sendBtn.disabled=false}
 }
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
+function formatSearchResult(d){
+  const lines=[];
+  if(d?.answer) lines.push("Summary\n"+d.answer);
+  if(Array.isArray(d?.results)&&d.results.length){
+    lines.push("Sources");
+    d.results.forEach((x,i)=>lines.push((i+1)+". "+(x.title||"Untitled")+"\n"+(x.url||"")+"\n"+(x.snippet||"").slice(0,500)));
+  }
+  return lines.join("\n\n")||"No web results were returned.";
+}
 function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
 function saveSettings(){localStorage.setItem("jora_api_base",base());closeSettings();checkBackend()}
