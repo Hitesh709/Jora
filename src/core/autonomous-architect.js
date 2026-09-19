@@ -8,6 +8,7 @@ export class AutonomousArchitect {
     learningMemory=null,
     policyEngine=null,
     observability=null,
+    architectureStore=null,
     maxAlternatives=3
   }={}) {
     this.modelGateway=modelGateway;
@@ -15,6 +16,7 @@ export class AutonomousArchitect {
     this.learningMemory=learningMemory;
     this.policyEngine=policyEngine;
     this.observability=observability;
+    this.architectureStore=architectureStore;
     this.maxAlternatives=Math.max(2,Math.min(5,maxAlternatives));
     this.contractVersion=1;
   }
@@ -204,6 +206,8 @@ export class AutonomousArchitect {
     const taskDAG=this.compileTaskDAG(contract);
     const agentTeam=this.compileAgentTeam(contract);
     const plan={version:"1.50",requirements,alternatives,decision,contract,validation,taskDAG,agentTeam};
+    const persisted=await this.architectureStore?.saveContract?.(contract,{decision,parentArchitectureId:context.parentArchitectureId});
+    if(persisted) plan.contract=persisted;
     await this.observability?.append?.({type:"ARCHITECTURE_PLAN_CREATED",architectureId:contract.id,objective,at:new Date().toISOString()});
     return plan;
   }
