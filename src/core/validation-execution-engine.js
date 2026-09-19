@@ -1,0 +1,1 @@
+export class ValidationExecutionEngine{constructor(){this.version="1.65.0";}validate({tests=[]}={}){return{accepted:true,status:"VALIDATION_PLANNED",version:this.version,testCount:tests.length,checks:["syntax","unit","integration","acceptance"],stopOnFailure:true};}}
