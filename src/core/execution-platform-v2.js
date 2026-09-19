@@ -83,7 +83,7 @@ export class PersistentLocalQueue {
 export class WorkerPool {
   constructor({concurrency=2}={}) { this.concurrency=Math.max(1,Number(concurrency)||2);this.active=0;this.total=0; }
   async run(tasks=[]) {
-    const queue=[...tasks];const results=new Array(queue.length);
+    const queue=tasks.map((_,index)=>index);const results=new Array(tasks.length);
     const worker=async()=>{while(true){const index=queue.shift();if(index===undefined)return;this.active++;this.total++;try{results[index]=await tasks[index]();}catch(error){results[index]={status:"FAILED",error:error.message};}finally{this.active--;}}};
     await Promise.all(Array.from({length:Math.min(this.concurrency,tasks.length)},()=>worker()));
     return results;
