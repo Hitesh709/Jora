@@ -121,8 +121,8 @@ export class CustomerExecutionRouter {
 }
 
 export class CustomerControlPlaneV2 {
-  constructor({tenantRegistry=null,projects=null,missions=null,quota=null,meter=null,router=null,workspaceRegistry=null,versionRegistry=null}={}) {
-    this.version="3.20.0";
+  constructor({tenantRegistry=null,projects=null,missions=null,quota=null,meter=null,router=null,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null}={}) {
+    this.version="3.30.0";
     this.tenants=tenantRegistry??new CustomerTenantRegistry(); this.projects=projects??new ProjectRegistry(); this.missions=missions??new CustomerMissionManager();
     this.quota=quota??new QuotaGuard(); this.meter=meter??new UsageMeter(); this.workspaces=workspaceRegistry??new CustomerWorkspaceRegistry(); this.versions=versionRegistry??new CustomerVersionRegistry(); this.repositoryFactory=repositoryFactory??null;
     this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,workspaceRegistry:this.workspaces,versionRegistry:this.versions});
