@@ -333,6 +333,16 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const customerQuota=new QuotaGuard({limits:customerConfig.quotas||{},plans:customerConfig.plans||{}});
   const customerRouter=new CustomerExecutionRouter({tenantRegistry:customerTenants,projectRegistry:customerProjects,missionManager:customerMissions,quotaGuard:customerQuota,meter:customerMeter,executionPlatform:null,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions});
   const customerLineageStore=new JsonStore({file:customerConfig.lineageStateFile||"./.jora/customer-lineage.json"});
+  const customerDeliveryStore=new JsonStore({file:customerConfig.deliveryStateFile||"./.jora/customer-deliveries.json"});
+  const customerProductionUrlStore=new JsonStore({file:customerConfig.productionUrlStateFile||"./.jora/customer-production-urls.json"});
+  const customerApplicationFactory=new CustomerApplicationFactoryControlPlane({
+    security:new CustomerArtifactSecurityGate(customerConfig.artifactSecurity||{}),
+    buildValidation:new CustomerBuildValidationGate(),
+    testCommands:new CustomerTestCommandController({timeoutMs:customerConfig.testTimeoutMs||300000}),
+    deliveries:new CustomerDeliveryRecordStore({store:customerDeliveryStore}),
+    productionUrls:new CustomerProductionUrlRegistry({store:customerProductionUrlStore})
+  });
+
   const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory,artifactLineageStore:customerLineageStore});
   await customerControl.load();
 
@@ -373,10 +383,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     architecturePlanner,
     taskDAGGenerator,
     projectBuilder,
-    repositoryFactory:customerRepositoryFactory
+    repositoryFactory:customerRepositoryFactory,applicationFactory:customerApplicationFactory
   });
   customerRouter.executionPlatform=executionPlatform;
   await executionPlatform.customerProduction.lineage.load();
+  await customerApplicationFactory.load();
   const auditLog=new AuditLog({observability:null});
 
   const roadmap=new RoadmapEngine({roadmap:JORA_MASTER_ROADMAP,store:new JsonStore({file:config.mission?.roadmapStateFile||"./.jora/roadmap.json"})});
