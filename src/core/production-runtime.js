@@ -301,6 +301,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     metrics,
     governance
   });
+  const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability});
   const missionRunner=new AutonomousMissionRunner({
     missionManager,
     maxCycles:config.mission?.maxCycles??Infinity,
@@ -319,6 +320,10 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     maxCycles:config.worker?.maxCycles??Infinity,
     cycle:async ({cycle,command,context})=>{
       const objective=command??"Complete Jora roadmap autonomously";
+      let architecturePlan=null;
+      try { architecturePlan=await autonomousArchitect.plan({objective,context}); } catch (error) {
+        await observability.append?.({type:"ARCHITECTURE_PLAN_FAILED",objective,error:error.message,at:new Date().toISOString()});
+      }
       return missionRunner.run({
         objective,
         context:{
@@ -338,7 +343,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     }
   });
   runtime.continuousWorker=worker;
-  const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability});
   const programManager=new AutonomousProgramManager({
     missionManager,
     missionRunner,
@@ -384,7 +388,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
       })
     : null;
   return {
-    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,
+    runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,
     executionStore,championStore,lineageStore,agentRegistry,programManager,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,observability,metrics,auditLog,healthMonitor,healthTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
