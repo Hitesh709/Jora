@@ -113,10 +113,12 @@ export class CustomerPolicyGate {
 }
 
 export class CustomerArtifactLineage {
-  constructor(){this.records=[];}
+  constructor({store=null}={}){this.store=store;this.records=[];}
+  async load(){this.records=await this.store?.read?.([])||[];return this.records;}
+  async persist(){if(this.store?.write) await this.store.write(this.records); else if(this.store?.save) await this.store.save(this.records);}
   record({tenantId,projectId,missionId,artifact,result=null}={}) {
     const record={id:"customer_artifact_"+randomUUID(),tenantId,projectId,missionId,artifact,result,at:new Date().toISOString()};
-    this.records.push(record); return record;
+    this.records.push(record); this.persist(); return record;
   }
   list({tenantId,projectId}={}) { return this.records.filter(x=>(!tenantId||x.tenantId===tenantId)&&(!projectId||x.projectId===projectId)); }
 }
@@ -134,7 +136,7 @@ export class CustomerProductionPipeline {
 
 export class AutonomousCustomerProductionPlatform {
   constructor({customerControl,executionPlatform,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null}={}) {
-    this.version="3.40.0";
+    this.version="3.50.0";
     this.customer=customerControl;
     this.execution=executionPlatform;
     this.productUnderstanding=productUnderstanding;
@@ -146,7 +148,7 @@ export class AutonomousCustomerProductionPlatform {
       productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory
     });
     this.lifecycle=new CustomerLifecycleEngine({missions:customerControl.missions,orchestrator:this.orchestrator});
-    this.lineage=new CustomerArtifactLineage();
+    this.lineage=new CustomerArtifactLineage({store:this.customer.artifactLineageStore});
     this.pipeline=new CustomerProductionPipeline({policy:this.policy,lifecycle:this.lifecycle,lineage:this.lineage});
   }
   status() {
