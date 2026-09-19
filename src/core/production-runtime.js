@@ -322,7 +322,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     repository,
     deploymentController,
     metrics,
-    governance
+    governance,
+    policyEngine
   });
   const architectureStore=new ArchitectureStore({store:new JsonStore({file:config.architecture?.stateFile||"./.jora/architectures.json"})});
   await architectureStore.load();
