@@ -64,6 +64,7 @@ import {MissionManager} from "./mission-manager.js";
 import {AutonomousMissionRunner} from "./autonomous-mission-runner.js";
 import {JORA_MASTER_ROADMAP} from "./jora-1.01-1.50-roadmap.js";
 import {AutonomousProgramManager} from "./autonomous-program-manager.js";
+import {AutonomousArchitect} from "./autonomous-architect.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -329,19 +330,22 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
           workspace:config.workspace,
           sandbox,
           network:config.docker.network,
-          securityConfig:config.security
+          securityConfig:config.security,
+          architecturePlan
         },
         maxCycles:1
       });
     }
   });
   runtime.continuousWorker=worker;
+  const autonomousArchitect=new AutonomousArchitect({modelGateway,knowledgeRetriever,learningMemory,policyEngine,observability});
   const programManager=new AutonomousProgramManager({
     missionManager,
     missionRunner,
     roadmap,
     observability
   });
+  programManager.autonomousArchitect=autonomousArchitect;
   const recoveryConfig=config.recovery??{};
   const recovery=new RecoveryOrchestrator({observability,worker,queue:queueStore,deploymentController,controller,policy:recoveryConfig.policy});
   const incidentManager=new IncidentManager({observability});
