@@ -44,6 +44,6 @@ test("v2.85 customer mission router enforces tenant/project ownership",async()=>
 
 test("v2.90 customer control plane exposes capabilities",()=>{
   const plane=new CustomerControlPlaneV2();
-  assert.equal(plane.status().version,"2.90.0");
+  assert.equal(plane.status().version,"3.50.0");
   assert.equal(plane.status().capabilities.executionRouting,true);
 });
