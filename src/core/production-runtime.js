@@ -86,6 +86,7 @@ import {AutonomousEngineeringLoop} from "./autonomous-engineering-loop.js";
 import {SelfImprovingEngineeringCore} from "./self-improving-engineering-core.js";
 import {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
 import {ProductionInfrastructureControlPlane,StartupConfigValidator,ReadinessProbe,GracefulShutdownCoordinator,DependencyHealthRegistry,DurableStateRecoveryScanner,RuntimeResourceGuard,RuntimeConfigSnapshot} from "./production-infrastructure-control-plane-v2.js";
+import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapter,DeploymentStatusPoller,ProductionHealthVerifier,AutomaticRollbackExecutor,ExecutionEvidenceStore,ExternalExecutionControlPlaneV2} from "./external-execution-control-plane-v2.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -310,6 +311,24 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   infrastructureShutdown.register("worker",async()=>worker?.stop?.());
   const infrastructureRecovery=new DurableStateRecoveryScanner({stores:[executionStore,lineageStore,championStore,learningMemory]});
   const infrastructure=new ProductionInfrastructureControlPlane({validator:infrastructureValidator,readiness:infrastructureReadiness,shutdown:infrastructureShutdown,dependencies:infrastructureDependencies,recovery:infrastructureRecovery,resources:new RuntimeResourceGuard({maxConcurrent:config.executionPlatform?.maxConcurrent??100,maxMemoryMb:config.executionPlatform?.maxMemoryMb??2048}),configSnapshot:new RuntimeConfigSnapshot({version:"2.70.0",config})});
+  const externalEvidence=new ExecutionEvidenceStore({ledger:executionLedger});
+  const externalRollback=new AutomaticRollbackExecutor({rollback:async ({target,ref,payload})=>{
+    if(remoteRepository && ref) return remoteRepository.rollback(ref,config.github?.branch||"main");
+    const client=target==="vercel"?vercelDeploymentClient:railwayDeploymentClient;
+    return client.deploy({target,payload});
+  }});
+  const externalExecution=new ExternalExecutionControlPlaneV2({
+    github:new GitHubExecutionAdapter({repository:remoteRepository}),
+    tests:new RealTestExecutionAdapter({runner:testRunner}),
+    deployments:{
+      railway:new DeploymentProviderAdapter({client:railwayDeploymentClient,name:"railway"}),
+      vercel:new DeploymentProviderAdapter({client:vercelDeploymentClient,name:"vercel"})
+    },
+    deploymentStatus:new DeploymentStatusPoller({intervalMs:config.executionPlatform?.deploymentPollMs??5000,timeoutMs:config.executionPlatform?.deploymentTimeoutMs??300000}),
+    health:new ProductionHealthVerifier({healthVerifier}),
+    rollback:externalRollback,
+    evidence:externalEvidence
+  });
 
   const executionPlatform=new ExecutionPlatformV2({
     github:remoteRepository,
@@ -328,7 +347,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     recovery:recoveryController,
     checkpoints:v2CheckpointStore,
     controlLoop,
-    infrastructure
+    infrastructure,
+    externalExecution
   });
   const auditLog=new AuditLog({observability:null});
 
