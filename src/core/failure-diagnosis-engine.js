@@ -1,0 +1,1 @@
+export class FailureDiagnosisEngine{constructor(){this.version="1.66.0";}diagnose({failures=[]}={}){return{accepted:true,status:"FAILURE_DIAGNOSIS_CREATED",version:this.version,diagnoses:failures.map(f=>({taskId:f.taskId||null,cause:"requires runtime evidence",nextAction:"collect logs and reproduce"}))};}}
