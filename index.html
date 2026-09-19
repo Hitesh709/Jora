@@ -92,6 +92,19 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 </select>
 <div id="providerInfo" class="muted" style="margin:-5px 0 12px"></div>
 <div id="providerFields" style="display:none"><label class="muted">API key (stored only in this browser)</label><input id="providerKey" type="password" placeholder="Optional provider API key"><label class="muted">Model / endpoint</label><input id="providerModel" placeholder="Model name or endpoint"></div>
+<div class="panel" style="margin-top:8px;padding:12px;background:#10141a">
+<strong>Free coding services</strong>
+<div class="muted" style="margin:5px 0 8px">These are external services. Free quotas and availability can change. Jora does not claim they are unlimited.</div>
+<div style="display:grid;gap:6px;font-size:12px">
+<a href="https://github.com/features/copilot/plans" target="_blank" rel="noopener" style="color:#cdd3dd">GitHub Copilot Free →</a>
+<a href="https://developers.google.com/gemini-code-assist" target="_blank" rel="noopener" style="color:#cdd3dd">Gemini Code Assist →</a>
+<a href="https://aws.amazon.com/q/developer/" target="_blank" rel="noopener" style="color:#cdd3dd">Amazon Q Developer →</a>
+<a href="https://kilo.ai/" target="_blank" rel="noopener" style="color:#cdd3dd">Kilo Code Auto Free →</a>
+<a href="https://cline.bot/" target="_blank" rel="noopener" style="color:#cdd3dd">Cline →</a>
+<a href="https://freebuff.ai/" target="_blank" rel="noopener" style="color:#cdd3dd">Freebuff →</a>
+<a href="https://openrouter.ai/collections/free-models" target="_blank" rel="noopener" style="color:#cdd3dd">OpenRouter Free Models →</a>
+<a href="https://ollama.com/" target="_blank" rel="noopener" style="color:#cdd3dd">Ollama Local AI →</a>
+</div></div>
 <div class="actions"><button class="secondary" onclick="closeSettings()">Cancel</button><button class="send" onclick="saveSettings()">Save connection</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
