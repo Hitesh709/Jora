@@ -1,0 +1,1 @@
+export class PullRequestAgent{constructor({github=null}={}){this.github=github;this.version="1.77.0";}prepare({repository,branch,base="main",evidence=[]}={}){return{accepted:true,status:"PULL_REQUEST_READY",version:this.version,repository,branch,base,evidence,policy:{requiredChecks:["tests","validation"],autoMerge:false}};}}
