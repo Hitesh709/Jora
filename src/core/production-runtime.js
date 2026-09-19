@@ -358,7 +358,10 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     controlLoop,
     infrastructure,
     externalExecution,
-    customerControl
+    customerControl,
+    productUnderstanding,
+    architecturePlanner,
+    taskDAGGenerator
   });
   const auditLog=new AuditLog({observability:null});
 
