@@ -377,6 +377,22 @@ export class OperatorApi {
       }));
     }
 
+    if(method==="GET" && path==="/v4/teams/status") return json(res,200,this.executionPlatform?.agentTeams?.status?.()||{});
+    if(method==="GET" && path==="/v4/teams") return json(res,200,{teams:this.executionPlatform.agentTeams.registry.list()});
+    if(method==="POST" && path==="/v4/teams") {
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,201,this.executionPlatform.createAgentTeam(body||{}));}catch(error){return json(res,400,{accepted:false,error:error.message});}
+    }
+    if(method==="POST" && path==="/v4/teams/execute") {
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,200,await this.executionPlatform.agentTeamExecute(body||{}));}catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+    if(method==="GET" && path==="/v4/teams/memory") return json(res,200,{records:this.executionPlatform.agentTeams.memory.search({query:url.searchParams.get("query")||"",limit:Number(url.searchParams.get("limit")||20)})});
+    if(method==="POST" && path==="/v4/teams/review") {
+      const body=await readBody(req,this.maxBodyBytes);
+      return json(res,200,this.executionPlatform.agentTeams.review.review(body||{}));
+    }
+
     if(method==="GET" && path==="/v4/agents/status") return json(res,200,this.executionPlatform?.agentSwarm?.status?.()||{});
     if(method==="POST" && path==="/v4/agents/route") {
       const body=await readBody(req,this.maxBodyBytes);
