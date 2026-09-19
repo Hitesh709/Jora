@@ -43,7 +43,7 @@ a{color:#8ab4ff}
 <section class="card"><h2>Observability Events</h2><pre id="events">Loading…</pre></section>
 </main>
 <script>
-const apiBase=new URLSearchParams(location.search).get("api")||"https://jora-api-production.up.railway.app";
+const apiBase=new URLSearchParams(location.search).get("api")||"https://jora-api-v2-observability-fix-production.up.railway.app";
 const h=()=>{const t=document.getElementById("token").value;return t?{Authorization:"Bearer "+t}:{}};
 async function get(p){
   const r=await fetch(apiBase+p,{headers:h()});
