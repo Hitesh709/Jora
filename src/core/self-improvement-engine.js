@@ -1,0 +1,1 @@
+export class SelfImprovementEngine{constructor(){this.version="1.89.0";}plan({policies=[]}={}){return{accepted:true,status:"SELF_IMPROVEMENT_PLAN_READY",version:this.version,improvements:policies.map(p=>({area:p.area,action:p.action,validationRequired:true})),guardrails:["no unvalidated production mutation","preserve rollback path","measure before and after"]};}}
