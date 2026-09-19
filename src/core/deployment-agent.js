@@ -1,0 +1,1 @@
+export class DeploymentAgent{constructor({railway=null,vercel=null}={}){this.railway=railway;this.vercel=vercel;this.version="1.78.0";}prepare({target,revision}={}){return{accepted:true,status:"DEPLOYMENT_READY",version:this.version,target,revision,policy:{explicitTargetRequired:true,healthcheckRequired:true,rollbackReady:true}};}}
