@@ -121,7 +121,7 @@ export class WebhookDeploymentClient {
 }
 
 export class ExecutionPlatformV2 {
-  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null,customerProduction=null,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null,customerSaaS=null,customerOperations=null,customerPlatformV4=null,agentSwarm=null}={}) {
+  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null,externalExecution=null,customerControl=null,customerProduction=null,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,projectBuilder=null,repositoryFactory=null,applicationFactory=null,customerSaaS=null,customerOperations=null,customerPlatformV4=null,agentSwarm=null,modelGateway=null}={}) {
     this.version="2.70.0";
     this.github=github;this.sandbox=sandbox;this.testRunner=testRunner;this.queue=queue;
     this.approvalGate=approvalGate??new ApprovalGate();
