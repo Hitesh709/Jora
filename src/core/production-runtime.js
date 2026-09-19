@@ -324,7 +324,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const customerMissions=new CustomerMissionManager({store:new JsonStore({file:customerConfig.missionStateFile||"./.jora/customer-missions.json"})});
   const customerMeter=new UsageMeter({store:new JsonStore({file:customerConfig.usageStateFile||"./.jora/customer-usage.json"})});
   const customerWorkspaces=new CustomerWorkspaceRegistry({store:new JsonStore({file:customerConfig.workspaceStateFile||"./.jora/customer-workspaces.json"})});
-  const customerVersions=new CustomerVersionRegistry();
+  const customerVersions=new CustomerVersionRegistry({store:new JsonStore({file:customerConfig.versionStateFile||"./.jora/customer-versions.json"})});
   const customerRepositoryFactory=new CustomerRepositoryFactory({
     github:remoteRepository,
     organization:customerConfig.githubOrganization||config.github?.customerOrganization||null,
