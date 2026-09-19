@@ -1,0 +1,1 @@
+export class ArchitectureFeedbackEngine{constructor(){this.version="1.86.0";}analyze({failures=[],architecture}={}){return{accepted:true,status:"ARCHITECTURE_FEEDBACK_CREATED",version:this.version,signals:failures.map(f=>({taskId:f.taskId||null,signal:"component may need stronger contract"})),architectureVersion:architecture?.version||null};}}
