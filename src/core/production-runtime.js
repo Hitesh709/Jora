@@ -390,7 +390,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     architecturePlanner,
     taskDAGGenerator,
     projectBuilder,
-    repositoryFactory:customerRepositoryFactory,applicationFactory:customerApplicationFactory
+    repositoryFactory:customerRepositoryFactory,applicationFactory:customerApplicationFactory,customerSaaS
   });
   customerRouter.executionPlatform=executionPlatform;
   await executionPlatform.customerProduction.lineage.load();
