@@ -85,6 +85,7 @@ import {AutonomousCodingOrchestrator} from "./autonomous-coding-orchestrator.js"
 import {AutonomousEngineeringLoop} from "./autonomous-engineering-loop.js";
 import {SelfImprovingEngineeringCore} from "./self-improving-engineering-core.js";
 import {AutonomousSoftwareFactory} from "./autonomous-software-factory.js";
+import {ProductionInfrastructureControlPlane,StartupConfigValidator,ReadinessProbe,GracefulShutdownCoordinator,DependencyHealthRegistry,DurableStateRecoveryScanner,RuntimeResourceGuard,RuntimeConfigSnapshot} from "./production-infrastructure-control-plane-v2.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -153,6 +154,9 @@ function createDeploymentController({
 export async function createProductionJoraRuntime({config,modelGateway}={}) {
   if(!config) throw new Error("config is required");
   if(!modelGateway) throw new Error("modelGateway is required");
+  const infrastructureValidator=new StartupConfigValidator();
+  const configValidation=infrastructureValidator.validate({config,required:["workspace"]});
+  if(!configValidation.valid) throw new Error("invalid production configuration: missing "+configValidation.missing.join(", "));
 
   const observability=new ObservabilityStore({
     store:new JsonStore({file:config.observabilityStateFile||"./.jora/observability.json"})
@@ -281,7 +285,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const autonomousEngineeringLoop=new AutonomousEngineeringLoop();
   const selfImprovingEngineeringCore=new SelfImprovingEngineeringCore();
   const autonomousSoftwareFactory=new AutonomousSoftwareFactory();
-  const platformQueue=distributedConfig.enabled ? queueStore : new PersistentLocalQueue({file:config.executionPlatform?.localQueueFile});
+  let platformQueue=null;
   const approvalGate=new ApprovalGate({autoApproveLowRisk:config.executionPlatform?.autoApproveLowRisk!==false});
   const workerPool=new WorkerPool({concurrency:config.executionPlatform?.workerConcurrency??2});
   const railwayDeploymentClient=new WebhookDeploymentClient({webhookUrl:config.deployment?.railway?.webhookUrl,timeoutMs:config.deployment?.timeoutMs});
@@ -298,6 +302,15 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   },ledger:executionLedger});
   const recoveryController=new RecoveryController({healthVerifier,rollbackCoordinator,ledger:executionLedger});
   const controlLoop=new AutonomousControlLoop({ledger:executionLedger,policy:controlPolicy,preflight:controlPreflight,checkpoints:v2CheckpointStore});
+  const infrastructureDependencies=new DependencyHealthRegistry();
+  infrastructureDependencies.register("execution-store",async()=>true);
+  infrastructureDependencies.register("model-gateway",async()=>Boolean(modelGateway),{critical:true});
+  const infrastructureReadiness=new ReadinessProbe({checks:{runtime:async()=>true}});
+  const infrastructureShutdown=new GracefulShutdownCoordinator({timeoutMs:config.executionPlatform?.shutdownTimeoutMs??30000});
+  infrastructureShutdown.register("worker",async()=>worker?.stop?.());
+  const infrastructureRecovery=new DurableStateRecoveryScanner({stores:[executionStore,lineageStore,championStore,learningMemory]});
+  const infrastructure=new ProductionInfrastructureControlPlane({validator:infrastructureValidator,readiness:infrastructureReadiness,shutdown:infrastructureShutdown,dependencies:infrastructureDependencies,recovery:infrastructureRecovery,resources:new RuntimeResourceGuard({maxConcurrent:config.executionPlatform?.maxConcurrent??100,maxMemoryMb:config.executionPlatform?.maxMemoryMb??2048}),configSnapshot:new RuntimeConfigSnapshot({version:"2.70.0",config})});
+
   const executionPlatform=new ExecutionPlatformV2({
     github:remoteRepository,
     sandbox,
@@ -314,7 +327,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     healthVerifier,
     recovery:recoveryController,
     checkpoints:v2CheckpointStore,
-    controlLoop
+    controlLoop,
+    infrastructure
   });
   const auditLog=new AuditLog({observability:null});
 
@@ -387,6 +401,7 @@ Limit: ${limit}`}]});
         maxConnections:distributedConfig.maxConnections
       })
     : null;
+  platformQueue=distributedConfig.enabled ? queueStore : new PersistentLocalQueue({file:config.executionPlatform?.localQueueFile});
 
   const governance=new GovernanceStateMachine({store:executionStore,auditLog});
   const runtime=new JoraRuntime({
@@ -551,11 +566,12 @@ Limit: ${limit}`}]});
         autonomousCodingOrchestrator,
         autonomousEngineeringLoop,
         selfImprovingEngineeringCore,
-        autonomousSoftwareFactory
+        autonomousSoftwareFactory,
+        executionPlatform
       })
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,agentRuntime,agentToolRegistry,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
-    executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,platformQueue,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,autonomousEngineeringLoop,selfImprovingEngineeringCore,autonomousSoftwareFactory,executionPlatform,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    infrastructure,executionStore,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,platformQueue,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,autonomousEngineeringLoop,selfImprovingEngineeringCore,autonomousSoftwareFactory,executionPlatform,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
