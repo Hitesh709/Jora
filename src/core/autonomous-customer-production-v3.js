@@ -33,7 +33,7 @@ export class CustomerMissionOrchestrator {
       if(this.projectBuilder && this.repositoryFactory && project?.repository) {
         const remote=this.repositoryFactory.repositoryFor(project.repository);
         if(remote) {
-          const workspacePath=project.workspace?.path||context.workspacePath;
+          const workspacePath=project.workspace?.path||context.workspacePath||this.customer?.workspaces?.list?.({tenantId:mission.tenantId,projectId:mission.projectId})?.[0]?.path||"./.jora/customer-workspaces/"+mission.tenantId+"/"+mission.projectId;
           if(workspacePath) {
             const workspaceModule=await import("./workspace-repository.js");
             const workspace=new workspaceModule.WorkspaceRepository({root:workspacePath,remoteRepository:remote});
