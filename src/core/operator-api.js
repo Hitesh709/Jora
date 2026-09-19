@@ -350,6 +350,18 @@ export class OperatorApi {
       return json(res,200,await this.executionPlatform.manifest(body));
     }
 
+    if(method==="POST" && path==="/v2/reliability/preflight") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try{return json(res,200,await this.executionPlatform.reliabilityPreflight({...body,tenantId:body.tenantId||tenantId}));}
+      catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
+    }
+
+    if(method==="GET" && path==="/v2/reliability/health-events") {
+      if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{events:this.executionPlatform.reliability.eventBus.list(url.searchParams.get("limit")||100)});
+    }
+
     if(method==="GET" && path==="/v2/platform") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.status());
