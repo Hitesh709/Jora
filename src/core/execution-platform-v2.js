@@ -6,6 +6,7 @@ import {ReliabilityControlPlane} from "./reliability-control-plane-v2.js";
 import {ResilienceControlPlane} from "./resilience-control-plane-v2.js";
 import {AutonomousDeliveryControlPlane} from "./autonomous-delivery-control-plane-v2.js";
 import {AutonomousReleaseControlPlane} from "./autonomous-release-control-plane-v2.js";
+import {ProductionInfrastructureControlPlane} from "./production-infrastructure-control-plane-v2.js";
 
 export class ApprovalGate {
   constructor({autoApproveLowRisk=true}={}) {
@@ -112,8 +113,8 @@ export class WebhookDeploymentClient {
 }
 
 export class ExecutionPlatformV2 {
-  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null}={}) {
-    this.version="2.10.0";
+  constructor({github=null,sandbox=null,testRunner=null,queue=null,approvalGate=null,workerPool=null,deploymentClients={},ledger=null,idempotency=null,policy=null,preflight=null,artifacts=null,healthVerifier=null,recovery=null,checkpoints=null,controlLoop=null,reliability=null,resilience=null,delivery=null,release=null,infrastructure=null}={}) {
+    this.version="2.70.0";
     this.github=github;this.sandbox=sandbox;this.testRunner=testRunner;this.queue=queue;
     this.approvalGate=approvalGate??new ApprovalGate();
     this.workerPool=workerPool??new WorkerPool();
@@ -131,6 +132,7 @@ export class ExecutionPlatformV2 {
     this.resilience=resilience??new ResilienceControlPlane();
     this.delivery=delivery??new AutonomousDeliveryControlPlane({platform:this});
     this.release=release??new AutonomousReleaseControlPlane();
+    this.infrastructure=infrastructure??new ProductionInfrastructureControlPlane();
   }
   status() {
     return {
@@ -153,7 +155,8 @@ export class ExecutionPlatformV2 {
       reliability:{multiTenant:true,rateBudget:true,circuitBreaker:true,sandboxPolicy:true,costMeter:true,eventBus:true},
       resilience:{slo:true,backpressure:true,retry:true,failureClassification:true,incidentCorrelation:true,changeRisk:true,deploymentStrategy:true,featureFlags:true,disasterRecovery:true},
       delivery:{distributedArtifacts:true,durableTeams:true,specialistConsensus:true,collaborativeReview:true,agentLifecycle:true,teamOptimization:true,productionSLORecovery:true,continuousEvolution:true,missionToProduction:true,autonomousDelivery:true},
-      release:this.release.status().capabilities
+      release:this.release.status().capabilities,
+      infrastructure:this.infrastructure.status().capabilities
     };
   }
   deliveryStatus(){return this.delivery.status();}
@@ -198,3 +201,4 @@ export class ExecutionPlatformV2 {
     return client.deploy({target,payload});
   }
 }
+\n
