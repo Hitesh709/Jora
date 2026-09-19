@@ -28,9 +28,13 @@ export class PostgresTaskQueue {
         error TEXT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        finished_at TIMESTAMPTZ
+        finished_at TIMESTAMPTZ,
+        max_attempts INTEGER NOT NULL DEFAULT 3,
+        backoff_ms INTEGER NOT NULL DEFAULT 1000
       )
     `);
+    await this.pool.query(`ALTER TABLE jora_jobs ADD COLUMN IF NOT EXISTS max_attempts INTEGER NOT NULL DEFAULT 3`);
+    await this.pool.query(`ALTER TABLE jora_jobs ADD COLUMN IF NOT EXISTS backoff_ms INTEGER NOT NULL DEFAULT 1000`);
     await this.pool.query(`
       CREATE INDEX IF NOT EXISTS jora_jobs_claim_idx
       ON jora_jobs(namespace,status,available_at,created_at)
@@ -38,16 +42,16 @@ export class PostgresTaskQueue {
     this.initialized=true;
   }
 
-  async enqueue({command,constraints={},context={},availableAt=null}={}) {
+  async enqueue({command,constraints={},context={},availableAt=null,maxAttempts=3,backoffMs=1000}={}) {
     if(!command) throw new Error("command is required");
     await this.initialize();
     const id="job_"+randomUUID();
     const result=await this.pool.query(
       `INSERT INTO jora_jobs
-       (id,namespace,command,constraints,context,status,available_at)
-       VALUES($1,$2,$3,$4::jsonb,$5::jsonb,'QUEUED',COALESCE($6::timestamptz,NOW()))
+       (id,namespace,command,constraints,context,status,available_at,max_attempts,backoff_ms)
+       VALUES($1,$2,$3,$4::jsonb,$5::jsonb,'QUEUED',COALESCE($6::timestamptz,NOW()),$7,$8)
        RETURNING *`,
-      [id,this.namespace,command,JSON.stringify(constraints),JSON.stringify(context),availableAt]
+      [id,this.namespace,command,JSON.stringify(constraints),JSON.stringify(context),availableAt,maxAttempts,backoffMs]
     );
     return result.rows[0];
   }
@@ -109,15 +113,15 @@ export class PostgresTaskQueue {
 
   async fail({id,workerId,error,retry=true}={}) {
     await this.initialize();
-    const status=retry ? "QUEUED" : "FAILED";
     const r=await this.pool.query(
-      `UPDATE jora_jobs SET status=$3,error=$4,
-       locked_by=NULL,locked_until=NULL,
-       available_at=CASE WHEN $3='QUEUED' THEN NOW() ELSE available_at END,
-       finished_at=CASE WHEN $3='FAILED' THEN NOW() ELSE NULL END,
+      `UPDATE jora_jobs SET
+       status=CASE WHEN $3 AND attempts < max_attempts THEN 'QUEUED' ELSE 'DEAD_LETTER' END,
+       error=$4,locked_by=NULL,locked_until=NULL,
+       available_at=CASE WHEN $3 AND attempts < max_attempts THEN NOW() + (backoff_ms * POWER(2,GREATEST(attempts-1,0)) * INTERVAL '1 millisecond') ELSE available_at END,
+       finished_at=CASE WHEN $3 AND attempts < max_attempts THEN NULL ELSE NOW() END,
        updated_at=NOW()
        WHERE id=$1 AND locked_by=$2 RETURNING *`,
-      [id,workerId,status,error??"job failed"]
+      [id,workerId,retry,error??"job failed"]
     );
     if(!r.rows.length) throw new Error("job lease is not owned by worker");
     return r.rows[0];
