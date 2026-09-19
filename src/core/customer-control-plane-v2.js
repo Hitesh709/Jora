@@ -83,10 +83,12 @@ export class CustomerWorkspaceRegistry {
 }
 
 export class CustomerVersionRegistry {
-  constructor(){this.versions=[];}
+  constructor({store=null}={}){this.store=store;this.versions=[];}
+  async load(){this.versions=await this.store?.read?.([])||[];return this.list();}
   record({tenantId,projectId,missionId,revision,status="CREATED",metadata={}}={}) {
-    const version={id:"version_"+randomUUID(),tenantId,projectId,missionId,revision,status,metadata,createdAt:new Date().toISOString()};this.versions.push(version);return version;
+    const version={id:"version_"+randomUUID(),tenantId,projectId,missionId,revision,status,metadata,createdAt:new Date().toISOString()};this.versions.push(version);this.persist();return version;
   }
+  async persist(){await storeWrite(this.store,this.versions);}
   list({tenantId,projectId,limit=100}={}){return this.versions.filter(v=>(!tenantId||v.tenantId===tenantId)&&(!projectId||v.projectId===projectId)).slice(-limit).reverse();}
 }
 
@@ -127,6 +129,6 @@ export class CustomerControlPlaneV2 {
     this.quota=quota??new QuotaGuard(); this.meter=meter??new UsageMeter(); this.workspaces=workspaceRegistry??new CustomerWorkspaceRegistry(); this.versions=versionRegistry??new CustomerVersionRegistry(); this.repositoryFactory=repositoryFactory??null;
     this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,workspaceRegistry:this.workspaces,versionRegistry:this.versions});
   }
-  async load(){await Promise.all([this.tenants.load(),this.projects.load(),this.missions.load(),this.meter.load(),this.workspaces.load()]);}
+  async load(){await Promise.all([this.tenants.load(),this.projects.load(),this.missions.load(),this.meter.load(),this.workspaces.load(),this.versions.load()]);}
   status(){return {version:this.version,capabilities:{tenantLifecycle:true,projectIsolation:true,usageMetering:true,quotaEnforcement:true,customerMissions:true,executionRouting:true,durableCustomerState:Boolean(this.tenants.store||this.projects.store||this.missions.store||this.meter.store),workspaces:true,projectVersions:true,planQuotas:true,customerIsolation:true,repositoryProvisioning:Boolean(this.repositoryFactory)}};}
 }
