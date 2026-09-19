@@ -5,9 +5,14 @@ export class CustomerMissionOrchestrator {
   async execute(mission,{context={}}={}) {
     this.missionManager.transition(mission.id,"RUNNING");
     try {
-      const result=await this.executionPlatform?.control?.({objective:mission.objective,context:{...context,tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id}});
-      const finalStatus=result?.status==="BLOCKED"?"BLOCKED":"COMPLETED";
-      return this.missionManager.transition(mission.id,finalStatus,result);
+      const gate=await this.executionPlatform?.control?.({operation:"customer.mission",risk:context.risk||"medium",evidence:context.evidence||[],context:{...context,tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id},phase:"customer"});
+      if(gate && gate.ready===false) return this.missionManager.transition(mission.id,"BLOCKED",gate);
+      if(context.delivery && typeof this.executionPlatform?.externalEndToEnd==="function") {
+        const delivery=await this.executionPlatform.externalEndToEnd(context.delivery);
+        const finalStatus=delivery?.status==="DELIVERED"?"DELIVERED":delivery?.status==="ROLLED_BACK"?"ROLLED_BACK":"FAILED";
+        return this.missionManager.transition(mission.id,finalStatus,{gate,delivery});
+      }
+      return this.missionManager.transition(mission.id,"READY_FOR_EXECUTION",{gate});
     } catch(error) {
       return this.missionManager.transition(mission.id,"FAILED",{error:error.message});
     }
