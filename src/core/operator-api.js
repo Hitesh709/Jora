@@ -422,6 +422,20 @@ export class OperatorApi {
       return json(res,200,this.executionPlatform.status());
     }
 
+    if(method==="GET" && path==="/v2/infrastructure") {
+      if(!this.executionPlatform?.infrastructure) return json(res,503,{error:"infrastructure_control_plane_not_configured"});
+      return json(res,200,this.executionPlatform.infrastructure.status());
+    }
+    if(method==="GET" && path==="/v2/infrastructure/live") {
+      if(!this.executionPlatform?.infrastructure) return json(res,503,{error:"infrastructure_control_plane_not_configured"});
+      return json(res,200,this.executionPlatform.infrastructure.live());
+    }
+    if(method==="GET" && path==="/v2/infrastructure/ready") {
+      if(!this.executionPlatform?.infrastructure) return json(res,503,{error:"infrastructure_control_plane_not_configured"});
+      const result=await this.executionPlatform.infrastructure.ready({tenantId});
+      return json(res,result.ready?200:503,result);
+    }
+
     if(method==="GET" && path==="/v2/approvals") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,{approvals:this.executionPlatform.approvalGate.list()});
