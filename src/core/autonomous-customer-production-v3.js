@@ -6,6 +6,7 @@ export class CustomerMissionOrchestrator {
   }
   async execute(mission,{context={}}={}) {
     this.missionManager.transition(mission.id,"RUNNING");
+    const customer=this.customer??this.executionPlatform?.customerControl;
     try {
       const baseContext={...context,tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id};
       const gate=await this.executionPlatform?.control?.({
@@ -50,7 +51,7 @@ export class CustomerMissionOrchestrator {
             });
             build={...build,localTests};
             if(localTests && localTests.ok===false) {
-              const version=this.customer.versions?.record({
+              const version=customer?.versions?.record({
                 tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
                 status:"LOCAL_TEST_FAILED",metadata:{localTests}
               });
