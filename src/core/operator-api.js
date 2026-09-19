@@ -78,7 +78,7 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
-    this.auditLog=auditLog;
+    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -207,6 +207,21 @@ export class OperatorApi {
 
     if(method==="GET" && path==="/v1/metrics") {
       return json(res,200,this.metrics?.snapshot ? this.metrics.snapshot() : {counters:{},histograms:{}});
+    }
+
+    if(method==="POST" && path==="/v1/understand") {
+      if(!this.productUnderstanding) return json(res,503,{error:"product_understanding_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(typeof body.input!=="string" || !body.input.trim()) return json(res,400,{error:"input is required"});
+      try {
+        const specification=await this.productUnderstanding.understand({
+          input:body.input.trim(),
+          context:{...(body.context??{}),tenantId}
+        });
+        return json(res,200,{accepted:true,status:"UNDERSTOOD",specification});
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"FAILED",error:error.message});
+      }
     }
 
     if(method==="GET" && path==="/v1/status") {
