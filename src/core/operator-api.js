@@ -78,7 +78,7 @@ export class OperatorApi {
     this.rateLimitPerMinute=Math.max(1,Number(rateLimitPerMinute)||120);
     this.rateBuckets=new Map();
     this.accessController=accessController;
-    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;
+    this.auditLog=auditLog;\n    this.productUnderstanding=productUnderstanding;\n    this.architecturePlanner=architecturePlanner;
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -219,6 +219,21 @@ export class OperatorApi {
           context:{...(body.context??{}),tenantId}
         });
         return json(res,200,{accepted:true,status:"UNDERSTOOD",specification});
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"FAILED",error:error.message});
+      }
+    }
+
+    if(method==="POST" && path==="/v1/architecture/plan") {
+      if(!this.architecturePlanner) return json(res,503,{error:"architecture_planner_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const result=await this.architecturePlanner.plan({
+          specification:body.specification,
+          input:body.input,
+          context:{...(body.context??{}),tenantId}
+        });
+        return json(res,200,result);
       } catch(error) {
         return json(res,400,{accepted:false,status:"FAILED",error:error.message});
       }
