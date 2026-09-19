@@ -1,19 +1,17 @@
 #!/usr/bin/env node
 
 import {runtimeConfig} from "./core/runtime-config.js";
-import {ModelGateway} from "./core/model-gateway.js";
+import {MultiModelGateway,AnthropicProvider} from "./core/multi-model-gateway.js";
 import {OpenAICompatibleProvider} from "./core/openai-compatible-provider.js";
 import {createProductionJoraRuntime} from "./core/production-runtime.js";
 
 try {
   const config=runtimeConfig();
-  const provider=config.model.apiKey
-    ? new OpenAICompatibleProvider(config.model)
-    : {complete:async()=>{throw new Error("OPENAI_API_KEY is required for model-backed operations");}};
-  const modelGateway=new ModelGateway({
-    providers:new Map([["default",provider]]),
-    defaultModel:"default"
-  });
+  const providers=new Map();
+  if(config.model.apiKey) providers.set("openai",new OpenAICompatibleProvider(config.model));
+  if(config.models.anthropicApiKey) providers.set("claude",new AnthropicProvider(config.models));
+  if(!providers.size) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
+  const modelGateway=new MultiModelGateway({providers,defaultModel:config.model.defaultModel||"openai",fallbackModels:config.model.fallbackModels});
   const composed=await createProductionJoraRuntime({config,modelGateway});
   if(!composed.api) throw new Error("JORA_API_ENABLED=true is required");
   const address=await composed.api.start();
