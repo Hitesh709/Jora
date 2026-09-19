@@ -7,7 +7,8 @@ test("request-scoped provider selection overrides the default gateway model",asy
   const gateway=new MultiModelGateway({
     providers:new Map([
       ["default",{complete:async r=>{calls.push(["default",r.model]);return {text:"default"}}}],
-      ["kilo-free",{complete:async r=>{calls.push(["kilo-free",r.model]);return {text:"free"}}}]
+      ["kilo-free",{complete:async r=>{calls.push(["kilo-free",r.model]);return {text:"free"}}}],
+      ["opencode-free",{complete:async r=>{calls.push(["opencode-free",r.model]);return {text:"opencode"}}}]
     ]),
     defaultModel:"default"
   });
@@ -35,4 +36,18 @@ test("anonymous OpenAI-compatible provider can be used without an API key",async
   const provider=new OpenAICompatibleProvider({apiKey:null,allowAnonymous:true,baseUrl:"https://example.invalid/v1",model:"free"});
   assert.equal(provider.apiKey,null);
   assert.equal(provider.allowAnonymous,true);
+});
+
+
+test("OpenCode free provider can be selected as a request-scoped engine",async()=>{
+  const gateway=new MultiModelGateway({
+    providers:new Map([
+      ["default",{complete:async()=>({text:"default"})}],
+      ["opencode-free",{complete:async r=>({text:"opencode",model:r.model})}]
+    ]),
+    defaultModel:"default"
+  });
+  const result=await withModelSelection("opencode-free",()=>gateway.complete({messages:[]}));
+  assert.equal(result.text,"opencode");
+  assert.equal(result.model,"opencode-free");
 });
