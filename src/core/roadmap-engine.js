@@ -48,6 +48,16 @@ export class RoadmapEngine {
     return task;
   }
 
+  addTask(task) {
+    if(!task?.id) throw new Error("Task id is required");
+    if(this.roadmap.some(x=>x.id===task.id)) throw new Error(`Task already exists: ${task.id}`);
+    const normalized={...task,dependencies:[...(task.dependencies??[])],status:task.status??STATUS.BACKLOG};
+    this.roadmap.push(normalized);
+    this.state.tasks[normalized.id]={...normalized,attempts:0,evidence:[]};
+    this.registry.add(normalized);
+    return structuredClone(this.state.tasks[normalized.id]);
+  }
+
   async claim(id) {
     await this.load();
     const task=this._task(id);
