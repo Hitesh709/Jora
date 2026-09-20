@@ -23,7 +23,7 @@ async function runGeneratedTests(root){
     let stdout="",stderr="";
     child.stdout.on("data",x=>stdout+=x);
     child.stderr.on("data",x=>stderr+=x);
-    child.on("close",code=>resolve({ok:code===0,code,stdout,stderr}));
+    child.on("close",code=>{\n      const output=stdout+"\\n"+stderr;\n      const failedTests=/# fail\\s+[1-9]/.test(output);\n      resolve({ok:code===0&&!failedTests,code,stdout,stderr});\n    });
   });
 }
 
