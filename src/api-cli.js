@@ -35,12 +35,15 @@ try {
     }));
   }
   if(!config.model.apiKey && !config.models.anthropicApiKey) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
-  // Jora must have a usable default even when no paid OpenAI/Anthropic key is configured.
-  // Prefer the configured model when it is actually registered; otherwise use Kilo Auto Free.
-  const configuredDefault=config.model.defaultModel||"";
-  const defaultModel=providers.has(configuredDefault)
-    ? configuredDefault
+  // Jora is the product-level default AI. A concrete free model is only its internal execution engine.
+  // This keeps the UI/backend identity as Jora while avoiding paid-provider authentication requirements.
+  const configuredDefault=config.model.defaultModel||"jora";
+  const joraEngine=providers.has("opencode-mimo-v2.5-free") ? "opencode-mimo-v2.5-free"
     : (providers.has("kilo-free") ? "kilo-free" : ([...providers.keys()].find(x=>x!=="default")||"default"));
+  const effectiveDefault=configuredDefault==="jora" ? joraEngine : configuredDefault;
+  const defaultModel=providers.has(effectiveDefault)
+    ? effectiveDefault
+    : joraEngine;
   const fallbackModels=[
     ...config.model.fallbackModels,
     "kilo-free",
