@@ -384,7 +384,6 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
   await customerSaaS.load();
   await customerOperations.load();
-  customerOperations.start();
 
   const externalExecution=new ExternalExecutionControlPlaneV2({
     github:new GitHubExecutionAdapter({repository:remoteRepository}),
@@ -426,6 +425,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     repositoryFactory:customerRepositoryFactory,applicationFactory:customerApplicationFactory,customerSaaS,customerOperations
   });
   customerRouter.executionPlatform=executionPlatform;
+  customerOperations.executionPlatform=executionPlatform;
+  customerOperations.start();
   await executionPlatform.customerProduction.lineage.load();
   await customerApplicationFactory.load();
   const auditLog=new AuditLog({observability:null});
