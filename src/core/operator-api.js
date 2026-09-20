@@ -186,13 +186,16 @@ export class OperatorApi {
 
     if(this._rateLimited(req)) return json(res,429,{error:"rate_limit_exceeded",retryAfterSeconds:60});
 
+    // Public browser API: these endpoints are intentionally callable from the Vercel UI
+    // without exposing a permanent server secret to end users. Rate limiting still applies.
+    const publicApiPaths=new Set(["/v1/chat","/v1/search","/v1/execute","/v1/providers"]);
+    const isPublicApi=method==="POST" && publicApiPaths.has(path) || method==="GET" && path==="/v1/providers";
     const principal=this._principal(req);
     const tenantId=this.accessController?.tenant(principal)||"default";
-    const actorId=principal?.id||"local";
+    const actorId=principal?.id||"public";
     const action=method==="GET"?"read":(path==="/v1/execute"||path==="/v1/chat"||path==="/v1/jobs"||path.startsWith("/v1/worker")?"execute":"operate");
-    if(!this._authorized(req,action)) {
+    if(!isPublicApi && !this._authorized(req,action)) {
       await this.auditLog?.record({action:"AUTH_DENIED",actorId,tenantId,resource:path,metadata:{method}});
-
       return json(res,401,{error:"unauthorized"});
     }
 
