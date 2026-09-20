@@ -68,3 +68,21 @@ test("autonomous controller repairs after CI failure and retries promotion", asy
   assert.equal(builds[0].source,"CI");
   assert.match(JSON.stringify(builds[0].diagnosis),/npm test failed/);
 });
+
+
+test("autonomous controller keeps security repair feedback JSON-safe", async()=>{
+  let builds=0;
+  const controller=new AutonomousController({
+    delivery:{deliver:async({context})=>{
+      builds+=1;
+      if(builds===1) return {status:"DELIVERED",project:{version:"candidate-1",evaluation:{passed:true}}};
+      return {status:"DELIVERED",project:{version:"candidate-2",evaluation:{passed:true}}};
+    }},
+    securityCouncil:{review:async()=>builds===1?{passed:false,findings:["blocked"]}:{passed:true}},
+    promotion:{promote:async()=>({status:"PROMOTED",candidate:{version:"candidate-2"},decision:{passed:true}})},
+    maxCycles:2
+  });
+  const result=await controller.run({command:"repair security"});
+  assert.equal(result.status,"PROMOTED");
+  assert.doesNotThrow(()=>JSON.stringify(result));
+});
