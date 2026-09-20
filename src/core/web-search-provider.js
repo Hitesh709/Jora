@@ -20,6 +20,7 @@ export class WebSearchProvider {
     if(this.endpoint && this.apiKey) return true;
     if(this.provider==="tavily") return Boolean(this.apiKey);
     if(this.provider==="brave") return Boolean(this.apiKey);
+    if(this.provider==="duckduckgo") return true;
     return Boolean(process.env.TAVILY_API_KEY||process.env.BRAVE_SEARCH_API_KEY||this.apiKey);
   }
 
@@ -27,7 +28,7 @@ export class WebSearchProvider {
     if(this.provider!=="auto") return this.provider;
     if(process.env.TAVILY_API_KEY||this.apiKey && this.endpoint?.includes("tavily")) return "tavily";
     if(process.env.BRAVE_SEARCH_API_KEY||this.apiKey && this.endpoint?.includes("brave")) return "brave";
-    return process.env.BRAVE_SEARCH_API_KEY ? "brave" : "tavily";
+    return process.env.BRAVE_SEARCH_API_KEY ? "brave" : (process.env.TAVILY_API_KEY ? "tavily" : "duckduckgo");
   }
 
   async search({query,maxResults=this.maxResults,topic="general"}={}) {
@@ -43,6 +44,7 @@ export class WebSearchProvider {
     const provider=this.resolvedProvider();
     if(provider==="tavily") return this._tavily(q,limit,topic);
     if(provider==="brave") return this._brave(q,limit);
+    if(provider==="duckduckgo") return this._duckduckgo(q,limit);
     throw new Error("unsupported search provider: "+provider);
   }
 
@@ -61,6 +63,30 @@ export class WebSearchProvider {
         throw error;
       }
       return data;
+    } finally { clearTimeout(timer); }
+  }
+
+  async _duckduckgo(query,maxResults) {
+    const url=new URL("https://html.duckduckgo.com/html/");
+    url.searchParams.set("q",query);
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),this.timeoutMs);
+    try {
+      const response=await fetch(url,{headers:{"user-agent":"Jora/1.0"},signal:controller.signal});
+      const html=await response.text();
+      if(!response.ok) throw new Error("search provider error: "+response.status+" "+response.statusText);
+      const results=[];
+      const blocks=html.split(/<div class="result\b/).slice(1);
+      for(const block of blocks) {
+        if(results.length>=maxResults) break;
+        const link=block.match(/<a[^>]+class="result__a"[^>]+href="([^"]+)"/i);
+        const title=block.match(/<a[^>]+class="result__a"[^>]*>([\s\S]*?)<\/a>/i);
+        const snippet=block.match(/<a[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/a>/i);
+        if(!link) continue;
+        const clean=(value)=>String(value||"").replace(/<[^>]+>/g," ").replace(/&amp;/g,"&").replace(/&quot;/g,'"').replace(/&#x27;/g,"'").replace(/\s+/g," ").trim();
+        results.push({rank:results.length+1,title:clean(title?.[1]),url:link[1],snippet:clean(snippet?.[1]),publishedAt:null});
+      }
+      return {provider:"duckduckgo",query,answer:null,results};
     } finally { clearTimeout(timer); }
   }
 
