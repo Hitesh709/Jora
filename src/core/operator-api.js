@@ -377,6 +377,33 @@ export class OperatorApi {
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
 
+    if(method==="POST" && path==="/v3/customer/tenants") {
+      if(!this.executionPlatform?.customerControl?.tenants) return json(res,503,{error:"customer_control_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const tenant=await this.executionPlatform.customerControl.tenants.create({name:body.name,plan:body.plan||"standard",metadata:body.metadata||{}});
+        return json(res,201,{accepted:true,status:"TENANT_CREATED",tenant});
+      } catch(error) { return json(res,400,{accepted:false,status:"TENANT_CREATE_FAILED",error:error.message}); }
+    }
+    if(method==="GET" && path==="/v3/customer/tenants") {
+      if(!this.executionPlatform?.customerControl?.tenants) return json(res,503,{error:"customer_control_not_configured"});
+      return json(res,200,{tenants:this.executionPlatform.customerControl.tenants.list()});
+    }
+    if(method==="POST" && path==="/v3/customer/projects") {
+      if(!this.executionPlatform?.customerControl?.projects) return json(res,503,{error:"customer_control_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const project=this.executionPlatform.customerControl.projects.create({
+          tenantId:body.tenantId,name:body.name,repository:body.repository||null,
+          environment:body.environment||"production",workspace:body.workspace||null,metadata:body.metadata||{}
+        });
+        return json(res,201,{accepted:true,status:"PROJECT_CREATED",project});
+      } catch(error) { return json(res,400,{accepted:false,status:"PROJECT_CREATE_FAILED",error:error.message}); }
+    }
+    if(method==="GET" && path==="/v3/customer/projects") {
+      if(!this.executionPlatform?.customerControl?.projects) return json(res,503,{error:"customer_control_not_configured"});
+      return json(res,200,{projects:this.executionPlatform.customerControl.projects.list(url.searchParams.get("tenantId")||undefined)});
+    }
     if(method==="GET" && path==="/v3/customer") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.customerProduction.status());
