@@ -150,6 +150,11 @@ export class ExecutionPlatformV2 {
     this.customerOperations=customerOperations??new CustomerAutonomousOperationsControlPlane();
     this.customerPlatformV4=customerPlatformV4??new CustomerPlatformV4();
     this.agentSwarm=agentSwarm??new AgentSwarmControlPlaneV4({gateway:this.modelGateway});
+    // Register Jora itself as the production-native agent so v4 routing is usable
+    // immediately without requiring third-party model credentials.
+    if(this.agentSwarm.agents?.register && this.agentSwarm.agents.list().length===0) {
+      this.agentSwarm.agents.register({id:"jora-core",name:"Jora Core",models:["jora"],capabilities:["research","planning","coding","testing","building","deployment","review","operations"],cost:0,quality:1,latencyMs:50});
+    }
     this.agentTeams=agentTeams??new AgentTeamControlPlaneV4({swarm:this.agentSwarm.swarm});
     this.missionDirector=missionDirector??new AutonomousMissionDirectorV4({teamControlPlane:this.agentTeams,swarm:this.agentSwarm.swarm});
     this.customerProduction=customerProduction??new AutonomousCustomerProductionPlatform({customerControl:this.customerControl,executionPlatform:this,productUnderstanding,architecturePlanner,taskDAGGenerator,projectBuilder,repositoryFactory,applicationFactory:this.applicationFactory});
