@@ -356,12 +356,35 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   await customerControl.load();
   const customerSaaS=new CustomerSaaSControlPlaneV3({customerControl,applicationFactory:customerApplicationFactory,identity:customerIdentity,apiKeys:customerApiKeys,billing:customerBilling});
   const customerOperations=new CustomerAutonomousOperationsControlPlane({
-    monitor:new CustomerProductionMonitor({store:new JsonStore({file:customerConfig.healthStateFile||"./.jora/customer-health.json"})}),
+    monitor:new CustomerProductionMonitor({
+      store:new JsonStore({file:customerConfig.healthStateFile||"./.jora/customer-health.json"}),
+      healthVerifier
+    }),
+    incidents:new CustomerIncidentDetector({
+      store:new JsonStore({file:customerConfig.incidentStateFile||"./.jora/customer-incidents.json"})
+    }),
+    productionUrls:customerApplicationFactory.productionUrls,
+    monitorIntervalMs:customerConfig.monitorIntervalMs||60000,
     learning:new CustomerLearningEngine({store:new JsonStore({file:customerConfig.learningStateFile||"./.jora/customer-learning.json"})}),
-    recovery:async payload=>executionPlatform?.recover?.(payload)
+    recovery:async payload=>{
+      const incident=payload?.incident;
+      if(!incident?.tenantId||!incident?.projectId) return {accepted:false,status:"RECOVERY_CONTEXT_MISSING"};
+      const mission=customerMissions.create({
+        tenantId:incident.tenantId,
+        projectId:incident.projectId,
+        objective:"Diagnose and repair the production incident at "+(incident.url||"customer production")+"; inspect the existing repository, reproduce the failure, implement the smallest safe fix, run tests, and redeploy.",
+        constraints:{incidentId:incident.id,productionUrl:incident.url,automaticRecovery:true}
+      });
+      const result=await customerProduction?.submit?.({
+        tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
+        context:{risk:"high",approved:true,incident}
+      });
+      return {accepted:true,status:"AUTOMATIC_REPAIR_MISSION_CREATED",mission,result};
+    }
   });
   await customerSaaS.load();
   await customerOperations.load();
+  customerOperations.start();
 
   const externalExecution=new ExternalExecutionControlPlaneV2({
     github:new GitHubExecutionAdapter({repository:remoteRepository}),
