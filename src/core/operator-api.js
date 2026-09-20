@@ -404,6 +404,69 @@ export class OperatorApi {
       if(!this.executionPlatform?.customerControl?.projects) return json(res,503,{error:"customer_control_not_configured"});
       return json(res,200,{projects:this.executionPlatform.customerControl.projects.list(url.searchParams.get("tenantId")||undefined)});
     }
+    if(method==="POST" && path==="/v3/customer/users") {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.identity) return json(res,503,{error:"customer_identity_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const user=await saas.identity.create({tenantId:body.tenantId,email:body.email,role:body.role||"member",name:body.name||""});
+        return json(res,201,{accepted:true,status:"CUSTOMER_USER_CREATED",user});
+      } catch(error) { return json(res,400,{accepted:false,status:"CUSTOMER_USER_CREATE_FAILED",error:error.message}); }
+    }
+    if(method==="GET" && path==="/v3/customer/users") {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.identity) return json(res,503,{error:"customer_identity_not_configured"});
+      return json(res,200,{users:saas.identity.list({tenantId:url.searchParams.get("tenantId")||undefined,limit:Number(url.searchParams.get("limit")||100)})});
+    }
+    if(method==="POST" && path==="/v3/customer/api-keys") {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.apiKeys) return json(res,503,{error:"customer_api_keys_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const key=await saas.apiKeys.issue({tenantId:body.tenantId,projectId:body.projectId,name:body.name||"api-key"});
+        return json(res,201,{accepted:true,status:"API_KEY_ISSUED",key});
+      } catch(error) { return json(res,400,{accepted:false,status:"API_KEY_ISSUE_FAILED",error:error.message}); }
+    }
+    if(method==="GET" && path==="/v3/customer/api-keys") {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.apiKeys) return json(res,503,{error:"customer_api_keys_not_configured"});
+      return json(res,200,{keys:saas.apiKeys.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+    }
+    const apiKeyMatch=path.match(/^\/v3\/customer\/api-keys\/([^/]+)$/);
+    if(method==="POST" && apiKeyMatch) {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.apiKeys) return json(res,503,{error:"customer_api_keys_not_configured"});
+      try {
+        const key=await saas.apiKeys.revoke(apiKeyMatch[1]);
+        if(!key) return json(res,404,{error:"api_key_not_found"});
+        return json(res,200,{accepted:true,status:"API_KEY_REVOKED",key});
+      } catch(error) { return json(res,400,{accepted:false,status:"API_KEY_REVOKE_FAILED",error:error.message}); }
+    }
+    if(method==="GET" && path==="/v3/customer/billing") {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.billing) return json(res,503,{error:"customer_billing_not_configured"});
+      const tenantId=url.searchParams.get("tenantId")||undefined;
+      return json(res,200,{tenantId,total:saas.billing.summary({tenantId}),plan:saas.billing.plan(url.searchParams.get("plan")||"standard")});
+    }
+    if(method==="POST" && path==="/v3/customer/billing/events") {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.billing) return json(res,503,{error:"customer_billing_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try { return json(res,201,{accepted:true,status:"BILLING_EVENT_RECORDED",event:await saas.billing.record(body||{})}); }
+      catch(error) { return json(res,400,{accepted:false,status:"BILLING_EVENT_FAILED",error:error.message}); }
+    }
+    if(method==="GET" && path==="/v3/customer/dashboard") {
+      const saas=this.executionPlatform?.customerSaaS;
+      if(!saas?.dashboard) return json(res,503,{error:"customer_dashboard_not_configured"});
+      return json(res,200,saas.dashboard.overview({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined}));
+    }
+    if(method==="POST" && path==="/v3/customer/repositories/provision") {
+      const control=this.executionPlatform?.customerControl;
+      if(!control?.repositoryFactory) return json(res,503,{error:"repository_provisioning_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try { return json(res,201,await control.repositoryFactory.provision({tenantId:body.tenantId,projectId:body.projectId,name:body.name,description:body.description||"",repositoryName:body.repositoryName||null})); }
+      catch(error) { return json(res,400,{accepted:false,status:"REPOSITORY_PROVISION_FAILED",error:error.message}); }
+    }
     if(method==="GET" && path==="/v3/customer") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,this.executionPlatform.customerProduction.status());
