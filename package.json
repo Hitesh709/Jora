@@ -10,7 +10,8 @@
     "jora:self-build": "node src/bootstrap.js",
     "jora:command": "node src/cli.js",
     "jora:worker": "node src/worker-cli.js",
-    "jora:api": "node src/api-cli.js"
+    "jora:api": "node src/api-cli.js",
+    "jora:acceptance": "node scripts/jora-native-coding-acceptance.js"
   },
   "engines": {
     "node": ">=20"
