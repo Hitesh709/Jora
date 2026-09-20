@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import {runtimeConfig} from "./core/runtime-config.js";
-import {MultiModelGateway,AnthropicProvider} from "./core/multi-model-gateway.js";
-import {OpenAICompatibleProvider} from "./core/openai-compatible-provider.js";
+import {MultiModelGateway} from "./core/multi-model-gateway.js";
+import {JoraNativeProvider} from "./core/jora-native-provider.js";
 import {createProductionJoraRuntime} from "./core/production-runtime.js";
 
 try {
