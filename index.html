@@ -151,7 +151,7 @@ function formatSearchResult(d){
   }
   return lines.join("\n\n")||"No web results were returned.";
 }
-function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus();refreshProviders()}
+function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
 function saveSettings(){
   localStorage.setItem("jora_api_base",base());
