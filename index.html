@@ -77,54 +77,12 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div>
 <label class="muted">Jora backend</label><input id="api" placeholder="https://your-jora-api.up.railway.app">
 <div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>🔓 Browser access enabled</strong><div class="muted" style="margin-top:5px">No Bearer token is required for normal Jora chat, research, code, or build requests. Server credentials remain on the Railway backend.</div></div>
-<label class="muted">AI agent / coding engine</label>
-<select id="provider" onchange="providerChanged()">
-<option value="jora">Jora AI — default</option>
-<option value="kilo-free">Kilo Auto Free — Free coding</option>
-<option value="opencode-mimo-v2.5-free">MiMo-V2.5 Free</option>
-<option value="opencode-laguna-s-2.1-free">Laguna S 2.1 Free</option>
-<option value="opencode-ling-3.0-tiny-free">Ling 3.0-tiny Free</option>
-<option value="opencode-longcat-2.0-free">LongCat-2.0 Free</option>
-<option value="opencode-north-mini-code-free">North Mini Code Free</option>
-<option value="opencode-nemotron-3-ultra-free">Nemotron 3 Ultra Free</option>
-<option value="opencode-deepseek-v4-flash-free">DeepSeek V4 Flash Free</option>
-</select>
-<div id="providerInfo" class="muted" style="margin:-5px 0 12px"></div>
-<div class="panel" style="margin-top:8px;padding:12px;background:#10141a">
-<strong id="providerState">● Connected</strong>
-<div id="providerStateText" class="muted" style="margin-top:5px">Choose Jora or the built-in free coding agent. Your choice is used for the next Jora request.</div>
-</div>
+<div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>✦ Jora AI</strong><div class="muted" style="margin-top:5px">Jora is the only AI interface. Model selection and third-party free-model controls have been removed from the browser.</div></div>
 <div class="actions"><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send"),providerInput=document.getElementById("provider"),providerInfo=document.getElementById("providerInfo");
+const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
 apiInput.value=localStorage.getItem("jora_api_base")||defaultApi;
-providerInput.value=localStorage.getItem("jora_provider")||"jora";
-function providerChanged(){
-  const p=providerInput.value;
-  localStorage.setItem("jora_provider",p);
-  const info={
-    jora:"Jora uses the model configured on the Jora backend.",
-    "kilo-free":"Kilo Auto Free routes Jora requests to available free coding models. No user API key is required. Free-model availability and limits can change.",
-    "opencode-mimo-v2.5-free":"MiMo-V2.5 Free via OpenCode. Free availability can change.",
-    "opencode-laguna-s-2.1-free":"Laguna S 2.1 Free via OpenCode. Free availability can change.",
-    "opencode-ling-3.0-tiny-free":"Ling 3.0-tiny Free via OpenCode. Free availability can change.",
-    "opencode-longcat-2.0-free":"LongCat-2.0 Free via OpenCode. Free availability can change.",
-    "opencode-north-mini-code-free":"North Mini Code Free via OpenCode. Free availability can change.",
-    "opencode-nemotron-3-ultra-free":"Nemotron 3 Ultra Free via OpenCode. Trial/free availability can change.",
-    "opencode-deepseek-v4-flash-free":"DeepSeek V4 Flash Free via OpenCode. Free availability can change."
-  }[p]||"";
-  providerInfo.textContent=info;
-  const state=document.getElementById("providerState");
-  const stateText=document.getElementById("providerStateText");
-  state.textContent=p==="kilo-free"?"● Kilo Free selected":p.startsWith("opencode-")?"● OpenCode free model selected":"● Jora selected";
-  stateText.textContent=p==="kilo-free"
-    ?"Selected. Jora will use Kilo Auto Free for the next coding request."
-    :p.startsWith("opencode-")
-      ?"Selected. Jora will use this OpenCode free model for the next coding request."
-      :"Selected. Jora will use its configured model for the next request.";
-}
-
 let mode="agent";
 function base(){return apiInput.value.replace(/\/$/,"")}
 function headers(){return {"Content-Type":"application/json"}}
@@ -143,7 +101,7 @@ async function sendPrompt(){
       // Agent mode must enter Jora's autonomous execution runtime, not a one-shot chat completion.
       const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({
         command,
-        context:{provider:localStorage.getItem("jora_provider")||"jora",mode:"agent",source:"browser"}
+        context:{provider:"jora",mode:"agent",source:"browser"}
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       document.querySelector("#messages .msg.system:last-child")?.remove();
@@ -161,7 +119,7 @@ async function sendPrompt(){
       else addMessage(formatSearchResult(data),"assistant");
       return;
     }
-    const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode,provider:localStorage.getItem("jora_provider")||"jora"}})});
+    const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode,provider:"jora"}})});
     const data=await r.json().catch(()=>({error:"Invalid backend response"}));
     document.querySelector("#messages .msg.system:last-child")?.remove();
     if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
@@ -193,31 +151,10 @@ function formatSearchResult(d){
   }
   return lines.join("\n\n")||"No web results were returned.";
 }
-async function refreshProviders(){
-  try{
-    const data=await get("/v1/providers");
-    const byId=new Map((data.providers||[]).map(x=>[x.id,x]));
-    [...providerInput.options].forEach(option=>{
-      const p=byId.get(option.value);
-      if(!p) return;
-      option.disabled=p.available===false;
-      option.textContent=option.textContent.replace(/\s+[●○] (Available|Unavailable|Checking)$/,"")+(p.available===true?" ● Available":p.available===false?" ○ Unavailable":"");
-    });
-    const selected=byId.get(providerInput.value);
-    if(!selected || selected.available===false){
-      // Never leave a stale/unavailable provider in localStorage.
-      providerInput.value="jora";
-      localStorage.setItem("jora_provider","jora");
-      providerChanged();
-      providerInfo.textContent="Jora default selected because the previously selected model is unavailable.";
-    }
-  }catch{}
-}
 function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus();refreshProviders()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
 function saveSettings(){
   localStorage.setItem("jora_api_base",base());
-  localStorage.setItem("jora_provider",providerInput.value);
   closeSettings();checkBackend()
 }
 
