@@ -135,6 +135,34 @@ export class OperatorApi {
     return false;
   }
 
+  _customerPrincipal(req) {
+    const header=req.headers.authorization??"";
+    if(!header?.startsWith("Bearer ")) return null;
+    const token=header.slice(7).trim();
+    return this.executionPlatform?.customerSaaS?.apiKeys?.authenticate?.(token)??null;
+  }
+
+  _customerKeyAllowed(method,path) {
+    const allowed=new Set([
+      "GET /v3/customer/dashboard","GET /v3/customer/billing","GET /v3/customer/projects",
+      "GET /v3/customer/lineage","GET /v3/customer/workspaces","GET /v3/customer/versions",
+      "POST /v3/customer/execute","GET /v3/customer/operations","POST /v3/customer/operations/observe",
+      "GET /v3/customer/incidents","GET /v3/customer/health","POST /v3/customer/learning",
+      "GET /v3/customer/optimization"
+    ]);
+    return allowed.has(method+" "+path);
+  }
+
+  _customerScope(principal,body={}) {
+    if(!principal?.apiKey) return body;
+    if(body.tenantId && body.tenantId!==principal.tenantId) throw new Error("tenant scope mismatch");
+    if(principal.projectId && body.projectId && body.projectId!==principal.projectId) throw new Error("project scope mismatch");
+    const scoped={...body,tenantId:principal.tenantId};
+    if(principal.projectId) scoped.projectId=principal.projectId;
+    return scoped;
+  }
+
+
   async _status() {
     const worker=this.worker?.status ? await this.worker.status() : null;
     const executions=this.executionStore?.list ? await this.executionStore.list() : [];
@@ -169,11 +197,16 @@ export class OperatorApi {
     // without exposing a permanent server secret to end users. Rate limiting still applies.
     const publicApiPaths=new Set(["/v1/chat","/v1/search","/v1/execute","/v1/providers","/v1/platform","/v1/agent"]);
     const isPublicApi=method==="POST" && publicApiPaths.has(path) || method==="GET" && path==="/v1/providers";
-    const principal=this._principal(req);
-    const tenantId=this.accessController?.tenant(principal)||"default";
-    const actorId=principal?.id||"public";
+    const customerPrincipal=path.startsWith("/v3/customer/")?this._customerPrincipal(req):null;
+    const principal=customerPrincipal||this._principal(req);
+    const tenantId=customerPrincipal?.tenantId||this.accessController?.tenant(principal)||"default";
+    const actorId=customerPrincipal?.id||principal?.id||"public";
     const action=method==="GET"?"read":(path==="/v1/execute"||path==="/v1/chat"||path==="/v1/jobs"||path.startsWith("/v1/worker")?"execute":"operate");
-    if(!isPublicApi && !this._authorized(req,action)) {
+    const customerKeyRequest=Boolean(customerPrincipal?.apiKey);
+    if(customerKeyRequest && !this._customerKeyAllowed(method,path)) {
+      return json(res,403,{error:"customer_api_key_scope_forbidden"});
+    }
+    if(!isPublicApi && !customerKeyRequest && !this._authorized(req,action)) {
       await this.auditLog?.record({action:"AUTH_DENIED",actorId,tenantId,resource:path,metadata:{method}});
       return json(res,401,{error:"unauthorized"});
     }
@@ -402,7 +435,7 @@ export class OperatorApi {
     }
     if(method==="GET" && path==="/v3/customer/projects") {
       if(!this.executionPlatform?.customerControl?.projects) return json(res,503,{error:"customer_control_not_configured"});
-      return json(res,200,{projects:this.executionPlatform.customerControl.projects.list(url.searchParams.get("tenantId")||undefined)});
+      return json(res,200,{projects:this.executionPlatform.customerControl.projects.list(customerPrincipal?.tenantId||url.searchParams.get("tenantId")||undefined)});
     }
     if(method==="POST" && path==="/v3/customer/users") {
       const saas=this.executionPlatform?.customerSaaS;
@@ -430,7 +463,7 @@ export class OperatorApi {
     if(method==="GET" && path==="/v3/customer/api-keys") {
       const saas=this.executionPlatform?.customerSaaS;
       if(!saas?.apiKeys) return json(res,503,{error:"customer_api_keys_not_configured"});
-      return json(res,200,{keys:saas.apiKeys.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+      return json(res,200,{keys:saas.apiKeys.list({tenantId:customerPrincipal?.tenantId||url.searchParams.get("tenantId")||undefined,projectId:customerPrincipal?.projectId||url.searchParams.get("projectId")||undefined})});
     }
     const apiKeyMatch=path.match(/^\/v3\/customer\/api-keys\/([^/]+)$/);
     if(method==="POST" && apiKeyMatch) {
@@ -445,8 +478,8 @@ export class OperatorApi {
     if(method==="GET" && path==="/v3/customer/billing") {
       const saas=this.executionPlatform?.customerSaaS;
       if(!saas?.billing) return json(res,503,{error:"customer_billing_not_configured"});
-      const tenantId=url.searchParams.get("tenantId")||undefined;
-      return json(res,200,{tenantId,total:saas.billing.summary({tenantId}),plan:saas.billing.plan(url.searchParams.get("plan")||"standard")});
+      const tenantId=customerPrincipal?.tenantId||url.searchParams.get("tenantId")||undefined;
+      return json(res,200,{tenantId,total:saas.billing.summary({tenantId}),plan:saas.billing.plan(customerPrincipal?.tenantPlan||url.searchParams.get("plan")||"standard")});
     }
     if(method==="POST" && path==="/v3/customer/billing/events") {
       const saas=this.executionPlatform?.customerSaaS;
@@ -474,7 +507,7 @@ export class OperatorApi {
     if(method==="POST" && path==="/v3/customer/execute") {
       if(!this.executionPlatform) return json(res,503,{error:"execution_platform_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
-      try{return json(res,202,await this.executionPlatform.customerProduction.submit(body||{}));}
+      try{return json(res,202,await this.executionPlatform.customerProduction.submit(this._customerScope(customerPrincipal,body||{})));}
       catch(error){return json(res,400,{accepted:false,status:"FAILED",error:error.message});}
     }
     if(method==="GET" && path==="/v3/customer/lineage") {
@@ -493,7 +526,7 @@ export class OperatorApi {
       if(!this.executionPlatform?.customerSubmit) return json(res,503,{error:"customer_production_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
       try {
-        const result=await this.executionPlatform.customerSubmit(body||{});
+        const result=await this.executionPlatform.customerSubmit(this._customerScope(customerPrincipal,body||{}));
         return json(res,result?.status==="MISSION_EXECUTED"?200:202,result);
       } catch(error) { return json(res,400,{accepted:false,status:"CUSTOMER_EXECUTION_FAILED",error:error.message}); }
     }
