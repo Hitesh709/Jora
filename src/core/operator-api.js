@@ -533,8 +533,8 @@ export class OperatorApi {
     if(method==="GET" && path==="/v3/customer/lineage") {
       if(!this.executionPlatform?.customerProduction?.lineage) return json(res,503,{error:"customer_lineage_not_configured"});
       return json(res,200,{records:this.executionPlatform.customerProduction.lineage.list({
-        tenantId:url.searchParams.get("tenantId")||undefined,
-        projectId:url.searchParams.get("projectId")||undefined
+        tenantId:customerPrincipal?.tenantId||url.searchParams.get("tenantId")||undefined,
+        projectId:customerPrincipal?.projectId||url.searchParams.get("projectId")||undefined
       })});
     }
 
@@ -545,21 +545,21 @@ export class OperatorApi {
     if(method==="POST" && path==="/v3/customer/operations/observe") {
       if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
-      try{return json(res,200,await this.executionPlatform.customerObserve(body||{}));}
+      try{return json(res,200,await this.executionPlatform.customerObserve(this._customerScope(customerPrincipal,body||{})));}
       catch(error){return json(res,400,{accepted:false,status:"OBSERVATION_FAILED",error:error.message});}
     }
     if(method==="GET" && path==="/v3/customer/incidents") {
       if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
-      return json(res,200,{incidents:this.executionPlatform.customerOperations.incidents.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+      return json(res,200,{incidents:this.executionPlatform.customerOperations.incidents.list({tenantId:customerPrincipal?.tenantId||url.searchParams.get("tenantId")||undefined,projectId:customerPrincipal?.projectId||url.searchParams.get("projectId")||undefined})});
     }
     if(method==="GET" && path==="/v3/customer/health") {
       if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
-      return json(res,200,{events:this.executionPlatform.customerOperations.monitor.list({tenantId:url.searchParams.get("tenantId")||undefined,projectId:url.searchParams.get("projectId")||undefined})});
+      return json(res,200,{events:this.executionPlatform.customerOperations.monitor.list({tenantId:customerPrincipal?.tenantId||url.searchParams.get("tenantId")||undefined,projectId:customerPrincipal?.projectId||url.searchParams.get("projectId")||undefined})});
     }
     if(method==="POST" && path==="/v3/customer/learning") {
       if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
-      return json(res,201,await this.executionPlatform.customerLearn(body||{}));
+      return json(res,201,await this.executionPlatform.customerLearn(this._customerScope(customerPrincipal,body||{})));
     }
     if(method==="GET" && path==="/v3/customer/optimization") {
       if(!this.executionPlatform?.customerOperations) return json(res,503,{error:"customer_operations_not_configured"});
