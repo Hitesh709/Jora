@@ -143,7 +143,7 @@ async function sendPrompt(){
       const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({message:command,context:{provider:localStorage.getItem("jora_provider")||"jora"}})});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       document.querySelector("#messages .msg.system:last-child")?.remove();
-      if(r.status===401) addMessage("Jora backend authentication is not configured for browser access. Please refresh and try again.","system");
+      if(r.status===401) addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
       else if(!r.ok) addMessage("Jora could not answer: "+(data.error||r.statusText),"system");
       else addMessage(data.message||"Jora returned an empty response.","assistant");
       return;
@@ -152,7 +152,7 @@ async function sendPrompt(){
       const r=await fetch(base()+"/v1/search",{method:"POST",headers:headers(),body:JSON.stringify({query:command,maxResults:8})});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       document.querySelector("#messages .msg.system:last-child")?.remove();
-      if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
+      if(r.status===401) addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
       else if(!r.ok) addMessage(data.status==="SEARCH_NOT_CONFIGURED"?"Web search is not configured on the Jora backend yet. Configure JORA_SEARCH_PROVIDER plus a supported search API key.":("Search failed: "+(data.error||r.statusText)),"system");
       else addMessage(formatSearchResult(data),"assistant");
       return;
@@ -187,8 +187,12 @@ async function refreshProviders(){
       option.textContent=option.textContent.replace(/\s+[●○] (Available|Unavailable|Checking)$/,"")+(p.available===true?" ● Available":p.available===false?" ○ Unavailable":"");
     });
     const selected=byId.get(providerInput.value);
-    if(selected?.available===false){
-      providerInfo.textContent=(providerInfo.textContent||"")+" This model is currently unavailable.";
+    if(!selected || selected.available===false){
+      // Never leave a stale/unavailable provider in localStorage.
+      providerInput.value="jora";
+      localStorage.setItem("jora_provider","jora");
+      providerChanged();
+      providerInfo.textContent="Jora default selected because the previously selected model is unavailable.";
     }
   }catch{}
 }
