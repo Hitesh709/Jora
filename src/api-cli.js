@@ -16,7 +16,7 @@ try {
     apiKey:process.env.KILO_API_KEY,
     allowAnonymous:true
   }));
-  const openCodeFreeBaseUrl=process.env.JORA_OPENCODE_FREE_BASE_URL||"https://opencode.ai/inference/openai/v1";
+  const openCodeFreeBaseUrl=process.env.JORA_OPENCODE_FREE_BASE_URL||"https://opencode.ai/zen/v1";
   const openCodeFreeModels=[
     ["mimo-v2.5-free","MiMo-V2.5 Free"],
     ["laguna-s-2.1-free","Laguna S 2.1 Free"],
