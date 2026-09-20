@@ -11,12 +11,16 @@ export class CustomerProductionMonitor {
 }
 
 export class CustomerIncidentDetector {
-  constructor(){this.incidents=[];}
+  constructor({store=null}={}){this.store=store;this.incidents=[];this.activeKeys=new Set();}
+  async load(){this.incidents=await this.store?.read?.([])||[];this.activeKeys=new Set(this.incidents.filter(x=>x.status==="OPEN").map(x=>x.tenantId+":"+x.projectId+":"+x.url));return this.incidents;}
+  async persist(){if(this.store?.write)await this.store.write(this.incidents);}
   evaluate({tenantId,projectId,missionId,health}={}) {
     const failed=["FAILED","DOWN","TIMEOUT","UNHEALTHY"].includes(String(health?.status||"").toUpperCase());
     if(!failed)return {incident:false,status:"HEALTHY"};
-    const incident={id:"incident_"+randomUUID(),tenantId,projectId,missionId,status:"OPEN",reason:"PRODUCTION_HEALTH_FAILED",health,createdAt:new Date().toISOString()};
-    this.incidents.push(incident);return {incident:true,status:"INCIDENT_OPEN",incidentRecord:incident};
+    const key=tenantId+":"+projectId+":"+(health?.url||"");
+    if(this.activeKeys.has(key)) return {incident:true,status:"INCIDENT_ALREADY_OPEN",incidentRecord:this.incidents.find(x=>x.status==="OPEN"&&x.tenantId===tenantId&&x.projectId===projectId&&x.url===(health?.url||""))};
+    const incident={id:"incident_"+randomUUID(),tenantId,projectId,missionId,url:health?.url||null,status:"OPEN",reason:"PRODUCTION_HEALTH_FAILED",health,createdAt:new Date().toISOString()};
+    this.incidents.push(incident);this.activeKeys.add(key);this.persist();return {incident:true,status:"INCIDENT_OPEN",incidentRecord:incident};
   }
   list({tenantId,projectId}={}){return this.incidents.filter(x=>(!tenantId||x.tenantId===tenantId)&&(!projectId||x.projectId===projectId)).slice().reverse();}
 }
@@ -26,7 +30,7 @@ export class CustomerRecoveryOrchestrator {
   async recover({incident,rollbackPayload={}}={}) {
     if(!incident)return {recovered:false,status:"NO_INCIDENT"};
     if(!this.recovery)return {recovered:false,status:"RECOVERY_NOT_CONFIGURED",incidentId:incident.id};
-    const result=await this.recovery(rollbackPayload);
+    const result=await this.recovery({...rollbackPayload,incident});
     return {recovered:Boolean(result?.accepted!==false),status:result?.status||"RECOVERY_REQUESTED",incidentId:incident.id,result};
   }
 }
@@ -62,16 +66,29 @@ export class CustomerOptimizationEngine {
 }
 
 export class CustomerAutonomousOperationsControlPlane {
-  constructor({monitor=null,incidents=null,recovery=null,learning=null}={}) {
-    this.version="3.90.0";
+  constructor({monitor=null,incidents=null,recovery=null,learning=null,productionUrls=null,executionPlatform=null,monitorIntervalMs=60000}={}) {
+    this.version="3.91.0";
+    this.productionUrls=productionUrls;this.executionPlatform=executionPlatform;this.monitorIntervalMs=Math.max(10000,Number(monitorIntervalMs)||60000);this.timer=null;this.running=false;
     this.monitor=monitor??new CustomerProductionMonitor();
     this.incidents=incidents??new CustomerIncidentDetector();
     this.recovery=new CustomerRecoveryOrchestrator({recovery});
     this.learning=learning??new CustomerLearningEngine();
     this.optimization=new CustomerOptimizationEngine({learning:this.learning});
   }
-  async load(){await Promise.all([this.monitor.load(),this.learning.load()]);}
+  async load(){await Promise.all([this.monitor.load(),this.incidents.load?.(),this.learning.load()]);}
   async observe(input){return this.monitor?new CustomerAutonomousOperations({monitor:this.monitor,incidents:this.incidents,recovery:this.recovery}).observe(input):null;}
+  async sweep(){
+    const targets=this.productionUrls?.list?.({limit:500})||[];
+    const results=[];
+    for(const target of targets){
+      if(!target.url||target.status==="ROLLED_BACK") continue;
+      const health=await this.monitor.healthVerifier?.verify?.({url:target.url})||await new CustomerProductionMonitor().healthVerifier?.verify?.({url:target.url});
+      if(health) results.push(await this.observe({tenantId:target.tenantId,projectId:target.projectId,missionId:target.missionId,url:target.url,health}));
+    }
+    return {checked:targets.length,results};
+  }
+  start(){if(this.timer||!this.productionUrls)return {started:false,status:"MONITOR_NOT_CONFIGURED"};this.running=true;this.sweep().catch(()=>{});this.timer=setInterval(()=>this.sweep().catch(()=>{}),this.monitorIntervalMs);return {started:true,intervalMs:this.monitorIntervalMs};}
+  stop(){if(this.timer)clearInterval(this.timer);this.timer=null;this.running=false;return {stopped:true};}
   async learn(input){return this.learning.learn(input);}
-  status(){return {version:this.version,capabilities:{productionMonitoring:true,incidentDetection:true,automaticRecovery:true,productionLearning:true,optimization:true,autonomousOperations:true}};}
+  status(){return {version:this.version,capabilities:{productionMonitoring:true,scheduledHealthSweeps:Boolean(this.productionUrls),incidentDetection:true,automaticRecovery:Boolean(this.recovery),productionLearning:true,optimization:true,autonomousOperations:true},running:this.running,intervalMs:this.monitorIntervalMs};}
 }
