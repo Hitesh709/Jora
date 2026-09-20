@@ -894,7 +894,7 @@ export class OperatorApi {
         return json(res,400,{requestId,accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Jora is the only supported AI interface",provider:selectedProvider});
       }
       const gatewayStatus=this.modelGateway?.status?.()||{};
-      if(!gatewayStatus.models?.includes("jora")) {
+      if(this.modelGateway && !gatewayStatus.models?.includes("jora")) {
         return json(res,503,{requestId,accepted:false,status:"JORA_ENGINE_NOT_CONFIGURED",error:"Jora AI engine is not configured on the backend"});
       }
       try {
