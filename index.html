@@ -163,33 +163,23 @@ function formatAgentResult(d){
   const r=d?.result||{};
   const status=r.status||d?.status||"COMPLETED";
   const model=d?.model||r.model||"Jora";
-  const lines=[
-    "Jora completed the autonomous engineering task.",
-    "",
-    "Status: "+status,
-    "Execution: "+(d?.requestId||"—"),
-    "AI engine: "+model
-  ];
-  if(r.benchmarkScore!=null) lines.push("Benchmark: "+r.benchmarkScore);
-  if(r.qualityScore!=null) lines.push("Quality: "+r.qualityScore);
+  const items=Array.isArray(r.results)?r.results:[];
+  const latest=items.length?items[items.length-1]:null;
+  const candidate=latest?.project?.project??latest?.project??r.project??r.candidate??r.champion??null;
+  const files=Array.isArray(r.files)?r.files:(Array.isArray(candidate?.files)?candidate.files:[]);
+  const evaluation=candidate?.evaluation||latest?.project?.evaluation||latest?.promotion?.decision||r.evaluation||{};
+  const lines=["Jora completed the autonomous engineering task.","","Status: "+status,"Execution: "+(d?.requestId||"—"),"AI engine: "+model];
+  if(r.benchmarkScore!=null) lines.push("Benchmark: "+r.benchmarkScore); else if(evaluation.benchmarkScore!=null) lines.push("Benchmark: "+evaluation.benchmarkScore);
+  if(r.qualityScore!=null) lines.push("Quality: "+r.qualityScore); else if(evaluation.qualityScore!=null) lines.push("Quality: "+evaluation.qualityScore);
   if(r.cycles!=null) lines.push("Cycles: "+r.cycles);
-  if(r.productionReady!=null) lines.push("Production ready: "+r.productionReady);
   if(r.planning?.taskCount!=null) lines.push("Planned tasks: "+r.planning.taskCount);
-
-  const files=Array.isArray(r.files)?r.files:[];
   if(files.length){
-    lines.push("", "Generated code");
-    files.slice(0,4).forEach(file=>{
-      const preview=String(file.content||"").slice(0,1800);
-      lines.push("", "===== "+file.path+" =====", preview+(file.truncated?"\\n…(preview truncated)":""));
-    });
-  } else {
-    lines.push("", "Jora finished the engineering loop. No code preview was returned for this run.");
-  }
-
-  if(status==="NOT_PROMOTED" || status==="BUILD_BLOCKED" || status==="SECURITY_BLOCKED"){
-    lines.push("", "Promotion result: "+status+". The generated code above is the safe candidate preview.");
-  }
+    lines.push("","Generated code ("+files.length+" files)");
+    files.slice(0,8).forEach(file=>{const text=String(file.content||"");lines.push("","===== "+file.path+" =====",text.slice(0,6000)+(text.length>6000?"\n…(preview truncated)":""));});
+  } else lines.push("","No generated file preview was returned for this run.");
+  const reason=evaluation.reasons?.join?.("; ")||latest?.promotion?.decision?.reasons?.join?.("; ");
+  if(reason) lines.push("","Verification: "+reason);
+  if(status==="NOT_PROMOTED"||status==="BUILD_BLOCKED"||status==="SECURITY_BLOCKED"||status==="REJECTED") lines.push("","Promotion result: "+status+". The generated candidate remains available above for inspection.");
   return lines.join("\n");
 }
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
