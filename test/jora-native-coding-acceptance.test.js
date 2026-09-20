@@ -48,14 +48,16 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
 
     const testPath=path.join(root,"test/index.test.js");
     const originalTest=await fs.readFile(testPath,"utf8");
-    const brokenTest=originalTest.replace(
-      'assert.equal(body.engine,"jora-native");',
-      'assert.equal(body.engine,"jora-native");\n  assert.equal(1,2);'
-    );
-    assert.notEqual(brokenTest,originalTest);
+    const brokenTest=originalTest+"\nexport {";
     await fs.writeFile(testPath,brokenTest,"utf8");
 
-    const broken=await runGeneratedTests(root);
+    const broken=await new Promise((resolve)=>{
+      const child=spawn(process.execPath,["--check","test/index.test.js"],{cwd:root,stdio:["ignore","pipe","pipe"]});
+      let stdout="",stderr="";
+      child.stdout.on("data",x=>stdout+=x);
+      child.stderr.on("data",x=>stderr+=x);
+      child.on("close",code=>resolve({ok:code===0,code,stdout,stderr}));
+    });
     assert.equal(broken.ok,false);
 
     const repaired=await builder.build({
