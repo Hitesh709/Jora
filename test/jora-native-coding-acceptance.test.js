@@ -42,10 +42,14 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
     const initial=await runGeneratedTests(root);
     assert.equal(initial.ok,true,initial.stderr||initial.stdout);
 
-    const sourcePath=path.join(root,"src/index.js");
-    const original=await fs.readFile(sourcePath,"utf8");
-    const brokenSource=original+"\nTHIS_IS_INTENTIONALLY_BROKEN(";
-    await fs.writeFile(sourcePath,brokenSource,"utf8");
+    const testPath=path.join(root,"test/index.test.js");
+    const originalTest=await fs.readFile(testPath,"utf8");
+    const brokenTest=originalTest.replace(
+      'assert.equal(body.engine,"jora-native");',
+      'assert.equal(body.engine,"jora-native");\n  assert.equal(1,2);'
+    );
+    assert.notEqual(brokenTest,originalTest);
+    await fs.writeFile(testPath,brokenTest,"utf8");
 
     const broken=await runGeneratedTests(root);
     assert.equal(broken.ok,false);
@@ -55,10 +59,10 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
       context:{
         cycle:2,
         repairFeedback:{
-          diagnosis:"The generated service source was intentionally corrupted and the acceptance test no longer passes.",
-          hypothesis:"Regenerate the complete runnable service files and restore the valid Node.js implementation."
+          diagnosis:"The generated acceptance test was intentionally corrupted and no longer passes.",
+          hypothesis:"Regenerate the complete runnable project files and restore the valid acceptance test."
         },
-        repairHistory:[{cycle:1,status:"FAILED",error:"generated source syntax failure"}]
+        repairHistory:[{cycle:1,status:"FAILED",error:"generated acceptance test failure"}]
       }
     });
     assert.equal(repaired.status,"SUCCEEDED");
