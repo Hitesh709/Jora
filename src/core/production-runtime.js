@@ -399,7 +399,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   });
 
   const executionPlatform=new ExecutionPlatformV2({
-    modelGateway,\n    github:remoteRepository,
+    modelGateway,
+    github:remoteRepository,
     sandbox,
     testRunner,
     queue:platformQueue,
