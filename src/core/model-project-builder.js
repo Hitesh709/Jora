@@ -21,7 +21,19 @@ export class ModelProjectBuilder {
       model:context.model
     });
     let parsed;
-    try{parsed=JSON.parse(response.text);}catch(e){throw new Error("Model did not return valid project JSON: "+e.message);}
+    const raw=String(response.text??"").trim();
+    try {
+      parsed=JSON.parse(raw);
+    } catch(firstError) {
+      const start=raw.indexOf("{");
+      const end=raw.lastIndexOf("}");
+      if(start>=0 && end>start) {
+        try { parsed=JSON.parse(raw.slice(start,end+1)); }
+        catch { throw new Error("Model did not return valid project JSON: "+firstError.message); }
+      } else {
+        throw new Error("Model did not return valid project JSON: "+firstError.message);
+      }
+    }
     if(!Array.isArray(parsed.files)||parsed.files.length===0) throw new Error("Model returned no project files");
     const written=[];
     for(const file of parsed.files){
