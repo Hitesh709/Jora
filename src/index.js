@@ -123,3 +123,5 @@ export {AgentCapabilityRegistry,AgentRoutingEngine,AgentNegotiationProtocol,Para
 export {ArchitectureRegressionIntelligence,SystemDependencyIntelligence,AutonomousSecurityArchitect,PolicyDrivenAutonomy,AutonomousIncidentCommander,SLOAwareRecoveryController,ContinuousEvolutionController,AutonomousProgramDirector,AutonomousArchitectCore} from "./core/autonomous-architect-core.js";
 
 export { WebSearchProvider } from "./core/web-search-provider.js";
+
+export { JoraNativeProvider } from "./core/jora-native-provider.js";
