@@ -1084,15 +1084,12 @@ export class OperatorApi {
       let child;
       try {
         child=fork(new URL("./jora-async-worker.js",import.meta.url),[],{
-          env:{
-            ...process.env,
-            JORA_ASYNC_WORKER_INPUT:JSON.stringify({
-              command:body.command.trim(),
-              constraints:body.constraints??{},
-              context:{...(body.context??{}),apiRequestId:requestId,tenantId}
-            })
-          },
           stdio:["ignore","ignore","ignore","ipc"]
+        });
+        child.send({
+          command:body.command.trim(),
+          constraints:body.constraints??{},
+          context:{...(body.context??{}),apiRequestId:requestId,tenantId}
         });
       } catch(error) {
         this.backgroundExecutions.delete(requestId);
