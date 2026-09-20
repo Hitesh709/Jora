@@ -140,12 +140,16 @@ async function sendPrompt(){
   try{
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
     if(mode==="agent"){
-      const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({message:command,context:{provider:localStorage.getItem("jora_provider")||"jora"}})});
+      // Agent mode must enter Jora's autonomous execution runtime, not a one-shot chat completion.
+      const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({
+        command,
+        context:{provider:localStorage.getItem("jora_provider")||"jora",mode:"agent",source:"browser"}
+      })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       document.querySelector("#messages .msg.system:last-child")?.remove();
       if(r.status===401) addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
-      else if(!r.ok) addMessage("Jora could not answer: "+(data.error||r.statusText),"system");
-      else addMessage(data.message||"Jora returned an empty response.","assistant");
+      else if(!r.ok) addMessage("Jora could not execute this autonomous task: "+(data.error||r.statusText),"system");
+      else addMessage(formatAgentResult(data),"assistant");
       return;
     }
     if(mode==="research"){
@@ -165,6 +169,19 @@ async function sendPrompt(){
     else addMessage(formatResult(data),"assistant");
   }catch(e){document.querySelector("#messages .msg.system:last-child")?.remove();addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system")}
   finally{sendBtn.disabled=false}
+}
+function formatAgentResult(d){
+  const r=d?.result||{};
+  const status=r.status||d?.status||"COMPLETED";
+  const model=d?.model||r.model||"Jora";
+  if(status==="PROMOTED" || status==="DEPLOYED"){
+    return "Jora completed the autonomous engineering task.\\n\\nStatus: "+status+"\\nExecution: "+(d?.requestId||"—")+"\\nAI engine: "+model+"\\n\\nJora planned, built, evaluated and promoted the result through its autonomous runtime.";
+  }
+  if(status==="NOT_PROMOTED" || status==="BUILD_BLOCKED" || status==="SECURITY_BLOCKED"){
+    return "Jora ran the autonomous engineering loop but did not promote the result.\\n\\nStatus: "+status+"\\n\\n"+JSON.stringify(r,null,2);
+  }
+  if(r?.message) return r.message;
+  return "Jora autonomous execution status: "+status+"\\n\\n"+JSON.stringify(r,null,2);
 }
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
 function formatSearchResult(d){
