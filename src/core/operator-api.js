@@ -269,7 +269,7 @@ export class OperatorApi {
           ]
         });
         const response=selectedProvider ? await withModelSelection(selectedProvider,complete) : await complete();
-        return json(res,200,{accepted:true,status:"CHAT_COMPLETED",message:String(response?.text??response?.content??response?.output??""),model:response?.model??selectedProvider||null,provider:selectedProvider||null});
+        return json(res,200,{accepted:true,status:"CHAT_COMPLETED",message:String(response?.text??response?.content??response?.output??""),model:response?.model??(selectedProvider||null),provider:selectedProvider||null});
       } catch(error) {
         return json(res,502,{accepted:false,status:"CHAT_FAILED",error:error.message,provider:selectedProvider||null});
       }
