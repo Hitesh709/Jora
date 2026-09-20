@@ -22,6 +22,7 @@ export class CustomerIncidentDetector {
     const incident={id:"incident_"+randomUUID(),tenantId,projectId,missionId,url:health?.url||null,status:"OPEN",reason:"PRODUCTION_HEALTH_FAILED",health,createdAt:new Date().toISOString()};
     this.incidents.push(incident);this.activeKeys.add(key);this.persist();return {incident:true,status:"INCIDENT_OPEN",incidentRecord:incident};
   }
+  resolve(id,{status="RECOVERED",result=null}={}){const incident=this.incidents.find(x=>x.id===id);if(!incident)return null;incident.status=status;incident.resolvedAt=new Date().toISOString();incident.recoveryResult=result;this.activeKeys.delete(incident.tenantId+":"+incident.projectId+":"+(incident.url||""));this.persist();return incident;}
   list({tenantId,projectId}={}){return this.incidents.filter(x=>(!tenantId||x.tenantId===tenantId)&&(!projectId||x.projectId===projectId)).slice().reverse();}
 }
 
@@ -40,7 +41,11 @@ export class CustomerAutonomousOperations {
   async observe(input={}) {
     const event=await this.monitor.observe(input);
     const incident=this.incidents.evaluate({...input,health:event});
-    if(incident.incident) return {event,incident,recovery:await this.recovery.recover({incident:incident.incidentRecord,rollbackPayload:{tenantId:input.tenantId,projectId:input.projectId,missionId:input.missionId}})};
+    if(incident.incident) {
+      const recovery=await this.recovery.recover({incident:incident.incidentRecord,rollbackPayload:{tenantId:input.tenantId,projectId:input.projectId,missionId:input.missionId}});
+      if(recovery.recovered) this.incidents.resolve(incident.incidentRecord.id,{result:recovery});
+      return {event,incident,recovery};
+    }
     return {event,incident};
   }
   status(){return {monitoring:true,incidentDetection:true,automaticRecovery:Boolean(this.recovery?.recovery)};}
