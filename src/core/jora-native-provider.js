@@ -42,9 +42,9 @@ export function createServer(){
   });
 }
 
-if(import.meta.url===\`file://\${process.argv[1]}\`){
+if(import.meta.url==="file://" + process.argv[1]){
   const port=Number(process.env.PORT||3000);
-  createServer().listen(port,()=>console.log(\`Jora project listening on \${port}\`));
+  createServer().listen(port,()=>console.log("Jora project listening on " + port));
 }`;
   const pkg=json({name,version:"0.1.0",private:true,type:"module",scripts:{start:"node src/index.js",test:"node --test"},engines:{node:">=20"}});
   const test=`import test from "node:test";
@@ -55,7 +55,7 @@ test("generated service exposes a health endpoint",async()=>{
   const server=createServer();
   await new Promise(resolve=>server.listen(0,resolve));
   const port=server.address().port;
-  const response=await fetch(`http://127.0.0.1:${port}/health`);
+  const response=await fetch("http://127.0.0.1:"+port+"/health");
   const body=await response.json();
   assert.equal(response.status,200);
   assert.equal(body.status,"ok");
