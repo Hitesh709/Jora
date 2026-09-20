@@ -34,6 +34,7 @@ async function runGeneratedTests(root){
 test("Jora autonomously generates, tests, detects failure, repairs, and passes again",async()=>{
   const root=await fs.mkdtemp(path.join(os.tmpdir(),"jora-native-"));
   try{
+    const {spawn}=await import("node:child_process");
     const provider=new JoraNativeProvider();
     const repository=new MemoryRepository(root);
     const builder=new ModelProjectBuilder({modelGateway:provider,repository});
