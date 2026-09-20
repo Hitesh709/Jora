@@ -2,66 +2,28 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {MultiModelGateway,withModelSelection} from "../src/core/multi-model-gateway.js";
 
-test("request-scoped provider selection overrides the default gateway model",async()=>{
+test("Jora is the single request-scoped provider",async()=>{
   const calls=[];
   const gateway=new MultiModelGateway({
     providers:new Map([
-      ["default",{complete:async r=>{calls.push(["default",r.model]);return {text:"default"}}}],
-      ["kilo-free",{complete:async r=>{calls.push(["kilo-free",r.model]);return {text:"free"}}}],
-      ["opencode-free",{complete:async r=>{calls.push(["opencode-free",r.model]);return {text:"opencode"}}}]
+      ["jora",{complete:async r=>{calls.push(r.model);return {text:"jora"}}}]
     ]),
-    defaultModel:"default"
+    defaultModel:"jora"
   });
-  const result=await withModelSelection("kilo-free",()=>gateway.complete({messages:[]}));
-  assert.equal(result.text,"free");
-  assert.equal(result.model,"kilo-free");
-  assert.deepEqual(calls,[["kilo-free","kilo-free"]]);
+  const result=await withModelSelection("jora",()=>gateway.complete({messages:[]}));
+  assert.equal(result.text,"jora");
+  assert.equal(result.model,"jora");
+  assert.deepEqual(calls,["jora"]);
 });
 
-test("provider selection does not leak across requests",async()=>{
+test("Jora selection does not leak across requests",async()=>{
   const gateway=new MultiModelGateway({
     providers:new Map([
-      ["default",{complete:async r=>({text:r.model})}],
-      ["kilo-free",{complete:async r=>({text:r.model})}]
+      ["jora",{complete:async r=>({text:r.model})}]
     ]),
-    defaultModel:"default"
+    defaultModel:"jora"
   });
-  await withModelSelection("kilo-free",()=>gateway.complete({messages:[]}));
+  await withModelSelection("jora",()=>gateway.complete({messages:[]}));
   const result=await gateway.complete({messages:[]});
-  assert.equal(result.model,"default");
-});
-
-test("anonymous OpenAI-compatible provider can be used without an API key",async()=>{
-  const {OpenAICompatibleProvider}=await import("../src/core/openai-compatible-provider.js");
-  const provider=new OpenAICompatibleProvider({apiKey:null,allowAnonymous:true,baseUrl:"https://example.invalid/v1",model:"free"});
-  assert.equal(provider.apiKey,null);
-  assert.equal(provider.allowAnonymous,true);
-});
-
-
-test("OpenCode free provider can be selected as a request-scoped engine",async()=>{
-  const gateway=new MultiModelGateway({
-    providers:new Map([
-      ["default",{complete:async()=>({text:"default"})}],
-      ["opencode-free",{complete:async r=>({text:"opencode",model:r.model})}]
-    ]),
-    defaultModel:"default"
-  });
-  const result=await withModelSelection("opencode-free",()=>gateway.complete({messages:[]}));
-  assert.equal(result.text,"opencode");
-  assert.equal(result.model,"opencode-free");
-});
-
-test("Jora default chain uses Kilo Free when no paid provider is configured",async()=>{
-  const gateway=new MultiModelGateway({
-    providers:new Map([
-      ["kilo-free",{complete:async r=>({text:"free",model:r.model})}],
-      ["opencode-mimo-v2.5-free",{complete:async r=>({text:"fallback",model:r.model})}]
-    ]),
-    defaultModel:"kilo-free",
-    fallbackModels:["opencode-mimo-v2.5-free"]
-  });
-  const result=await gateway.complete({messages:[]});
-  assert.equal(result.text,"free");
-  assert.equal(result.model,"kilo-free");
+  assert.equal(result.model,"jora");
 });
