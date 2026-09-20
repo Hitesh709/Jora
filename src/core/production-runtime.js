@@ -91,7 +91,7 @@ import {GitHubExecutionAdapter,RealTestExecutionAdapter,DeploymentProviderAdapte
 import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMissionManager,QuotaGuard,UsageMeter,CustomerExecutionRouter,CustomerWorkspaceRegistry,CustomerVersionRegistry,CustomerRepositoryFactory} from "./customer-control-plane-v2.js";
 import {CustomerApplicationFactoryControlPlane,CustomerArtifactSecurityGate,CustomerBuildValidationGate,CustomerTestCommandController,CustomerDeliveryRecordStore,CustomerProductionUrlRegistry} from "./customer-application-factory-v3.70.js";
 import {CustomerSaaSControlPlaneV3,CustomerIdentityDirectory,CustomerApiKeyManager,CustomerPlanBillingController} from "./customer-saas-control-plane-v3.80.js";
-import {CustomerAutonomousOperationsControlPlane,CustomerProductionMonitor,CustomerLearningEngine} from "./customer-autonomous-operations-v3.90.js";
+import {CustomerAutonomousOperationsControlPlane,CustomerProductionMonitor,CustomerIncidentDetector,CustomerLearningEngine} from "./customer-autonomous-operations-v3.90.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
