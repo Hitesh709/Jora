@@ -1,5 +1,5 @@
 export class JoraRuntime {
-  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null,metrics=null,governance=null,policyEngine=null}={}) {
+  constructor({builder,controller,continuousWorker=null,executionStore=null,repository=null,deploymentController=null,metrics=null,governance=null,policyEngine=null,productUnderstanding=null,architecturePlanner=null,taskDAGGenerator=null,searchProvider=null}={}) {
     if (!builder || !controller) throw new Error("builder and controller are required");
     this.builder=builder;
     this.controller=controller;
@@ -10,6 +10,10 @@ export class JoraRuntime {
     this.metrics=metrics;
     this.governance=governance;
     this.policyEngine=policyEngine;
+    this.productUnderstanding=productUnderstanding;
+    this.architecturePlanner=architecturePlanner;
+    this.taskDAGGenerator=taskDAGGenerator;
+    this.searchProvider=searchProvider;
   }
 
   async execute({command,constraints={},context={}}={}) {
@@ -29,6 +33,34 @@ export class JoraRuntime {
       if(execution) await this.executionStore.append(execution.id,{type:"COMMAND_ACCEPTED",command});
 
       let candidateContext={...context,executionId:execution?.id};
+      // Native Jora planning runs before generation, so the agent remains
+      // useful without an external model API key.
+      let planning=null;
+      if(this.productUnderstanding&&this.architecturePlanner&&this.taskDAGGenerator){
+        const specification=await this.productUnderstanding.understand({input:command,context:{...context,executionId:execution?.id}});
+        const architecture=await this.architecturePlanner.plan({specification,input:command,context:{...context,executionId:execution?.id}});
+        const dag=this.taskDAGGenerator.generate({specification,architecture:architecture.plan});
+        planning={specification,architecture:architecture.plan,dag:dag.dag};
+        candidateContext={...candidateContext,planning};
+        if(execution) await this.executionStore.append(execution.id,{
+          type:"JORA_PLAN_READY",
+          specificationVersion:specification.version,
+          architectureId:architecture.plan.id,
+          taskCount:dag.dag.nodes.length,
+          criticalPath:dag.dag.criticalPath
+        });
+      }
+      const researchRequested=Boolean(context.research)||/\b(research|search|latest|news|look up|compare sources)\b/i.test(command);
+      if(researchRequested&&this.searchProvider?.search){
+        try{
+          const research=await this.searchProvider.search({query:command,maxResults:Math.min(8,Number(context.maxSearchResults||8)),topic:context.searchTopic||"general"});
+          candidateContext={...candidateContext,research};
+          if(execution) await this.executionStore.append(execution.id,{type:"RESEARCH_COMPLETE",provider:research.provider,resultCount:research.results?.length||0});
+        }catch(error){
+          candidateContext={...candidateContext,researchError:error.message};
+          if(execution) await this.executionStore.append(execution.id,{type:"RESEARCH_FAILED",error:error.message});
+        }
+      }
       await governance.transition("ISOLATED");
       if(this.repository?.prepareCandidate) {
         const candidate=await this.repository.prepareCandidate(
@@ -55,6 +87,9 @@ export class JoraRuntime {
         command,
         context:{...candidateContext,built}
       });
+      if(planning||candidateContext.research){
+        result={...result,planning:planning??null,research:candidateContext.research??null,researchError:candidateContext.researchError??null};
+      }
 
       await governance.transition("PROMOTION_CHECK",{status:result.status});
       if(result.status==="PROMOTED") {
