@@ -206,12 +206,20 @@ export class OperatorApi {
     }
 
     if(method==="POST" && path==="/v1/agent") {
-      if(!this.executionPlatform?.agentExecute) return json(res,503,{error:"agent_runtime_not_configured"});
+      if(!this.runtime?.execute && !this.executionPlatform?.agentExecute) return json(res,503,{error:"agent_runtime_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
       if(!body.task && !body.command) return json(res,400,{error:"task is required"});
       try {
-        const task={...(body.task&&typeof body.task==="object"?body.task:{}),id:body.id||body.taskId,command:body.command||body.task?.command||body.task?.description||"";
+        const task={...(body.task&&typeof body.task==="object"?body.task:{}),id:body.id||body.taskId,command:body.command||body.task?.command||body.task?.description||""};
         task.capability=task.capability||"coding";
+        if(this.runtime?.execute) {
+          const result=await this.runtime.execute({
+            command:task.command,
+            constraints:body.constraints||{},
+            context:{...(body.context||{}),taskId:task.id||"agent-task",agentId:"jora-core",tenantId,source:"jora-agent"}
+          });
+          return json(res,200,{accepted:true,status:"AGENT_COMPLETED",agentId:"jora-core",result});
+        }
         return json(res,200,await this.executionPlatform.agentExecute(task));
       } catch(error) {
         return json(res,400,{accepted:false,status:"AGENT_FAILED",error:error.message});
