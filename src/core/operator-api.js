@@ -27,27 +27,6 @@ async function readBody(req,maxBytes=1_000_000) {
   catch { throw new Error("invalid JSON body"); }
 }
 
-const OPENCODE_FREE_MODELS=[
-  ["opencode-mimo-v2.5-free","MiMo-V2.5 Free","mimo-v2.5-free"],
-  ["opencode-laguna-s-2.1-free","Laguna S 2.1 Free","laguna-s-2.1-free"],
-  ["opencode-ling-3.0-tiny-free","Ling 3.0-tiny Free","ling-3.0-tiny-free"],
-  ["opencode-longcat-2.0-free","LongCat-2.0 Free","longcat-2.0-free"],
-  ["opencode-north-mini-code-free","North Mini Code Free","north-mini-code-free"],
-  ["opencode-nemotron-3-ultra-free","Nemotron 3 Ultra Free","nemotron-3-ultra-free"],
-  ["opencode-deepseek-v4-flash-free","DeepSeek V4 Flash Free","deepseek-v4-flash-free"]
-];
-
-async function getOpenCodeFreeAvailability() {
-  try {
-    const response=await fetch(process.env.JORA_OPENCODE_FREE_MODELS_URL||"https://opencode.ai/zen/v1/models",{signal:AbortSignal.timeout(8000)});
-    if(!response.ok) return {reachable:false,models:new Set()};
-    const payload=await response.json();
-    return {reachable:true,models:new Set((payload.data||[]).map(x=>x.id))};
-  } catch {
-    return {reachable:false,models:new Set()};
-  }
-}
-
 function safeExecution(execution) {
   if(!execution) return null;
   return {
@@ -893,22 +872,15 @@ export class OperatorApi {
 
     if(method==="GET" && path==="/v1/providers") {
       const status=this.modelGateway?.status?.()||{models:[]};
-      const live=await getOpenCodeFreeAvailability();
-      const providers=status.models.map(model=>({
-        id:model,
-        available:true,
-        free:model==="kilo-free"||model.startsWith("opencode-"),
-        label:model==="kilo-free"?"Kilo Auto Free":model.startsWith("opencode-")?(OPENCODE_FREE_MODELS.find(x=>x[0]===model)?.[1]||model):"Jora"
-      }));
-      for(const [id,label,modelId] of OPENCODE_FREE_MODELS) {
-        const item=providers.find(x=>x.id===id);
-        if(item) {
-          item.available=live.reachable ? live.models.has(modelId) : null;
-          item.provider="OpenCode";
-          item.model=modelId;
-        }
-      }
-      return json(res,200,{providers,defaultModel:status.defaultModel,liveCheck:live.reachable,checkedAt:new Date().toISOString()});
+      const configured=status.models?.includes("jora");
+      const providers=[{
+        id:"jora",
+        available:configured,
+        free:false,
+        label:"Jora AI",
+        role:"primary"
+      }];
+      return json(res,200,{providers,defaultModel:"jora",liveCheck:configured,checkedAt:new Date().toISOString()});
     }
 
     if(method==="POST" && path==="/v1/execute") {
@@ -917,26 +889,24 @@ export class OperatorApi {
         return json(res,400,{error:"command is required"});
       }
       const requestId=randomUUID();
-      const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "";
-      // "jora" is a UI alias for the backend's configured default model.
+      const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "jora";
+      if(selectedProvider && selectedProvider!=="jora") {
+        return json(res,400,{requestId,accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Jora is the only supported AI interface",provider:selectedProvider});
+      }
       const gatewayStatus=this.modelGateway?.status?.()||{};
-      const requestedProvider=selectedProvider==="jora" ? (gatewayStatus.defaultModel||"") : selectedProvider;
-      const providerAvailable=selectedProvider==="jora"
-        ? Boolean(requestedProvider && this.modelGateway?.providerFor?.(requestedProvider))
-        : Boolean(selectedProvider && gatewayStatus.models?.includes(selectedProvider));
-      if(selectedProvider && !providerAvailable) {
-        return json(res,400,{requestId,accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Selected AI provider is not available on this Jora backend",provider:selectedProvider});
+      if(!gatewayStatus.models?.includes("jora")) {
+        return json(res,503,{requestId,accepted:false,status:"JORA_ENGINE_NOT_CONFIGURED",error:"Jora AI engine is not configured on the backend"});
       }
       try {
         const execute=()=>this.runtime.execute({
           command:body.command.trim(),
           constraints:body.constraints??{},
-          context:{...(body.context??{}),apiRequestId:requestId,tenantId}
+          context:{...(body.context??{}),apiRequestId:requestId,tenantId,provider:"jora"}
         });
-        const result=selectedProvider==="jora" ? await execute() : (requestedProvider ? await withModelSelection(requestedProvider,execute) : await execute());
-        return json(res,200,{requestId,accepted:true,status:result.status,result,provider:selectedProvider||null,model:result.model??(requestedProvider||null)});
+        const result=await execute();
+        return json(res,200,{requestId,accepted:true,status:result.status,result,provider:"jora",model:"jora"});
       } catch(error) {
-        return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message,provider:selectedProvider||null});
+        return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message,provider:"jora",model:"jora"});
       }
     }
 
