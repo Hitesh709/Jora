@@ -351,7 +351,8 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const customerIdentity=new CustomerIdentityDirectory({store:new JsonStore({file:customerConfig.identityStateFile||"./.jora/customer-identities.json"})});
   const customerApiKeys=new CustomerApiKeyManager({store:new JsonStore({file:customerConfig.apiKeyStateFile||"./.jora/customer-api-keys.json"})});
   const customerBilling=new CustomerPlanBillingController({plans:customerConfig.plans||{},store:new JsonStore({file:customerConfig.billingStateFile||"./.jora/customer-billing.json"})});
-  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory,artifactLineageStore:customerLineageStore});
+  customerRouter.billing=customerBilling;
+  const customerControl=new CustomerControlPlaneV2({tenantRegistry:customerTenants,projects:customerProjects,missions:customerMissions,quota:customerQuota,meter:customerMeter,router:customerRouter,workspaceRegistry:customerWorkspaces,versionRegistry:customerVersions,repositoryFactory:customerRepositoryFactory,artifactLineageStore:customerLineageStore,billing:customerBilling});
   await customerControl.load();
   const customerSaaS=new CustomerSaaSControlPlaneV3({customerControl,applicationFactory:customerApplicationFactory,identity:customerIdentity,apiKeys:customerApiKeys,billing:customerBilling});
   const customerOperations=new CustomerAutonomousOperationsControlPlane({
