@@ -8,20 +8,18 @@ import {createProductionJoraRuntime} from "./core/production-runtime.js";
 try {
   const config=runtimeConfig();
   const providers=new Map();
-  if(config.model.apiKey) providers.set("openai",new OpenAICompatibleProvider(config.model));
-  if(config.models.anthropicApiKey) providers.set("claude",new AnthropicProvider(config.models));
-  // Jora is the only user-facing AI. It may use a server-side model credential as its internal reasoning engine.
-  if(config.model.apiKey) {
-    providers.set("jora",new OpenAICompatibleProvider(config.model));
-  } else if(config.models.anthropicApiKey) {
-    providers.set("jora",new AnthropicProvider(config.models));
-  } else {
-    providers.set("jora",{complete:async()=>{
-      throw new Error("Jora AI engine is not configured. Set OPENAI_API_KEY (or ANTHROPIC_API_KEY) on the Railway backend.");
-    }});
-  }
+
+  // Jora is the only user-facing AI interface. The native engine is always
+  // registered so the production runtime does not depend on external model keys.
+  providers.set("jora",new JoraNativeProvider());
+
   const defaultModel="jora";
-  const modelGateway=new MultiModelGateway({providers,defaultModel,fallbackModels:[]});
+  const modelGateway=new MultiModelGateway({
+    providers,
+    defaultModel,
+    fallbackModels:[]
+  });
+
   const composed=await createProductionJoraRuntime({config,modelGateway});
   if(!composed.api) throw new Error("JORA_API_ENABLED=true is required");
   const address=await composed.api.start();
@@ -37,7 +35,10 @@ try {
     accepted:true,
     status:"LISTENING",
     address,
-    health:"http://"+address.host+":"+address.port+"/health"
+    health:"http://"+address.host+":"+address.port+"/health",
+    aiEngine:"jora-native",
+    provider:"jora",
+    externalAiKeysRequired:false
   },null,2));
 } catch(error) {
   console.error(JSON.stringify({
