@@ -35,7 +35,18 @@ try {
     }));
   }
   if(!config.model.apiKey && !config.models.anthropicApiKey) providers.set("default",{complete:async()=>{throw new Error("No model provider configured");}});
-  const modelGateway=new MultiModelGateway({providers,defaultModel:config.model.defaultModel||"openai",fallbackModels:config.model.fallbackModels});
+  // Jora must have a usable default even when no paid OpenAI/Anthropic key is configured.
+  // Prefer the configured model when it is actually registered; otherwise use Kilo Auto Free.
+  const configuredDefault=config.model.defaultModel||"";
+  const defaultModel=providers.has(configuredDefault)
+    ? configuredDefault
+    : (providers.has("kilo-free") ? "kilo-free" : ([...providers.keys()].find(x=>x!=="default")||"default"));
+  const fallbackModels=[
+    ...config.model.fallbackModels,
+    "kilo-free",
+    ...openCodeFreeModels.map(([model])=>"opencode-"+model)
+  ].filter((x,i,a)=>x && a.indexOf(x)===i && providers.has(x));
+  const modelGateway=new MultiModelGateway({providers,defaultModel,fallbackModels});
   const composed=await createProductionJoraRuntime({config,modelGateway});
   if(!composed.api) throw new Error("JORA_API_ENABLED=true is required");
   const address=await composed.api.start();
