@@ -168,14 +168,14 @@ function showView(view){
 }
 async function checkBackend(){
   const el=document.getElementById("conn");
-  try{const r=await fetch(base()+"/health",{cache:"no-store"});if(!r.ok)throw new Error();el.textContent="● Backend online";el.className="conn"}catch{el.textContent="● Backend offline";el.className="conn off"}
+  try{const r=await fetch(base()+"/health",{cache:"no-store"});if(!r.ok)throw new Error();const p=await fetch(base()+"/v1/platform",{cache:"no-store"});const d=p.ok?await p.json():null;el.textContent=d?.platform?.version?"● Jora OS "+d.platform.version+" online":"● Backend online";el.className="conn"}catch{el.textContent="● Backend offline";el.className="conn off"}
 }
 async function loadRuns(){try{const e=await get("/v1/executions?limit=30");document.getElementById("runs").textContent=JSON.stringify(e.executions,null,2)}catch(e){document.getElementById("runs").textContent="Unable to load runs: "+e.message}}
 async function refreshControl(){
-  const endpoints=[["status","/v1/status"],["metrics","/v1/metrics"],["executions","/v1/executions?limit=10"],["jobs","/v2/jobs?limit=10"],["platform","/v2/platform"],["approvals","/v2/approvals"],["incidents","/v1/incidents?limit=20"]];
+  const endpoints=[["platform","/v1/platform"],["status","/v1/status"],["metrics","/v1/metrics"],["executions","/v1/executions?limit=10"],["jobs","/v2/jobs?limit=10"],["platform","/v2/platform"],["approvals","/v2/approvals"],["incidents","/v1/incidents?limit=20"]];
   const results=await Promise.allSettled(endpoints.map(([,p])=>get(p)));
   const d={};endpoints.forEach(([n],i)=>d[n]=results[i].status==="fulfilled"?results[i].value:null);
-  if(d.status){system.textContent=d.status.status;worker.textContent=d.status.worker?.worker?.status||d.status.worker?.status||"IDLE";executions.textContent=d.status.executions?.total??0;uptime.textContent=Math.round((d.status.uptimeMs||0)/1000)+"s"}
+  if(d.platform){factory.textContent=d.platform.platform?.version||"4.0";caps.innerHTML=Object.entries(d.platform.platform?.capabilities||{}).slice(0,40).map(([k,v])=>"<span>"+k+": "+(typeof v==="object"?JSON.stringify(v):v)+"</span><br>").join("")} if(d.status){system.textContent=d.status.status;worker.textContent=d.status.worker?.worker?.status||d.status.worker?.status||"IDLE";executions.textContent=d.status.executions?.total??0;uptime.textContent=Math.round((d.status.uptimeMs||0)/1000)+"s"}
   if(d.platform){factory.textContent=d.platform.version||"—";caps.innerHTML=Object.entries(d.platform.capabilities||{}).map(([k,v])=>'<span>'+k+': '+(typeof v==="object"?JSON.stringify(v):v)+"</span><br>").join("")}
   if(d.approvals)approvals.textContent=(d.approvals.approvals||[]).length;
   if(d.metrics)metrics.textContent=JSON.stringify(d.metrics,null,2);if(d.executions)recent.textContent=JSON.stringify(d.executions.executions,null,2);if(d.jobs)jobs.textContent=JSON.stringify(d.jobs.jobs,null,2);if(d.approvals)approvalList.textContent=JSON.stringify(d.approvals.approvals,null,2);if(d.incidents)incidents.textContent=JSON.stringify(d.incidents.incidents,null,2);
