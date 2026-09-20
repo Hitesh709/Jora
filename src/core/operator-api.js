@@ -933,7 +933,7 @@ export class OperatorApi {
           constraints:body.constraints??{},
           context:{...(body.context??{}),apiRequestId:requestId,tenantId}
         });
-        const result=requestedProvider ? await withModelSelection(requestedProvider,execute) : await execute();
+        const result=selectedProvider==="jora" ? await execute() : (requestedProvider ? await withModelSelection(requestedProvider,execute) : await execute());
         return json(res,200,{requestId,accepted:true,status:result.status,result,provider:selectedProvider||null,model:result.model??(requestedProvider||null)});
       } catch(error) {
         return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message,provider:selectedProvider||null});
