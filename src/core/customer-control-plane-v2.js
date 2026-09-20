@@ -109,7 +109,7 @@ export class CustomerRepositoryFactory {
 }
 
 export class CustomerExecutionRouter {
-  constructor({tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null,artifactLineageStore=null}={}) {Object.assign(this,{tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry,versionRegistry,repositoryFactory});}
+  constructor({tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null,artifactLineageStore=null,billing=null}={}) {Object.assign(this,{tenantRegistry,projectRegistry,missionManager,quotaGuard,meter,executionPlatform,workspaceRegistry,versionRegistry,repositoryFactory,billing});}
   async submit({tenantId,projectId,objective,constraints={},metric="missions",quotaCurrent=null,workspacePath=null}={}) {
     const tenant=await this.tenantRegistry.get(tenantId); if(!tenant)return {accepted:false,status:"TENANT_NOT_FOUND"};
     if(tenant.status!=="ACTIVE")return {accepted:false,status:"TENANT_NOT_ACTIVE",tenantId};
@@ -119,17 +119,21 @@ export class CustomerExecutionRouter {
     const resolvedWorkspacePath=workspacePath||project.workspace||"./.jora/customer-workspaces/"+tenantId+"/"+projectId;
     const workspace=this.workspaceRegistry?await this.workspaceRegistry.ensure({tenantId,projectId,path:resolvedWorkspacePath,environment:project.environment,repository:project.repository}):null;
     const mission=this.missionManager.create({tenantId,projectId,objective,constraints});
-    this.meter.record({tenantId,projectId,metric,quantity:1,metadata:{missionId:mission.id}});
-    return {accepted:true,status:"MISSION_ACCEPTED",mission,quota,workspace};
+    const usage=this.meter.record({tenantId,projectId,metric,quantity:1,metadata:{missionId:mission.id}});
+    const unitPrice=this.billing?.unitPriceFor?.({tenant,metric})??0;
+    const billingEvent=this.billing?.record
+      ? await this.billing.record({tenantId,metric,quantity:1,unitPrice,metadata:{missionId:mission.id,projectId}})
+      : null;
+    return {accepted:true,status:"MISSION_ACCEPTED",mission,quota,workspace,usage,billingEvent};
   }
 }
 
 export class CustomerControlPlaneV2 {
-  constructor({tenantRegistry=null,projects=null,missions=null,quota=null,meter=null,router=null,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null,artifactLineageStore=null}={}) {
+  constructor({tenantRegistry=null,projects=null,missions=null,quota=null,meter=null,router=null,workspaceRegistry=null,versionRegistry=null,repositoryFactory=null,artifactLineageStore=null,billing=null}={}) {
     this.version="3.50.0";
     this.tenants=tenantRegistry??new CustomerTenantRegistry(); this.projects=projects??new ProjectRegistry(); this.missions=missions??new CustomerMissionManager();
     this.quota=quota??new QuotaGuard(); this.meter=meter??new UsageMeter(); this.workspaces=workspaceRegistry??new CustomerWorkspaceRegistry(); this.versions=versionRegistry??new CustomerVersionRegistry(); this.repositoryFactory=repositoryFactory??null;
-    this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,executionPlatform:null,workspaceRegistry:this.workspaces,versionRegistry:this.versions,repositoryFactory:this.repositoryFactory});
+    this.router=router??new CustomerExecutionRouter({tenantRegistry:this.tenants,projectRegistry:this.projects,missionManager:this.missions,quotaGuard:this.quota,meter:this.meter,executionPlatform:null,workspaceRegistry:this.workspaces,versionRegistry:this.versions,repositoryFactory:this.repositoryFactory,billing});
     this.artifactLineageStore=artifactLineageStore;
   }
   async load(){await Promise.all([this.tenants.load(),this.projects.load(),this.missions.load(),this.meter.load(),this.workspaces.load(),this.versions.load()]);}
