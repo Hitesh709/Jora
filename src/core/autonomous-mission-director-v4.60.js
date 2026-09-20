@@ -1,11 +1,14 @@
 import {randomUUID} from "node:crypto";
 
 export class MissionLedgerV4 {
-  constructor({maxRecords=5000}={}) { this.maxRecords=maxRecords; this.records=[]; }
+  constructor({maxRecords=5000,store=null}={}) { this.maxRecords=maxRecords; this.store=store; this.records=[]; }
+  async load(){this.records=await this.store?.read?.([])||[];return this.records;}
+  async persist(){await this.store?.write?.(this.records);}
   append(event={}) {
     const record={id:"mission_event_"+randomUUID(),at:new Date().toISOString(),...event};
     this.records.push(record);
     if(this.records.length>this.maxRecords)this.records=this.records.slice(-this.maxRecords);
+    this.persist();
     return record;
   }
   list({missionId,limit=100}={}) {
@@ -15,7 +18,9 @@ export class MissionLedgerV4 {
 }
 
 export class MissionStateStoreV4 {
-  constructor({maxMissions=2000}={}) { this.maxMissions=maxMissions; this.missions=new Map(); }
+  constructor({maxMissions=2000,store=null}={}) { this.maxMissions=maxMissions; this.store=store; this.missions=new Map(); }
+  async load(){const rows=await this.store?.read?.([])||[];for(const m of rows)this.missions.set(m.id,m);return this.list();}
+  async persist(){await this.store?.write?.([...this.missions.values()]);}
   upsert(mission) { this.missions.set(mission.id,mission); if(this.missions.size>this.maxMissions){const first=this.missions.keys().next().value;this.missions.delete(first);} return mission; }
   get(id){return this.missions.get(id)||null;}
   list({status,limit=100}={}) { let rows=[...this.missions.values()]; if(status)rows=rows.filter(x=>x.status===status); return rows.slice(-Math.min(500,Math.max(1,Number(limit)||100))).reverse(); }
@@ -128,11 +133,11 @@ export class MissionDirectorV4 {
 }
 
 export class AutonomousMissionDirectorV4 {
-  constructor({teamControlPlane,swarm,missionState=null,ledger=null,maxRetries=2}={}) {
+  constructor({teamControlPlane,swarm,missionState=null,ledger=null,missionStateStore=null,ledgerStore=null,maxRetries=2}={}) {
     this.version="4.60.0";
     this.teamControlPlane=teamControlPlane;
-    this.ledger=ledger||new MissionLedgerV4();
-    this.state=missionState||new MissionStateStoreV4();
+    this.ledger=ledger||new MissionLedgerV4({store:ledgerStore});
+    this.state=missionState||new MissionStateStoreV4({store:missionStateStore});
     this.planner=new MissionPlannerV4();
     this.composer=new TeamComposerV4();
     this.allocator=new DynamicAllocationEngineV4();
@@ -141,6 +146,7 @@ export class AutonomousMissionDirectorV4 {
     this.readiness=new MissionReadinessGateV4();
     this.director=new MissionDirectorV4({teams:teamControlPlane.registry,swarm,ledger:this.ledger,state:this.state,planner:this.planner,composer:this.composer,allocator:this.allocator,scheduler:this.scheduler,retry:this.retry,readiness:this.readiness});
   }
+  async load(){await Promise.all([this.ledger.load?.(),this.state.load?.()]);}
   async run(input){return this.director.run(input);}
   status(){return {version:this.version,capabilities:{missionPlanning:true,teamComposition:true,dynamicAgentAllocation:true,modelAllocation:true,dependencyScheduling:true,retryEscalation:true,readinessGate:true,missionLedger:true,missionState:true,autonomousMissionExecution:true}};}
 }
