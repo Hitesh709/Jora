@@ -1,6 +1,6 @@
 import {ModelGateway} from "./model-gateway.js";
 import {ProviderRegistry} from "./provider-registry.js";
-import {OpenAICompatibleProvider} from "./openai-compatible-provider.js";
+import {JoraNativeProvider} from "./jora-native-provider.js";
 import {JsonStore} from "./json-store.js";
 import {PersistentExecutionStore} from "./persistent-execution-store.js";
 import {BenchmarkStore} from "./benchmark-store.js";
@@ -13,8 +13,8 @@ export function createJoraRuntime({planner,factory,delivery,controller,modelProv
   if(!planner||!factory||!delivery||!controller) throw new Error("planner, factory, delivery and controller are required");
   const providers=new ProviderRegistry();
   if(modelProvider) providers.register("default",modelProvider);
-  else if(config.model.apiKey) providers.register("default",new OpenAICompatibleProvider(config.model));
-  const modelGateway=new ModelGateway({providers:new Map([...providers.providers]),defaultModel:"default"});
+  else providers.register("jora",new JoraNativeProvider());
+  const modelGateway=new ModelGateway({providers:new Map([...providers.providers]),defaultModel:"jora"});
   const benchmarkStore=new BenchmarkStore();
   const executionStore=new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
   const builder=new ProductionAgentBuilder({planner,factory,delivery});
