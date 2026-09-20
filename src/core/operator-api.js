@@ -914,7 +914,13 @@ export class OperatorApi {
       }
       const requestId=randomUUID();
       const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "";
-      if(selectedProvider && !this.modelGateway?.status?.().models?.includes(selectedProvider)) {
+      // "jora" is a UI alias for the backend's configured default model.
+      const gatewayStatus=this.modelGateway?.status?.()||{};
+      const requestedProvider=selectedProvider==="jora" ? (gatewayStatus.defaultModel||"") : selectedProvider;
+      const providerAvailable=selectedProvider==="jora"
+        ? Boolean(requestedProvider && this.modelGateway?.providerFor?.(requestedProvider))
+        : Boolean(selectedProvider && gatewayStatus.models?.includes(selectedProvider));
+      if(selectedProvider && !providerAvailable) {
         return json(res,400,{requestId,accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Selected AI provider is not available on this Jora backend",provider:selectedProvider});
       }
       try {
@@ -923,8 +929,8 @@ export class OperatorApi {
           constraints:body.constraints??{},
           context:{...(body.context??{}),apiRequestId:requestId,tenantId}
         });
-        const result=selectedProvider ? await withModelSelection(selectedProvider,execute) : await execute();
-        return json(res,200,{requestId,accepted:true,status:result.status,result,provider:selectedProvider||null});
+        const result=requestedProvider ? await withModelSelection(requestedProvider,execute) : await execute();
+        return json(res,200,{requestId,accepted:true,status:result.status,result,provider:selectedProvider||null,model:result.model??(requestedProvider||null)});
       } catch(error) {
         return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message,provider:selectedProvider||null});
       }
