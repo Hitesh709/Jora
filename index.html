@@ -78,10 +78,15 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <label class="muted">Jora backend</label><input id="api" placeholder="https://your-jora-api.up.railway.app">
 <div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>🔓 Browser access enabled</strong><div class="muted" style="margin-top:5px">No Bearer token is required for normal Jora chat, research, code, or build requests. Server credentials remain on the Railway backend.</div></div>
 <div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>✦ Jora AI</strong><div class="muted" style="margin-top:5px">Jora is the only AI interface. Model selection and third-party free-model controls have been removed from the browser.</div></div>
-<div class="actions"><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
+<div class="actions"><button class="secondary" onclick="saveSettings()">Save &amp; connect</button><button class="secondary" onclick="resetApi()">Reset to production</button><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
+const apiConfigVersion="2026-09-20-production-2";
 const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
+if(localStorage.getItem("jora_api_config_version")!==apiConfigVersion){
+  localStorage.setItem("jora_api_base",defaultApi);
+  localStorage.setItem("jora_api_config_version",apiConfigVersion);
+}
 apiInput.value=localStorage.getItem("jora_api_base")||defaultApi;
 let mode="agent";
 function base(){return apiInput.value.replace(/\/$/,"")}
@@ -154,8 +159,16 @@ function formatSearchResult(d){
 function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
 function saveSettings(){
-  localStorage.setItem("jora_api_base",base());
+  const value=base()||defaultApi;
+  localStorage.setItem("jora_api_base",value);
+  localStorage.setItem("jora_api_config_version",apiConfigVersion);
   closeSettings();checkBackend()
+}
+function resetApi(){
+  apiInput.value=defaultApi;
+  localStorage.setItem("jora_api_base",defaultApi);
+  localStorage.setItem("jora_api_config_version",apiConfigVersion);
+  checkBackend()
 }
 
 function newChat(){document.getElementById("messages").innerHTML='<div class="msg system">New Jora task. What should I build or solve?</div>';promptInput.focus()}
