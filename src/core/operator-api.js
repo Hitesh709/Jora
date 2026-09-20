@@ -107,6 +107,9 @@ export class OperatorApi {
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
     this.startedAt=null;
+    // Long autonomous builds must not hold a mobile browser HTTP connection open.
+    // Results are retained briefly here while the durable execution store remains the source of truth.
+    this.backgroundExecutions=new Map();
   }
 
   _rateLimited(req) {
@@ -1048,6 +1051,63 @@ export class OperatorApi {
         role:"primary"
       }];
       return json(res,200,{providers,defaultModel:"jora",liveCheck:configured,checkedAt:new Date().toISOString()});
+    }
+
+    if(method==="POST" && path==="/v1/execute/async") {
+      const body=await readBody(req,this.maxBodyBytes);
+      if(typeof body.command!=="string" || !body.command.trim()) {
+        return json(res,400,{error:"command is required"});
+      }
+      const requestId=randomUUID();
+      const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "jora";
+      if(selectedProvider && selectedProvider!=="jora") {
+        return json(res,400,{requestId,accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Jora is the only supported AI interface",provider:selectedProvider});
+      }
+      const gatewayStatus=this.modelGateway?.status?.()||{};
+      if(this.modelGateway && !gatewayStatus.models?.includes("jora")) {
+        return json(res,503,{requestId,accepted:false,status:"JORA_ENGINE_NOT_CONFIGURED",error:"Jora AI engine is not configured on the backend"});
+      }
+
+      const record={requestId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora"};
+      this.backgroundExecutions.set(requestId,record);
+
+      Promise.resolve().then(()=>this.runtime.execute({
+        command:body.command.trim(),
+        constraints:body.constraints??{},
+        context:{...(body.context??{}),apiRequestId:requestId,tenantId}
+      })).then(result=>{
+        record.status="COMPLETED";
+        record.result=result;
+        record.updatedAt=Date.now();
+      }).catch(error=>{
+        record.status="FAILED";
+        record.error=error?.message||String(error);
+        record.updatedAt=Date.now();
+      }).finally(()=>{
+        const timer=setTimeout(()=>this.backgroundExecutions.delete(requestId),30*60*1000);
+        timer.unref?.();
+      });
+
+      return json(res,202,{requestId,accepted:true,status:"RUNNING",provider:"jora",model:"jora"});
+    }
+
+    if(method==="GET" && path.startsWith("/v1/execute/async/")) {
+      const requestId=decodeURIComponent(path.slice("/v1/execute/async/".length));
+      const record=this.backgroundExecutions.get(requestId);
+      if(!record) {
+        return json(res,404,{requestId,accepted:false,status:"NOT_FOUND",error:"background execution not found"});
+      }
+      return json(res,200,{
+        requestId,
+        accepted:true,
+        status:record.status,
+        provider:record.provider,
+        model:record.model,
+        startedAt:record.startedAt,
+        updatedAt:record.updatedAt,
+        ...(record.status==="COMPLETED" ? {result:record.result} : {}),
+        ...(record.status==="FAILED" ? {error:record.error} : {})
+      });
     }
 
     if(method==="POST" && path==="/v1/execute") {
