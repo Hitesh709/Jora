@@ -21,7 +21,7 @@ export class CustomerApiKeyManager {
   async issue({tenantId,projectId,name="api-key"}={}) {
     const secret="jora_"+randomUUID().replaceAll("-","");
     const key={id:"key_"+randomUUID(),tenantId,projectId,name,status:"ACTIVE",createdAt:new Date().toISOString(),secretPrefix:secret.slice(0,12),secretHash:hashSecret(secret)};
-    this.keys.push(key);await this.save();return {...key,secret};
+    this.keys.push(key);await this.save();const {secretHash,...safe}=key;return {...safe,secret};
   }
   async authenticate(secret){
     if(!secret?.trim()) return null;
@@ -32,7 +32,7 @@ export class CustomerApiKeyManager {
     if(key.secretHash===legacy){key.secretHash=hashed;key.secretPrefix=secret.trim().slice(0,12);await this.save();}
     return {id:key.id,tenantId:key.tenantId,projectId:key.projectId,roles:["customer"],apiKey:true,name:key.name};
   }
-  async revoke(id){const key=this.keys.find(x=>x.id===id);if(!key)return null;key.status="REVOKED";key.revokedAt=new Date().toISOString();await this.save();return key;}
+  async revoke(id){const key=this.keys.find(x=>x.id===id);if(!key)return null;key.status="REVOKED";key.revokedAt=new Date().toISOString();await this.save();const {secretHash,...safe}=key;return safe;}
   list({tenantId,projectId}={}){return this.keys.filter(x=>(!tenantId||x.tenantId===tenantId)&&(!projectId||x.projectId===projectId)).map(({secretHash,...safe})=>safe);}
 }
 
