@@ -261,15 +261,13 @@ export class OperatorApi {
       const body=await readBody(req,this.maxBodyBytes);
       if(typeof body.message!=="string" || !body.message.trim()) return json(res,400,{error:"message is required"});
       const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "";
-      // "jora" is a UI alias for the backend's configured default model.
-      // Do not treat the UI alias as a literal gateway provider name.
+      // "jora" (and an empty provider) means: use the backend's resilient default/fallback chain.
+      // Never pin the request to a missing configured model such as "openai".
       const gatewayStatus=this.modelGateway?.status?.()||{};
-      const requestedProvider=selectedProvider==="jora" ? (gatewayStatus.defaultModel||"") : selectedProvider;
-      const providerAvailable=selectedProvider==="jora"
-        ? Boolean(requestedProvider && this.modelGateway?.providerFor?.(requestedProvider))
-        : Boolean(selectedProvider && gatewayStatus.models?.includes(selectedProvider));
-      if(selectedProvider && !providerAvailable) {
-        return json(res,400,{accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Selected AI provider is not available on this Jora backend",provider:selectedProvider});
+      const useDefault=!selectedProvider || selectedProvider==="jora";
+      const requestedProvider=useDefault ? "" : selectedProvider;
+      if(!useDefault && !gatewayStatus.models?.includes(selectedProvider)) {
+        return json(res,400,{accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Selected AI provider is not available on this Jora backend",provider:selectedProvider,availableProviders:gatewayStatus.models||[]});
       }
       try {
         const complete=()=>this.modelGateway.complete({
@@ -278,8 +276,14 @@ export class OperatorApi {
             {role:"user",content:body.message.trim()}
           ]
         });
-        const response=requestedProvider ? await withModelSelection(requestedProvider,complete) : await complete();
-        return json(res,200,{accepted:true,status:"CHAT_COMPLETED",message:String(response?.text??response?.content??response?.output??""),model:response?.model??(requestedProvider||null),provider:selectedProvider||null});
+        const response=useDefault ? await complete() : await withModelSelection(requestedProvider,complete);
+        return json(res,200,{
+          accepted:true,
+          status:"CHAT_COMPLETED",
+          message:String(response?.text??response?.content??response?.output??""),
+          model:response?.model??(requestedProvider||null),
+          provider:useDefault ? (response?.model??gatewayStatus.defaultModel??null) : selectedProvider
+        });
       } catch(error) {
         return json(res,502,{accepted:false,status:"CHAT_FAILED",error:error.message,provider:selectedProvider||null});
       }
