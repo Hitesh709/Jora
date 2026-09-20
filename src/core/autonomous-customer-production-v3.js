@@ -63,11 +63,44 @@ export class CustomerMissionOrchestrator {
             });
             build={...build,localTests};
             if(localTests && localTests.ok===false) {
-              const version=customer?.versions?.record({
-                tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
-                status:"LOCAL_TEST_FAILED",metadata:{localTests}
-              });
-              return this.missionManager.transition(mission.id,"FAILED",{gate,planning,build,version});
+              let repaired=false;
+              const repairHistory=[{cycle:1,tests:localTests}];
+              for(let cycle=2;cycle<=3;cycle++){
+                if(!this.projectBuilder) break;
+                const repairFeedback={
+                  diagnosis:"Customer-generated project failed its local test gate.",
+                  hypothesis:"One or more generated files do not satisfy the runnable test contract.",
+                  tests:localTests
+                };
+                const repairedBuild=await this.projectBuilder.build({
+                  command:mission.objective,
+                  specification,
+                  context:{
+                    ...baseContext,
+                    architecture:planning.architecture,
+                    dag:planning.dag,
+                    repairFeedback,
+                    repairHistory
+                  },
+                  repository:workspace
+                });
+                const repairTests=await this.executionPlatform?.runTests?.({
+                  cwd:workspacePath,
+                  commandArgs:normalizedTests?.commandArgs||context.testCommandArgs||["test"],
+                  timeoutMs:normalizedTests?.timeoutMs
+                });
+                repairHistory.push({cycle,tests:repairTests,build:repairedBuild});
+                build={...build,repairCycles:repairHistory,localTests:repairTests};
+                if(!repairTests || repairTests.ok!==false){ repaired=true; break; }
+                localTests=repairTests;
+              }
+              if(!repaired){
+                const version=customer?.versions?.record({
+                  tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
+                  status:"LOCAL_TEST_FAILED",metadata:{localTests,repairHistory}
+                });
+                return this.missionManager.transition(mission.id,"FAILED",{gate,planning,build,version,repairHistory});
+              }
             }
             deliveryContext={
               branch:workspace.candidateBranch,
