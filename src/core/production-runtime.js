@@ -92,6 +92,7 @@ import {CustomerControlPlaneV2,CustomerTenantRegistry,ProjectRegistry,CustomerMi
 import {CustomerApplicationFactoryControlPlane,CustomerArtifactSecurityGate,CustomerBuildValidationGate,CustomerTestCommandController,CustomerDeliveryRecordStore,CustomerProductionUrlRegistry} from "./customer-application-factory-v3.70.js";
 import {CustomerSaaSControlPlaneV3,CustomerIdentityDirectory,CustomerApiKeyManager,CustomerPlanBillingController} from "./customer-saas-control-plane-v3.80.js";
 import {CustomerAutonomousOperationsControlPlane,CustomerProductionMonitor,CustomerIncidentDetector,CustomerLearningEngine} from "./customer-autonomous-operations-v3.90.js";
+import {AutonomousMissionDirectorV4} from "./autonomous-mission-director-v4.60.js";
 
 class CandidateEvaluator {
   async evaluate({candidate,champion,security,benchmarkScore,qualityScore}={}) {
@@ -426,6 +427,19 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     repositoryFactory:customerRepositoryFactory,applicationFactory:customerApplicationFactory,customerSaaS,customerOperations
   });
   customerRouter.executionPlatform=executionPlatform;
+  if(executionPlatform.agentTeams.registry.list().length===0) {
+    executionPlatform.agentTeams.createTeam({id:"jora-core-engineering",name:"Jora Core Engineering",specialists:["jora-core"],missionTypes:["engineering","incident","delivery","operations"],maxConcurrency:4});
+    executionPlatform.agentTeams.createTeam({id:"jora-core-reliability",name:"Jora Reliability",specialists:["jora-core"],missionTypes:["incident","operations","recovery"],maxConcurrency:2});
+    executionPlatform.agentTeams.createTeam({id:"jora-core-release",name:"Jora Release",specialists:["jora-core"],missionTypes:["delivery","release","deployment"],maxConcurrency:2});
+  }
+  executionPlatform.missionDirector=new AutonomousMissionDirectorV4({
+    teamControlPlane:executionPlatform.agentTeams,
+    swarm:executionPlatform.agentSwarm.swarm,
+    missionStateStore:new JsonStore({file:config.mission?.directorStateFile||"./.jora/mission-state.json"}),
+    ledgerStore:new JsonStore({file:config.mission?.directorLedgerFile||"./.jora/mission-ledger.json"}),
+    maxRetries:config.mission?.maxRetries??2
+  });
+  await executionPlatform.missionDirector.load();
   customerOperations.executionPlatform=executionPlatform;
   customerOperations.start();
   await executionPlatform.customerProduction.lineage.load();
