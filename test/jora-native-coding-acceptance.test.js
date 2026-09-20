@@ -44,8 +44,7 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
 
     const sourcePath=path.join(root,"src/index.js");
     const original=await fs.readFile(sourcePath,"utf8");
-    const brokenSource=original.replace('if(req.url==="/health"){','if(req.url==="/health-broken"){');
-    assert.notEqual(brokenSource,original);
+    const brokenSource=original+"\nTHIS_IS_INTENTIONALLY_BROKEN(";
     await fs.writeFile(sourcePath,brokenSource,"utf8");
 
     const broken=await runGeneratedTests(root);
@@ -56,10 +55,10 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
       context:{
         cycle:2,
         repairFeedback:{
-          diagnosis:"The generated service health route was changed and the acceptance test no longer passes.",
-          hypothesis:"Restore the expected /health route and response contract."
+          diagnosis:"The generated service source was intentionally corrupted and the acceptance test no longer passes.",
+          hypothesis:"Regenerate the complete runnable service files and restore the valid Node.js implementation."
         },
-        repairHistory:[{cycle:1,status:"FAILED",error:"health acceptance test failed"}]
+        repairHistory:[{cycle:1,status:"FAILED",error:"generated source syntax failure"}]
       }
     });
     assert.equal(repaired.status,"SUCCEEDED");
