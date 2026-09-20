@@ -167,7 +167,7 @@ export class OperatorApi {
 
     // Public browser API: these endpoints are intentionally callable from the Vercel UI
     // without exposing a permanent server secret to end users. Rate limiting still applies.
-    const publicApiPaths=new Set(["/v1/chat","/v1/search","/v1/execute","/v1/providers"]);
+    const publicApiPaths=new Set(["/v1/chat","/v1/search","/v1/execute","/v1/providers","/v1/platform","/v1/agent"]);
     const isPublicApi=method==="POST" && publicApiPaths.has(path) || method==="GET" && path==="/v1/providers";
     const principal=this._principal(req);
     const tenantId=this.accessController?.tenant(principal)||"default";
@@ -198,6 +198,24 @@ export class OperatorApi {
       const incident=this.incidentManager?.get(incidentMatch[1]);
       if(!incident) return json(res,404,{error:"incident_not_found"});
       return json(res,200,{incident});
+    }
+
+    if(method==="GET" && path==="/v1/platform") {
+      if(!this.executionPlatform?.status) return json(res,503,{error:"execution_platform_not_configured"});
+      return json(res,200,{accepted:true,status:"PLATFORM_READY",version:"4.0",engine:"jora",platform:this.executionPlatform.status()});
+    }
+
+    if(method==="POST" && path==="/v1/agent") {
+      if(!this.executionPlatform?.agentExecute) return json(res,503,{error:"agent_runtime_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.task && !body.command) return json(res,400,{error:"task is required"});
+      try {
+        const task={...(body.task&&typeof body.task==="object"?body.task:{}),id:body.id||body.taskId,command:body.command||body.task?.command||body.task?.description||"";
+        task.capability=task.capability||"coding";
+        return json(res,200,await this.executionPlatform.agentExecute(task));
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"AGENT_FAILED",error:error.message});
+      }
     }
 
     if(method==="GET" && path==="/v1/mission") {
