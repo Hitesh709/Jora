@@ -1,3 +1,71 @@
+function extractJsonObject(raw) {
+  const source=String(raw??"").trim();
+  if(!source) throw new Error("empty model response");
+
+  // Models sometimes wrap JSON in markdown fences or add a second JSON
+  // document after the requested object. Parse the first complete object
+  // instead of using lastIndexOf("}"), which can accidentally include the
+  // trailing document and produce "Unexpected non-whitespace character".
+  for(let start=0; start<source.length; start++){
+    if(source[start]!=="{") continue;
+
+    let depth=0;
+    let inString=false;
+    let escaped=false;
+
+    for(let i=start; i<source.length; i++){
+      const ch=source[i];
+
+      if(inString){
+        if(escaped) {
+          escaped=false;
+        } else if(ch==="\\") {
+          escaped=true;
+        } else if(ch==='"') {
+          inString=false;
+        }
+        continue;
+      }
+
+      if(ch==='"'){
+        inString=true;
+        continue;
+      }
+
+      if(ch==="{") depth++;
+      else if(ch==="}") {
+        depth--;
+        if(depth===0){
+          const candidate=source.slice(start,i+1);
+          try {
+            const value=JSON.parse(candidate);
+            if(value && typeof value==="object" && !Array.isArray(value)) return value;
+          } catch {
+            // Try the next possible opening brace.
+          }
+          break;
+        }
+      }
+    }
+  }
+
+  throw new Error("no complete JSON object found");
+}
+
+function parseProjectResponse(raw) {
+  const source=String(raw??"").trim();
+
+  try {
+    return JSON.parse(source);
+  } catch(firstError) {
+    try {
+      return extractJsonObject(source);
+    } catch {
+      throw new Error("Model did not return valid project JSON: "+firstError.message);
+    }
+  }
+}
+
 export class ModelProjectBuilder {
   constructor({modelGateway,repository}={}) {
     if(!modelGateway||!repository) throw new Error("modelGateway and repository are required");
@@ -20,20 +88,9 @@ export class ModelProjectBuilder {
       ],
       model:context.model
     });
-    let parsed;
-    const raw=String(response.text??"").trim();
-    try {
-      parsed=JSON.parse(raw);
-    } catch(firstError) {
-      const start=raw.indexOf("{");
-      const end=raw.lastIndexOf("}");
-      if(start>=0 && end>start) {
-        try { parsed=JSON.parse(raw.slice(start,end+1)); }
-        catch { throw new Error("Model did not return valid project JSON: "+firstError.message); }
-      } else {
-        throw new Error("Model did not return valid project JSON: "+firstError.message);
-      }
-    }
+
+    const parsed=parseProjectResponse(response.text);
+
     if(!Array.isArray(parsed.files)||parsed.files.length===0) throw new Error("Model returned no project files");
     const written=[];
     for(const file of parsed.files){
