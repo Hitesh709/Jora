@@ -3,6 +3,7 @@ import {randomUUID} from "node:crypto";
 import {URL} from "node:url";
 import fs from "node:fs/promises";
 import path from "node:path";
+import {fork} from "node:child_process";
 import {AccessController} from "./access-controller.js";
 import {WebSearchProvider} from "./web-search-provider.js";
 import {withModelSelection} from "./multi-model-gateway.js";
@@ -1069,25 +1070,60 @@ export class OperatorApi {
         return json(res,503,{requestId,accepted:false,status:"JORA_ENGINE_NOT_CONFIGURED",error:"Jora AI engine is not configured on the backend"});
       }
 
+      if(this.backgroundExecutions.size>=2) {
+        return json(res,429,{requestId,accepted:false,status:"ASYNC_CAPACITY_REACHED",error:"Jora is already processing two autonomous tasks. Retry shortly.",retryAfterSeconds:10});
+      }
+
       const record={requestId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora"};
       this.backgroundExecutions.set(requestId,record);
 
-      Promise.resolve().then(()=>this.runtime.execute({
-        command:body.command.trim(),
-        constraints:body.constraints??{},
-        context:{...(body.context??{}),apiRequestId:requestId,tenantId}
-      })).then(result=>{
-        record.status="COMPLETED";
-        record.result=result;
+      // Do not run the autonomous engineering loop on the API event loop.
+      // Promise callbacks are asynchronous in scheduling terms, but CPU-heavy
+      // build/test/repair work still blocks Node's HTTP server. A dedicated
+      // child process keeps /health and polling responsive on mobile browsers.
+      let child;
+      try {
+        child=fork(new URL("./jora-async-worker.js",import.meta.url),[],{
+          env:{
+            ...process.env,
+            JORA_ASYNC_WORKER_INPUT:JSON.stringify({
+              command:body.command.trim(),
+              constraints:body.constraints??{},
+              context:{...(body.context??{}),apiRequestId:requestId,tenantId}
+            })
+          },
+          stdio:["ignore","ignore","ignore","ipc"]
+        });
+      } catch(error) {
+        this.backgroundExecutions.delete(requestId);
+        return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message,provider:"jora",model:"jora"});
+      }
+
+      child.once("message",message=>{
+        if(message?.ok) {
+          record.status="COMPLETED";
+          record.result=message.result;
+        } else {
+          record.status="FAILED";
+          record.error=message?.error||"async worker failed";
+        }
         record.updatedAt=Date.now();
-      }).catch(error=>{
+      });
+      child.once("error",error=>{
         record.status="FAILED";
         record.error=error?.message||String(error);
         record.updatedAt=Date.now();
-      }).finally(()=>{
-        const timer=setTimeout(()=>this.backgroundExecutions.delete(requestId),30*60*1000);
-        timer.unref?.();
       });
+      child.once("exit",(code,signal)=>{
+        if(record.status==="RUNNING") {
+          record.status="FAILED";
+          record.error=signal ? "async worker terminated by "+signal : "async worker exited with code "+code;
+          record.updatedAt=Date.now();
+        }
+      });
+
+      const timer=setTimeout(()=>this.backgroundExecutions.delete(requestId),30*60*1000);
+      timer.unref?.();
 
       return json(res,202,{requestId,accepted:true,status:"RUNNING",provider:"jora",model:"jora"});
     }
