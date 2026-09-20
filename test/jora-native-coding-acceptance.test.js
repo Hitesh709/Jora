@@ -34,7 +34,7 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
     const repository=new MemoryRepository(root);
     const builder=new ModelProjectBuilder({modelGateway:provider,repository});
     const command="Build a small REST API with a health endpoint and browser status page";
-    
+
     const first=await builder.build({command,context:{cycle:1}});
     assert.equal(first.status,"SUCCEEDED");
     assert.ok(first.files.length>=5);
@@ -44,14 +44,12 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
 
     const sourcePath=path.join(root,"src/index.js");
     const original=await fs.readFile(sourcePath,"utf8");
-    await fs.writeFile(sourcePath,original.replace('body.status,"ok"', 'body.status,"broken"').replace('assert.equal(body.status,"ok");','assert.equal(body.status,"broken");'),"utf8");
+    const brokenSource=original.replace('if(req.url==="/health"){','if(req.url==="/health-broken"){');
+    assert.notEqual(brokenSource,original);
+    await fs.writeFile(sourcePath,brokenSource,"utf8");
 
     const broken=await runGeneratedTests(root);
-    assert.equal(broken.ok,true);
-
-    await fs.writeFile(sourcePath,original.replace('if(req.url==="/health"){','if(req.url==="/health-broken"){'),"utf8");
-    const actuallyBroken=await runGeneratedTests(root);
-    assert.equal(actuallyBroken.ok,false);
+    assert.equal(broken.ok,false);
 
     const repaired=await builder.build({
       command,
