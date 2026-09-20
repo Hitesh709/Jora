@@ -1,4 +1,6 @@
-import {randomUUID} from "node:crypto";
+import {randomUUID,createHash} from "node:crypto";
+
+function hashSecret(secret){return createHash("sha256").update(String(secret)).digest("hex");}
 
 export class CustomerIdentityDirectory {
   constructor({store=null}={}){this.store=store;this.users=[];}
@@ -18,8 +20,17 @@ export class CustomerApiKeyManager {
   async save(){if(this.store?.write) await this.store.write(this.keys);}
   async issue({tenantId,projectId,name="api-key"}={}) {
     const secret="jora_"+randomUUID().replaceAll("-","");
-    const key={id:"key_"+randomUUID(),tenantId,projectId,name,status:"ACTIVE",createdAt:new Date().toISOString(),secretHash:Buffer.from(secret).toString("base64")};
+    const key={id:"key_"+randomUUID(),tenantId,projectId,name,status:"ACTIVE",createdAt:new Date().toISOString(),secretPrefix:secret.slice(0,12),secretHash:hashSecret(secret)};
     this.keys.push(key);await this.save();return {...key,secret};
+  }
+  async authenticate(secret){
+    if(!secret?.trim()) return null;
+    const hashed=hashSecret(secret.trim());
+    const legacy=Buffer.from(secret.trim()).toString("base64");
+    const key=this.keys.find(x=>x.status==="ACTIVE" && (x.secretHash===hashed || x.secretHash===legacy));
+    if(!key) return null;
+    if(key.secretHash===legacy){key.secretHash=hashed;key.secretPrefix=secret.trim().slice(0,12);await this.save();}
+    return {id:key.id,tenantId:key.tenantId,projectId:key.projectId,roles:["customer"],apiKey:true,name:key.name};
   }
   async revoke(id){const key=this.keys.find(x=>x.id===id);if(!key)return null;key.status="REVOKED";key.revokedAt=new Date().toISOString();await this.save();return key;}
   list({tenantId,projectId}={}){return this.keys.filter(x=>(!tenantId||x.tenantId===tenantId)&&(!projectId||x.projectId===projectId)).map(({secretHash,...safe})=>safe);}
@@ -34,6 +45,10 @@ export class CustomerPlanBillingController {
   }
   summary({tenantId}={}){return this.events.filter(x=>!tenantId||x.tenantId===tenantId).reduce((a,x)=>a+x.amount,0);}
   plan(name="standard"){return this.plans[name]||null;}
+  unitPriceFor({tenant,metric}={}) {
+    const plan=this.plan(tenant?.plan||"standard")||{};
+    return Number(plan.prices?.[metric] ?? plan.unitPrices?.[metric] ?? 0);
+  }
 }
 
 export class CustomerDashboardService {
