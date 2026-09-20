@@ -17,4 +17,5 @@ RUN npm run jora:acceptance
 ENV NODE_ENV=production
 ENV JORA_API_HOST=0.0.0.0
 
+# Force Railway to build this exact repository revision.
 CMD ["npm","run","jora:api"]
