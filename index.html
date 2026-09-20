@@ -103,16 +103,42 @@ async function sendPrompt(){
   try{
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
     if(mode==="agent"){
-      // Agent mode must enter Jora's autonomous execution runtime, not a one-shot chat completion.
-      const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({
+      // Autonomous engineering is intentionally asynchronous so a phone never has
+      // to keep a long HTTP request open while Jora builds/tests/repairs.
+      const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
         command,
         context:{provider:"jora",mode:"agent",source:"browser"}
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
+      if(r.status===401) {
+        document.querySelector("#messages .msg.system:last-child")?.remove();
+        addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
+        return;
+      }
+      if(!r.ok) {
+        document.querySelector("#messages .msg.system:last-child")?.remove();
+        addMessage("Jora could not start this autonomous task: "+(data.error||r.statusText),"system");
+        return;
+      }
+
+      const requestId=data.requestId;
+      let attempts=0;
+      while(attempts++<240){
+        await new Promise(resolve=>setTimeout(resolve,1500));
+        const s=await fetch(base()+"/v1/execute/async/"+encodeURIComponent(requestId),{cache:"no-store"});
+        const state=await s.json().catch(()=>({status:"FAILED",error:"Invalid task status response"}));
+        if(state.status==="RUNNING"){
+          const system=document.querySelector("#messages .msg.system:last-child");
+          if(system) system.textContent="Jora is working… ("+Math.round(attempts*1.5)+"s)";
+          continue;
+        }
+        document.querySelector("#messages .msg.system:last-child")?.remove();
+        if(state.status==="FAILED") addMessage("Jora task failed: "+(state.error||"Unknown error"),"system");
+        else addMessage(formatAgentResult({requestId,state,status:state.status,result:state.result,model:state.model}),"assistant");
+        return;
+      }
       document.querySelector("#messages .msg.system:last-child")?.remove();
-      if(r.status===401) addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
-      else if(!r.ok) addMessage("Jora could not execute this autonomous task: "+(data.error||r.statusText),"system");
-      else addMessage(formatAgentResult(data),"assistant");
+      addMessage("Jora is still working in the backend. Open Runs & jobs to monitor the execution.","system");
       return;
     }
     if(mode==="research"){
