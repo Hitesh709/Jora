@@ -237,6 +237,24 @@ export class OperatorApi {
       if(!this.executionPlatform?.status) return json(res,503,{error:"execution_platform_not_configured"});
       return json(res,200,{accepted:true,status:"PLATFORM_READY",version:"4.0",engine:"jora",platform:this.executionPlatform.status()});
     }
+    if(method==="GET" && path==="/v1/organization") {
+      if(!this.executionPlatform?.missionDirector || !this.executionPlatform?.agentTeams) return json(res,503,{error:"organization_not_configured"});
+      return json(res,200,{accepted:true,status:"ORGANIZATION_READY",teams:this.executionPlatform.agentTeams.status(),missionDirector:this.executionPlatform.missionDirector.status()});
+    }
+    if(method==="POST" && path==="/v1/organization/mission") {
+      if(!this.executionPlatform?.missionDirector) return json(res,503,{error:"mission_director_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(typeof body.mission!=="string" || !body.mission.trim()) return json(res,400,{error:"mission is required"});
+      try {
+        const result=await this.executionPlatform.missionDirector.run({
+          mission:body.mission.trim(),type:body.type||"engineering",teamId:body.teamId,
+          steps:body.steps||[],models:["jora"],
+          agents:[{id:"jora-core",model:"jora",status:"ACTIVE",capabilities:["research","planning","coding","testing","building","deployment","review","operations"]}],
+          security:body.security!==false,approval:body.approval!==false,budget:body.budget
+        });
+        return json(res,200,{accepted:true,status:result.status,mission:result});
+      } catch(error) { return json(res,400,{accepted:false,status:"MISSION_FAILED",error:error.message}); }
+    }
 
     if(method==="POST" && path==="/v1/agent") {
       if(!this.runtime?.execute && !this.executionPlatform?.agentExecute) return json(res,503,{error:"agent_runtime_not_configured"});
