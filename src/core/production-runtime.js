@@ -376,11 +376,22 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
         objective:"Diagnose and repair the production incident at "+(incident.url||"customer production")+"; inspect the existing repository, reproduce the failure, implement the smallest safe fix, run tests, and redeploy.",
         constraints:{incidentId:incident.id,productionUrl:incident.url,automaticRecovery:true}
       });
+      const organizationPlan=await executionPlatform?.missionDirector?.run?.({
+        id:"org_"+mission.id,
+        mission:mission.objective,
+        type:"incident",
+        teamId:"jora-core-reliability",
+        agents:[{id:"jora-core",model:"jora",status:"ACTIVE",capabilities:["analysis","coding","testing","operations"]}],
+        models:["jora"],
+        security:true,
+        approval:true,
+        context:{incidentId:incident.id,tenantId:mission.tenantId,projectId:mission.projectId}
+      });
       const result=await customerProduction?.submit?.({
         tenantId:mission.tenantId,projectId:mission.projectId,missionId:mission.id,
-        context:{risk:"high",approved:true,incident}
+        context:{risk:"high",approved:true,incident,organizationPlan}
       });
-      return {accepted:true,status:"AUTOMATIC_REPAIR_MISSION_CREATED",mission,result};
+      return {accepted:true,status:"AUTOMATIC_REPAIR_MISSION_CREATED",mission,organizationPlan,result};
     }
   });
   await customerSaaS.load();
