@@ -21,6 +21,8 @@ export class WebSearchProvider {
     if(this.provider==="tavily") return Boolean(this.apiKey);
     if(this.provider==="brave") return Boolean(this.apiKey);
     if(this.provider==="duckduckgo") return true;
+    // "auto" has a real no-key fallback: DuckDuckGo HTML search.
+    if(this.provider==="auto") return true;
     return Boolean(process.env.TAVILY_API_KEY||process.env.BRAVE_SEARCH_API_KEY||this.apiKey);
   }
 
