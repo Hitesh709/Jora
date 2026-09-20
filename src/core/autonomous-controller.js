@@ -45,7 +45,7 @@ export class AutonomousController {
         repairFeedback={
           source:"BUILD",
           diagnosis:project.evaluation??project.reason,
-          history:project.history
+          history:Array.isArray(project.history)?project.history.slice():[]
         };
         repairHistory.push({cycle,status:"BUILD_BLOCKED",feedback:repairFeedback});
         project=null;
@@ -66,7 +66,7 @@ export class AutonomousController {
         repairFeedback={
           source:"SECURITY",
           diagnosis:security,
-          history:repairHistory
+          history:repairHistory.slice()
         };
         repairHistory.push({cycle,status:"SECURITY_BLOCKED",feedback:repairFeedback});
         project=null;
@@ -101,7 +101,7 @@ export class AutonomousController {
       repairFeedback={
         source:promotion.status==="CI_BLOCKED"?"CI":"PROMOTION",
         diagnosis:promotion.ci??promotion.decision,
-        history:promotion.ci?.evidence??repairHistory
+        history:Array.isArray(promotion.ci?.evidence)?promotion.ci.evidence.slice():repairHistory.slice()
       };
       repairHistory.push({cycle,status:promotion.status,feedback:repairFeedback});
       project=null;
