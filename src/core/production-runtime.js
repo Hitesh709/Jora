@@ -486,7 +486,11 @@ Limit: ${limit}`}]});
     deploymentController,
     metrics,
     governance,
-    policyEngine
+    policyEngine,
+    productUnderstanding,
+    architecturePlanner,
+    taskDAGGenerator,
+    searchProvider
   });
   const architectureStore=new ArchitectureStore({store:new JsonStore({file:config.architecture?.stateFile||"./.jora/architectures.json"})});
   await architectureStore.load();
