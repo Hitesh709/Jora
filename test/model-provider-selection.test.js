@@ -51,3 +51,17 @@ test("OpenCode free provider can be selected as a request-scoped engine",async()
   assert.equal(result.text,"opencode");
   assert.equal(result.model,"opencode-free");
 });
+
+test("Jora default chain uses Kilo Free when no paid provider is configured",async()=>{
+  const gateway=new MultiModelGateway({
+    providers:new Map([
+      ["kilo-free",{complete:async r=>({text:"free",model:r.model})}],
+      ["opencode-mimo-v2.5-free",{complete:async r=>({text:"fallback",model:r.model})}]
+    ]),
+    defaultModel:"kilo-free",
+    fallbackModels:["opencode-mimo-v2.5-free"]
+  });
+  const result=await gateway.complete({messages:[]});
+  assert.equal(result.text,"free");
+  assert.equal(result.model,"kilo-free");
+});
