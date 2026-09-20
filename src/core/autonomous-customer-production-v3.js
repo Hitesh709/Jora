@@ -56,7 +56,7 @@ export class CustomerMissionOrchestrator {
               return this.missionManager.transition(mission.id,"FAILED",{gate,planning,build,artifactGate,buildGate});
             }
             const normalizedTests=this.applicationFactory?.normalizeTests(context.testCommandArgs);
-            const localTests=await this.executionPlatform?.runTests?.({
+            let localTests=await this.executionPlatform?.runTests?.({
               cwd:workspacePath,
               commandArgs:normalizedTests?.commandArgs||context.testCommandArgs||["test"],
               timeoutMs:normalizedTests?.timeoutMs
