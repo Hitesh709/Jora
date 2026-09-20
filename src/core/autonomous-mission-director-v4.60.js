@@ -21,7 +21,7 @@ export class MissionStateStoreV4 {
   constructor({maxMissions=2000,store=null}={}) { this.maxMissions=maxMissions; this.store=store; this.missions=new Map(); }
   async load(){const rows=await this.store?.read?.([])||[];for(const m of rows)this.missions.set(m.id,m);return this.list();}
   async persist(){await this.store?.write?.([...this.missions.values()]);}
-  upsert(mission) { this.missions.set(mission.id,mission); if(this.missions.size>this.maxMissions){const first=this.missions.keys().next().value;this.missions.delete(first);} return mission; }
+  upsert(mission) { this.missions.set(mission.id,mission); if(this.missions.size>this.maxMissions){const first=this.missions.keys().next().value;this.missions.delete(first);} this.persist(); return mission; }
   get(id){return this.missions.get(id)||null;}
   list({status,limit=100}={}) { let rows=[...this.missions.values()]; if(status)rows=rows.filter(x=>x.status===status); return rows.slice(-Math.min(500,Math.max(1,Number(limit)||100))).reverse(); }
 }
