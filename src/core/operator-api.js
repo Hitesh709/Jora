@@ -201,7 +201,7 @@ export class OperatorApi {
     // without exposing a permanent server secret to end users. Rate limiting still applies.
     const publicApiPaths=new Set(["/v1/chat","/v1/search","/v1/execute","/v1/providers","/v1/platform","/v1/agent"]);
     const asyncExecutionApi=(method==="POST" && path==="/v1/execute/async") || (method==="GET" && path.startsWith("/v1/execute/async/"));
-    const isPublicApi=(method==="POST" && publicApiPaths.has(path)) || (method==="GET" && path==="/v1/providers") || asyncExecutionApi;
+    const isPublicApi=(method==="POST" && publicApiPaths.has(path)) || (method==="GET" && (path==="/v1/providers" || path==="/v1/platform")) || asyncExecutionApi;
     const customerPrincipal=path.startsWith("/v3/customer/")?this._customerPrincipal(req):null;
     const principal=customerPrincipal||this._principal(req);
     const tenantId=customerPrincipal?.tenantId||this.accessController?.tenant(principal)||"default";
