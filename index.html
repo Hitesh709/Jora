@@ -81,7 +81,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="actions"><button class="secondary" onclick="saveSettings()">Save &amp; connect</button><button class="secondary" onclick="resetApi()">Reset to production</button><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiConfigVersion="2026-09-20-production-2";
+const apiConfigVersion="2026-09-20-production-3";
 const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
 if(localStorage.getItem("jora_api_config_version")!==apiConfigVersion){
   localStorage.setItem("jora_api_base",defaultApi);
@@ -163,14 +163,34 @@ function formatAgentResult(d){
   const r=d?.result||{};
   const status=r.status||d?.status||"COMPLETED";
   const model=d?.model||r.model||"Jora";
-  if(status==="PROMOTED" || status==="DEPLOYED"){
-    return "Jora completed the autonomous engineering task.\\n\\nStatus: "+status+"\\nExecution: "+(d?.requestId||"—")+"\\nAI engine: "+model+"\\n\\nJora planned, built, evaluated and promoted the result through its autonomous runtime.";
+  const lines=[
+    "Jora completed the autonomous engineering task.",
+    "",
+    "Status: "+status,
+    "Execution: "+(d?.requestId||"—"),
+    "AI engine: "+model
+  ];
+  if(r.benchmarkScore!=null) lines.push("Benchmark: "+r.benchmarkScore);
+  if(r.qualityScore!=null) lines.push("Quality: "+r.qualityScore);
+  if(r.cycles!=null) lines.push("Cycles: "+r.cycles);
+  if(r.productionReady!=null) lines.push("Production ready: "+r.productionReady);
+  if(r.planning?.taskCount!=null) lines.push("Planned tasks: "+r.planning.taskCount);
+
+  const files=Array.isArray(r.files)?r.files:[];
+  if(files.length){
+    lines.push("", "Generated code");
+    files.slice(0,4).forEach(file=>{
+      const preview=String(file.content||"").slice(0,1800);
+      lines.push("", "===== "+file.path+" =====", preview+(file.truncated?"\\n…(preview truncated)":""));
+    });
+  } else {
+    lines.push("", "Jora finished the engineering loop. No code preview was returned for this run.");
   }
+
   if(status==="NOT_PROMOTED" || status==="BUILD_BLOCKED" || status==="SECURITY_BLOCKED"){
-    return "Jora ran the autonomous engineering loop but did not promote the result.\\n\\nStatus: "+status+"\\n\\n"+JSON.stringify(r,null,2);
+    lines.push("", "Promotion result: "+status+". The generated code above is the safe candidate preview.");
   }
-  if(r?.message) return r.message;
-  return "Jora autonomous execution status: "+status+"\\n\\n"+JSON.stringify(r,null,2);
+  return lines.join("\n");
 }
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
 function formatSearchResult(d){
