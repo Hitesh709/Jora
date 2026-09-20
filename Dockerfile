@@ -18,4 +18,5 @@ ENV NODE_ENV=production
 ENV JORA_API_HOST=0.0.0.0
 
 # Force Railway to build this exact repository revision.
+# Railway source-sync verification marker: 2026-09-20
 CMD ["npm","run","jora:api"]
