@@ -76,7 +76,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 </div></main></div>
 <div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div>
 <label class="muted">Jora backend</label><input id="api" placeholder="https://your-jora-api.up.railway.app">
-<label class="muted">Bearer token</label><input id="token" type="password" placeholder="Bearer token">
+<div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>🔓 Browser access enabled</strong><div class="muted" style="margin-top:5px">No Bearer token is required for normal Jora chat, research, code, or build requests. Server credentials remain on the Railway backend.</div></div>
 <label class="muted">AI agent / coding engine</label>
 <select id="provider" onchange="providerChanged()">
 <option value="jora">Jora AI — default</option>
@@ -97,7 +97,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="actions"><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiInput=document.getElementById("api"),tokenInput=document.getElementById("token"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send"),providerInput=document.getElementById("provider"),providerInfo=document.getElementById("providerInfo");
+const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send"),providerInput=document.getElementById("provider"),providerInfo=document.getElementById("providerInfo");
 apiInput.value=localStorage.getItem("jora_api_base")||defaultApi;
 providerInput.value=localStorage.getItem("jora_provider")||"jora";
 function providerChanged(){
@@ -127,7 +127,7 @@ function providerChanged(){
 
 let mode="agent";
 function base(){return apiInput.value.replace(/\/$/,"")}
-function headers(){const t=tokenInput.value;return t?{Authorization:"Bearer "+t,"Content-Type":"application/json"}:{"Content-Type":"application/json"}}
+function headers(){return {"Content-Type":"application/json"}}
 async function get(p){const r=await fetch(base()+p,{headers:headers(),cache:"no-store"});if(!r.ok){const e=new Error(r.status+" "+(await r.text()));e.status=r.status;throw e}return r.json()}
 function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",research:"What do you want Jora to research?",code:"Describe the code change you want…",build:"Describe the product you want built…"}[mode]}
 function quick(text){promptInput.value=text;promptInput.focus()}
@@ -143,7 +143,7 @@ async function sendPrompt(){
       const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({message:command,context:{provider:localStorage.getItem("jora_provider")||"jora"}})});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       document.querySelector("#messages .msg.system:last-child")?.remove();
-      if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
+      if(r.status===401) addMessage("Jora backend authentication is not configured for browser access. Please refresh and try again.","system");
       else if(!r.ok) addMessage("Jora could not answer: "+(data.error||r.statusText),"system");
       else addMessage(data.message||"Jora returned an empty response.","assistant");
       return;
@@ -163,7 +163,7 @@ async function sendPrompt(){
     if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
     else if(!r.ok) addMessage("Jora could not execute this request: "+(data.error||r.statusText),"system");
     else addMessage(formatResult(data),"assistant");
-  }catch(e){document.querySelector("#messages .msg.system:last-child")?.remove();addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL and token.","system")}
+  }catch(e){document.querySelector("#messages .msg.system:last-child")?.remove();addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system")}
   finally{sendBtn.disabled=false}
 }
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
