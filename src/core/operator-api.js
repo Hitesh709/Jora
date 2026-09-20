@@ -189,7 +189,7 @@ export class OperatorApi {
     const principal=this._principal(req);
     const tenantId=this.accessController?.tenant(principal)||"default";
     const actorId=principal?.id||"local";
-    const action=method==="GET"?"read":(path==="/v1/execute"||path==="/v1/jobs"||path.startsWith("/v1/worker")?"execute":"operate");
+    const action=method==="GET"?"read":(path==="/v1/execute"||path==="/v1/chat"||path==="/v1/jobs"||path.startsWith("/v1/worker")?"execute":"operate");
     if(!this._authorized(req,action)) {
       await this.auditLog?.record({action:"AUTH_DENIED",actorId,tenantId,resource:path,metadata:{method}});
 
@@ -253,6 +253,28 @@ export class OperatorApi {
     if(method==="GET" && path==="/v1/metrics") {
       return json(res,200,this.metrics?.snapshot ? this.metrics.snapshot() : {counters:{},histograms:{}});
     }
+    if(method==="POST" && path==="/v1/chat") {
+      if(!this.modelGateway?.complete) return json(res,503,{error:"model_gateway_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(typeof body.message!=="string" || !body.message.trim()) return json(res,400,{error:"message is required"});
+      const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "";
+      if(selectedProvider && !this.modelGateway?.status?.().models?.includes(selectedProvider)) {
+        return json(res,400,{accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Selected AI provider is not available on this Jora backend",provider:selectedProvider});
+      }
+      try {
+        const complete=()=>this.modelGateway.complete({
+          messages:[
+            {role:"system",content:"You are Jora, an AI engineering agent. Answer the user's question directly and concisely. If the user asks to build, modify, test, or deploy software, explain that Jora can perform the engineering work and ask only for information that is genuinely required."},
+            {role:"user",content:body.message.trim()}
+          ]
+        });
+        const response=selectedProvider ? await withModelSelection(selectedProvider,complete) : await complete();
+        return json(res,200,{accepted:true,status:"CHAT_COMPLETED",message:String(response?.text??response?.content??response?.output??""),model:response?.model??selectedProvider||null,provider:selectedProvider||null});
+      } catch(error) {
+        return json(res,502,{accepted:false,status:"CHAT_FAILED",error:error.message,provider:selectedProvider||null});
+      }
+    }
+
 
     if(method==="POST" && path==="/v1/understand") {
       if(!this.productUnderstanding) return json(res,503,{error:"product_understanding_not_configured"});
