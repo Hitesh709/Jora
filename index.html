@@ -139,6 +139,15 @@ async function sendPrompt(){
   addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage(mode==="research"?"Searching the web…":"Working…","system");
   try{
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
+    if(mode==="agent"){
+      const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({message:command,context:{provider:localStorage.getItem("jora_provider")||"jora"}})});
+      const data=await r.json().catch(()=>({error:"Invalid backend response"}));
+      document.querySelector("#messages .msg.system:last-child")?.remove();
+      if(r.status===401) addMessage("Jora is online, but the backend requires your Bearer token. Open ⚙ and connect it.","system");
+      else if(!r.ok) addMessage("Jora could not answer: "+(data.error||r.statusText),"system");
+      else addMessage(data.message||"Jora returned an empty response.","assistant");
+      return;
+    }
     if(mode==="research"){
       const r=await fetch(base()+"/v1/search",{method:"POST",headers:headers(),body:JSON.stringify({query:command,maxResults:8})});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
