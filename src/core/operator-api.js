@@ -1075,7 +1075,7 @@ export class OperatorApi {
         return json(res,429,{requestId,accepted:false,status:"ASYNC_CAPACITY_REACHED",error:"Jora is already processing two autonomous tasks. Retry shortly.",retryAfterSeconds:10,activeTasks:activeExecutions.length});
       }
 
-      const record={requestId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora"};
+      const record={requestId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora",progress:{phase:"QUEUED",message:"Jora task accepted",events:[]}};
       this.backgroundExecutions.set(requestId,record);
 
       // Do not run the autonomous engineering loop on the API event loop.
