@@ -111,6 +111,10 @@ export class OperatorApi {
     // Long autonomous builds must not hold a mobile browser HTTP connection open.
     // Results are retained briefly here while the durable execution store remains the source of truth.
     this.backgroundExecutions=new Map();
+    // WorkspaceRepository uses one shared filesystem/Git working tree. Until
+    // per-run workspaces exist, autonomous executions must be serialized.
+    this.maxBackgroundExecutions=1;
+    this.asyncExecutionTimeoutMs=300000;
   }
 
   _rateLimited(req) {
@@ -200,7 +204,8 @@ export class OperatorApi {
     // Public browser API: these endpoints are intentionally callable from the Vercel UI
     // without exposing a permanent server secret to end users. Rate limiting still applies.
     const publicApiPaths=new Set(["/v1/chat","/v1/search","/v1/execute","/v1/providers","/v1/platform","/v1/agent"]);
-    const asyncExecutionApi=(method==="POST" && path==="/v1/execute/async") || (method==="GET" && path.startsWith("/v1/execute/async/"));
+    const asyncExecutionApi=(method==="POST" && path==="/v1/execute/async") ||
+      ((method==="GET" || method==="POST") && path.startsWith("/v1/execute/async/"));
     const isPublicApi=(method==="POST" && publicApiPaths.has(path)) || (method==="GET" && (path==="/v1/providers" || path==="/v1/platform")) || asyncExecutionApi;
     const customerPrincipal=path.startsWith("/v3/customer/")?this._customerPrincipal(req):null;
     const principal=customerPrincipal||this._principal(req);
@@ -1071,8 +1076,8 @@ export class OperatorApi {
       }
 
       const activeExecutions=[...this.backgroundExecutions.values()].filter(item=>item.status==="RUNNING");
-      if(activeExecutions.length>=2) {
-        return json(res,429,{requestId,accepted:false,status:"ASYNC_CAPACITY_REACHED",error:"Jora is already processing two autonomous tasks. Retry shortly.",retryAfterSeconds:10,activeTasks:activeExecutions.length});
+      if(activeExecutions.length>=this.maxBackgroundExecutions) {
+        return json(res,429,{requestId,accepted:false,status:"ASYNC_CAPACITY_REACHED",error:"Jora is already processing an autonomous task. Retry after it finishes or stop the active task.",retryAfterSeconds:10,activeTasks:activeExecutions.length});
       }
 
       const record={requestId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora",progress:{phase:"QUEUED",message:"Jora task accepted",events:[]}};
@@ -1085,8 +1090,10 @@ export class OperatorApi {
       let child;
       try {
         child=fork(new URL("./jora-async-worker.js",import.meta.url),[],{
-          stdio:["ignore","ignore","ignore","ipc"]
+          stdio:["ignore","ignore","ignore","ipc"],
+          execArgv:["--max-old-space-size=256"]
         });
+        record.child=child;
         child.send({
           command:body.command.trim(),
           constraints:body.constraints??{},
@@ -1116,25 +1123,53 @@ export class OperatorApi {
           record.status="FAILED";
           record.error=message?.error||"async worker failed";
         }
+        if(record.timer) clearTimeout(record.timer);
         record.updatedAt=Date.now();
       });
       child.once("error",error=>{
-        record.status="FAILED";
-        record.error=error?.message||String(error);
+        if(record.status==="RUNNING") {
+          record.status="FAILED";
+          record.error=error?.message||String(error);
+        }
+        if(record.timer) clearTimeout(record.timer);
         record.updatedAt=Date.now();
       });
       child.once("exit",(code,signal)=>{
         if(record.status==="RUNNING") {
           record.status="FAILED";
           record.error=signal ? "async worker terminated by "+signal : "async worker exited with code "+code;
-          record.updatedAt=Date.now();
         }
+        if(record.timer) clearTimeout(record.timer);
+        record.updatedAt=Date.now();
       });
 
-      const timer=setTimeout(()=>this.backgroundExecutions.delete(requestId),30*60*1000);
+      const timer=setTimeout(()=>{
+        if(record.status!=="RUNNING") return;
+        record.status="TIMEOUT";
+        record.error="Jora autonomous task exceeded the 5 minute execution safety limit";
+        record.updatedAt=Date.now();
+        try { child.kill("SIGTERM"); } catch {}
+        setTimeout(()=>{ try { if(!child.killed) child.kill("SIGKILL"); } catch {} },5000).unref?.();
+      },this.asyncExecutionTimeoutMs);
       timer.unref?.();
+      record.timer=timer;
 
       return json(res,202,{requestId,accepted:true,status:"RUNNING",provider:"jora",model:"jora"});
+    }
+
+    const asyncCancelMatch=path.match(/^\/v1\/execute\/async\/([^/]+)\/cancel$/);
+    if(method==="POST" && asyncCancelMatch) {
+      const requestId=decodeURIComponent(asyncCancelMatch[1]);
+      const record=this.backgroundExecutions.get(requestId);
+      if(!record) return json(res,404,{requestId,accepted:false,status:"NOT_FOUND",error:"background execution not found"});
+      if(record.status!=="RUNNING") return json(res,200,{requestId,accepted:true,status:record.status});
+      record.status="CANCELLED";
+      record.error="Execution cancelled by user";
+      record.updatedAt=Date.now();
+      if(record.timer) clearTimeout(record.timer);
+      try { record.child?.kill("SIGTERM"); } catch {}
+      setTimeout(()=>{ try { if(record.child && !record.child.killed) record.child.kill("SIGKILL"); } catch {} },5000).unref?.();
+      return json(res,200,{requestId,accepted:true,status:"CANCELLED"});
     }
 
     if(method==="GET" && path.startsWith("/v1/execute/async/")) {
