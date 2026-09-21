@@ -98,7 +98,7 @@ export class ModelProjectBuilder {
     for(const file of parsed.files){
       if(!file?.path||typeof file.content!=="string") throw new Error("Invalid generated file");
       written.push(await repository.write(file.path,file.content));
-      progress({phase:"CODING",status:"FILE_WRITTEN",message:`Wrote ${file.path}`,file:{path:file.path,bytes:Buffer.byteLength(file.content,"utf8"),truncated:file.content.length>20000}});
+      progress({phase:"CODING",status:"FILE_WRITTEN",message:`Wrote ${file.path}`,file:{path:file.path,bytes:Buffer.byteLength(file.content,"utf8"),truncated:file.content.length>20000,preview:file.content.slice(0,1200)}});
     }
     return {status:"SUCCEEDED",files:written,model:response.model,cycle:context.cycle??1,repairCycle:Boolean(context.repairFeedback),repository};
   }
