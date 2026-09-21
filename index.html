@@ -139,9 +139,10 @@ async function sendPrompt(){
       }finally{sendBtn.disabled=false}
       return;
     }
-    if(mode==="agent"){
-      // Autonomous engineering is intentionally asynchronous so a phone never has
-      // to keep a long HTTP request open while Jora builds/tests/repairs.
+    if(mode==="agent" || mode==="build"){
+      // Agent and Build modes both use the isolated asynchronous engineering
+      // worker. Build mode must never fall through to the synchronous /v1/execute
+      // endpoint because project generation can be CPU-heavy and long-running.
       const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
         command,
         context:{provider:"jora",mode:"agent",source:"browser"}
