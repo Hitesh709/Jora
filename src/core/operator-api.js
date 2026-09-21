@@ -342,11 +342,26 @@ export class OperatorApi {
             {role:"user",content:body.message.trim()}
           ]
         });
-        const response=useDefault ? await complete() : await withModelSelection(requestedProvider,complete);
+        let response=useDefault ? await complete() : await withModelSelection(requestedProvider,complete);
+        let message=String(response?.text??response?.content??response?.output??"");
+        // Native Jora has deterministic answers for common questions. For a
+        // question it cannot answer itself, use the configured no-key web
+        // search provider rather than returning a generic "I am Jora" message.
+        const isQuestion=/\\?$/.test(body.message.trim()) && !/\\b(build|create|make|develop|implement|code|fix|debug|test|deploy|ship|launch)\\b/i.test(body.message);
+        const genericNative=/^(I am Jora|I’m Jora|Jora Native Engine accepted)/.test(message);
+        if(useDefault && response?.model==="jora" && isQuestion && genericNative && this.searchProvider?.available?.()){
+          try{
+            const research=await this.searchProvider.search({query:body.message.trim(),maxResults:5,topic:"general"});
+            if(research?.answer) message=String(research.answer);
+            else if(Array.isArray(research?.results)&&research.results.length){
+              message="I found these current sources for your question:\n\n"+research.results.slice(0,3).map((x,i)=>(i+1)+". "+(x.title||"Untitled")+"\n"+(x.snippet||"")+"\n"+(x.url||"")).join("\n\n");
+            }
+          }catch{}
+        }
         return json(res,200,{
           accepted:true,
           status:"CHAT_COMPLETED",
-          message:String(response?.text??response?.content??response?.output??""),
+          message,
           model:response?.model??(requestedProvider||null),
           provider:useDefault ? (response?.model??gatewayStatus.defaultModel??null) : selectedProvider
         });
