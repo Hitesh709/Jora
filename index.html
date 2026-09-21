@@ -58,7 +58,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
       <div class="workspaceHead">
         <div><div class="workspaceTitle">Jora Workspace</div><div id="workspaceMeta" class="muted">Generated project files</div></div>
         <div class="workspaceActions">
-          <button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Device</button>
+          <button class="workspaceBtn" id="stopRun" onclick="cancelActiveRun()" style="display:none">■ Stop</button><button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Device</button>
           <button class="workspaceBtn" onclick="exportWorkspace()">⬇ Export</button>
           <button class="workspaceBtn" onclick="importWorkspace()">⬆ Import</button>
           <button class="workspaceBtn" onclick="pushWorkspaceToGitHub()">↗ GitHub</button>
@@ -159,6 +159,8 @@ async function sendPrompt(){
       }
 
       const requestId=data.requestId;
+      activeRequestId=requestId;
+      document.getElementById("stopRun").style.display="inline-block";
       let attempts=0;
       while(attempts++<240){
         await new Promise(resolve=>setTimeout(resolve,1500));
@@ -172,14 +174,18 @@ async function sendPrompt(){
           continue;
         }
         document.querySelector("#messages .msg.system:last-child")?.remove();
-        if(state.status==="FAILED") addMessage("Jora task failed: "+(state.error||"Unknown error"),"system");
+        if(state.status==="FAILED"||state.status==="CANCELLED"||state.status==="TIMEOUT") addMessage("Jora task "+state.status.toLowerCase()+": "+(state.error||"No further execution was performed."),"system");
         else {
           const result=state.result||{};
           if(Array.isArray(result.files)&&result.files.length){workspaceFiles=result.files;workspaceProject={name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};renderWorkspace();saveWorkspace();}
           addMessage(formatAgentResult({requestId,state,status:state.status,result:state.result,model:state.model}),"assistant");
         }
+        activeRequestId=null;
+        document.getElementById("stopRun").style.display="none";
         return;
       }
+      activeRequestId=null;
+      document.getElementById("stopRun").style.display="none";
       document.querySelector("#messages .msg.system:last-child")?.remove();
       addMessage("Jora is still working in the backend. Open Runs & jobs to monitor the execution.","system");
       return;
@@ -200,7 +206,24 @@ async function sendPrompt(){
     else if(!r.ok) addMessage("Jora could not execute this request: "+(data.error||r.statusText),"system");
     else addMessage(formatResult(data),"assistant");
   }catch(e){document.querySelector("#messages .msg.system:last-child")?.remove();addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system")}
-  finally{sendBtn.disabled=false}
+  finally{
+    sendBtn.disabled=false;
+    if(!activeRequestId) document.getElementById("stopRun").style.display="none";
+  }
+}
+let activeRequestId=null;
+async function cancelActiveRun(){
+  const requestId=activeRequestId;
+  if(!requestId)return;
+  try{
+    const r=await fetch(base()+"/v1/execute/async/"+encodeURIComponent(requestId)+"/cancel",{method:"POST",headers:headers()});
+    const data=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.error||r.statusText);
+    activeRequestId=null;
+    document.getElementById("stopRun").style.display="none";
+    document.querySelector("#messages .msg.system:last-child")?.remove();
+    addMessage("Jora task stopped safely. The backend worker was terminated.","system");
+  }catch(e){addMessage("Could not stop the Jora task: "+e.message,"system")}
 }
 let workspaceFiles=[];
 let workspaceProject={name:"jora-project",requestId:null,createdAt:null};
@@ -268,9 +291,10 @@ function renderProgress(progress){
   const activity=document.getElementById("workspaceActivity");
   activity.innerHTML="";
   const head=document.createElement("div");
-  head.innerHTML='<span class="pill">Live</span> '+String(progress?.message||"Jora is working…");
+  head.textContent="Live · "+String(progress?.message||"Jora is working…");
   activity.appendChild(head);
   const list=document.createElement("div");list.className="progressList";
+  let filesChanged=false;
   events.slice(-18).forEach(event=>{
     const row=document.createElement("div");row.className="progressEvent";
     const phase=document.createElement("span");phase.className="progressPhase";phase.textContent=String(event.phase||"RUNNING");
@@ -279,13 +303,15 @@ function renderProgress(progress){
     if(event.file?.path){
       const file=document.createElement("span");file.className="progressFile";file.textContent=" · "+event.file.path;row.appendChild(file);
       const existing=workspaceFiles.findIndex(x=>x.path===event.file.path);
-      if(existing<0) workspaceFiles.push({path:event.file.path,content:"// Jora is writing this file…",truncated:Boolean(event.file.truncated)});
-      else workspaceFiles[existing]={...workspaceFiles[existing],truncated:Boolean(event.file.truncated)};
-      renderLiveFileTree();
+      if(existing<0){
+        workspaceFiles.push({path:event.file.path,content:"// Jora is writing this file…",truncated:Boolean(event.file.truncated)});
+        filesChanged=true;
+      }
     }
     list.appendChild(row);
   });
   activity.appendChild(list);
+  if(filesChanged) renderLiveFileTree();
 }
 function renderLiveFileTree(){
   const panel=document.getElementById("workspacePanel");panel.style.display="block";
@@ -300,7 +326,6 @@ function renderWorkspace(){
   const tree=document.getElementById("fileTree");tree.innerHTML="";
   workspaceFiles.forEach((file,i)=>{const b=document.createElement("button");b.className="fileItem";b.textContent="📄 "+file.path;b.onclick=()=>selectWorkspaceFile(i);tree.appendChild(b)});
   if(workspaceFiles.length)selectWorkspaceFile(0);
-  panel.scrollIntoView({behavior:"smooth",block:"nearest"});
 }
 function selectWorkspaceFile(index){
   const file=workspaceFiles[index];if(!file)return;
