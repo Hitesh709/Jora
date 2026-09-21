@@ -57,6 +57,7 @@ export { runtimeConfig } from "./core/runtime-config.js";
 export { createJoraRuntime } from "./core/runtime-composer.js";
 export { ModelProjectBuilder } from "./core/model-project-builder.js";
 export { createProjectTestRunner } from "./core/project-test-runner.js";
+export { createProjectInteractionVerifier, inspectHtml } from "./core/project-interaction-verifier.js";
 export { AutonomousBuildPipeline } from "./core/autonomous-build-pipeline.js";
 export { WorkspaceRepository } from "./core/workspace-repository.js";
 export { createWorkspaceSecurityCouncil } from "./core/security-checks.js";
