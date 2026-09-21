@@ -15,7 +15,7 @@ COPY . .
 RUN npm run jora:acceptance
 
 ENV NODE_ENV=production
-ENV JORA_API_HOST=0.0.0.0
+ENV JORA_API_HOST=0.0.0.0\nENV JORA_BROWSER_EXECUTABLE=/usr/bin/chromium
 
 # Railway source-sync verification marker: 2026-09-20-v2
 CMD ["npm","run","jora:api"]
