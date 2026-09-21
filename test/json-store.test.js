@@ -24,3 +24,20 @@ test("JsonStore still propagates non-JSON filesystem errors", async()=>{
   const store=new JsonStore({file:"/dev/null/jora-state.json"});
   await assert.rejects(()=>store.read({items:[]})); 
 });
+
+
+test("JsonStore serializes concurrent writes to the same file",async()=>{
+  const dir=await mkdtemp(join(tmpdir(),"jora-json-race-"));
+  const file=join(dir,"observability.json");
+  const storeA=new JsonStore({file});
+  const storeB=new JsonStore({file});
+  await Promise.all([
+    storeA.write({events:[{id:"a"}]}),
+    storeB.write({events:[{id:"b"}]}),
+    storeA.write({events:[{id:"c"}]}),
+    storeB.write({events:[{id:"d"}]})
+  ]);
+  const value=JSON.parse(await readFile(file,"utf8"));
+  assert.ok(Array.isArray(value.events));
+  assert.equal(value.events.length,1);
+});
