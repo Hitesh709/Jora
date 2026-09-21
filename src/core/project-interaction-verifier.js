@@ -47,7 +47,7 @@ export function createProjectInteractionVerifier({
     if(browser?.verify) {
       const result=await browser.verify({
         cwd,command,specification,timeoutMs,
-        actions:result?.actions||[]
+        actions:[]
       });
       return {ok:Boolean(result?.ok),mode:"BROWSER",...result};
     }
