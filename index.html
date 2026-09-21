@@ -92,6 +92,10 @@ let mode="agent";
 function base(){return apiInput.value.replace(/\/$/,"")}
 function headers(){return {"Content-Type":"application/json"}}
 async function get(p){const r=await fetch(base()+p,{headers:headers(),cache:"no-store"});if(!r.ok){const e=new Error(r.status+" "+(await r.text()));e.status=r.status;throw e}return r.json()}
+function isEngineeringRequest(text){
+  const lower=text.toLowerCase().trim();
+  return /\b(build|create|make|develop|implement|code|fix|debug|test|deploy|ship|launch|application|app|website|web app|api|backend|frontend|database|calculator|software project|project)\b/.test(lower);
+}
 function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",research:"What do you want Jora to research?",code:"Describe the code change you want…",build:"Describe the product you want built…"}[mode]}
 function quick(text){promptInput.value=text;promptInput.focus()}
 function setResearchQuick(){setMode(document.querySelector('.mode[data-mode="research"]'));promptInput.value="Search the web for the latest information about ";promptInput.focus();promptInput.setSelectionRange(promptInput.value.length,promptInput.value.length)}
@@ -102,6 +106,22 @@ async function sendPrompt(){
   addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage(mode==="research"?"Searching the web…":"Working…","system");
   try{
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
+    if(mode==="agent" && !isEngineeringRequest(command)){
+      try{
+        const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({
+          message:command,
+          context:{provider:"jora",mode:"agent",source:"browser"}
+        })});
+        const data=await r.json().catch(()=>({error:"Invalid backend response"}));
+        document.querySelector("#messages .msg.system:last-child")?.remove();
+        if(!r.ok) addMessage("Jora could not answer this request: "+(data.error||r.statusText),"system");
+        else addMessage(data.message||"Jora did not return an answer.","assistant");
+      }catch(e){
+        document.querySelector("#messages .msg.system:last-child")?.remove();
+        addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system");
+      }finally{sendBtn.disabled=false}
+      return;
+    }
     if(mode==="agent"){
       // Autonomous engineering is intentionally asynchronous so a phone never has
       // to keep a long HTTP request open while Jora builds/tests/repairs.
