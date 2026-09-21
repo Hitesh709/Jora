@@ -72,6 +72,21 @@ function applyExistingChange(command,existing){
 }
 
 function projectFor(command){
+  // Universal generation is now the primary path. Domain-specific generators
+  // remain below as compatibility fallbacks, not as request routing.
+  try{
+    const universal=generateUniversalProject(command);
+    const files=Array.isArray(universal?.files)?universal.files:[];
+    const valid=files.length>0
+      && files.some(file=>file?.path==="package.json")
+      && files.some(file=>file?.path==="src/index.js")
+      && files.some(file=>file?.path==="src/index.html")
+      && files.some(file=>file?.path==="test/index.test.js");
+    if(valid) return universal;
+  }catch{
+    // Fall through to the legacy compatibility generator.
+  }
+
   const lowerCommand=String(command||"").toLowerCase();
   const legacy=/\bcalculator\b|\bcalc\b|\bmath app\b|\barithmetic\b|\bcard game\b|\bmemory (match|card)\b|\bmatching cards?\b|\bflip cards?\b|\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\b/.test(lowerCommand);
   if(!legacy) return generateUniversalProject(command);
