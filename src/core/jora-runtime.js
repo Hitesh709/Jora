@@ -26,6 +26,9 @@ export class JoraRuntime {
     const startedAt=Date.now();
     const executionId=execution?.id??`command-${Date.now()}`;
     const progress=typeof context.progress==="function" ? context.progress : ()=>{};
+    // progress is a live function and must never enter serializable build
+    // context/result objects. Keep it on the runtime call path only.
+    const {progress: _progress, ...serializableContext}=context;
     progress({phase:"REQUIREMENTS",status:"RUNNING",message:"Understanding requirements and acceptance criteria"});
     const governance={transition:async(to,metadata={})=>this.governance?.transition({executionId,to,actorId:context.actorId??"system",tenantId:context.tenantId??"default",metadata})};
     await governance.transition("AUTHORIZED",{command});
@@ -34,14 +37,14 @@ export class JoraRuntime {
     try {
       if(execution) await this.executionStore.append(execution.id,{type:"COMMAND_ACCEPTED",command});
 
-      let candidateContext={...context,executionId:execution?.id};
+      let candidateContext={...serializableContext,executionId:execution?.id};
       // Native Jora planning runs before generation, so the agent remains
       // useful without an external model API key.
       let planning=null;
       if(this.productUnderstanding&&this.architecturePlanner&&this.taskDAGGenerator){
         progress({phase:"ARCHITECTURE",status:"RUNNING",message:"Planning architecture and task DAG"});
-        const specification=await this.productUnderstanding.understand({input:command,context:{...context,executionId:execution?.id}});
-        const architecture=await this.architecturePlanner.plan({specification,input:command,context:{...context,executionId:execution?.id}});
+        const specification=await this.productUnderstanding.understand({input:command,context:{...serializableContext,executionId:execution?.id}});
+        const architecture=await this.architecturePlanner.plan({specification,input:command,context:{...serializableContext,executionId:execution?.id}});
         const dag=this.taskDAGGenerator.generate({specification,architecture:architecture.plan});
         planning={specification,architecture:architecture.plan,dag:dag.dag};
         candidateContext={...candidateContext,planning};
