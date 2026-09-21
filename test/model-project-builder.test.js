@@ -132,3 +132,31 @@ test("repair cycle receives the real project snapshot and failing file list",asy
   assert.deepEqual(repairContext.existingProject.files,[{path:"src/index.js",content:"broken()"}]);
   assert.deepEqual(repairContext.repairFeedback.failingFiles,["src/index.js"]);
 });
+
+
+test("runtime verifier checks the generated application's HTTP response",async()=>{
+  const calls=[];
+  const verifier=(await import("../src/core/project-runtime-verifier.js")).createProjectRuntimeVerifier({
+    sandbox:{
+      start:async(args)=>{
+        calls.push(args);
+        return {ok:true,stop:async()=>{calls.push({stopped:true});}};
+      }
+    },
+    port:4173
+  });
+  const originalFetch=globalThis.fetch;
+  globalThis.fetch=async()=>new Response("<html>Jora app</html>",{
+    status:200,
+    headers:{"content-type":"text/html"}
+  });
+  try {
+    const result=await verifier({cwd:"/tmp/jora-app"});
+    assert.equal(result.ok,true);
+    assert.equal(result.status,200);
+    assert.equal(calls[0].ports[0],4173);
+    assert.equal(calls[1].stopped,true);
+  } finally {
+    globalThis.fetch=originalFetch;
+  }
+});
