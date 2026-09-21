@@ -6,9 +6,10 @@ export class ProductionAgentBuilder {
     this.delivery=delivery;
   }
 
-  async build({command, constraints={}, context={}} = {}) {
+  async build({command, constraints={}, context={}, progress=null} = {}) {
     if (!command) throw new Error("command is required");
     const spec=await this.planner.specify({command,constraints,context});
+    progress?.({phase:"ARCHITECTURE",status:"COMPLETED",message:"Requirements and architecture specification ready"});
 
     // ProjectFactory already executes the build pipeline and evaluation.
     // Do not call AutonomousDelivery here: AutonomousDelivery calls AgentFactory,
@@ -18,7 +19,8 @@ export class ProductionAgentBuilder {
     return this.factory.create({
       type:"ai-agent",
       request:{command,constraints,context},
-      specification:spec
+      specification:spec,
+      progress
     });
   }
 }
