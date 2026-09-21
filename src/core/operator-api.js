@@ -1103,7 +1103,9 @@ export class OperatorApi {
           record.progress=record.progress||{phase:"RUNNING",message:"Jora is working",events:[]};
           record.progress.phase=event.phase||record.progress.phase;
           record.progress.message=event.message||record.progress.message;
-          record.progress.events=[...(record.progress.events||[]),event].slice(-120);
+          const safeEvent={...event};
+          if(safeEvent.file) safeEvent.file={path:safeEvent.file.path,bytes:safeEvent.file.bytes,truncated:Boolean(safeEvent.file.truncated)};
+          record.progress.events=[...(record.progress.events||[]),safeEvent].slice(-40);
           record.updatedAt=Date.now();
           return;
         }
