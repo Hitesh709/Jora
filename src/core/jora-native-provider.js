@@ -73,7 +73,7 @@ function applyExistingChange(command,existing){
 
 function projectFor(command){
   const lowerCommand=String(command||"").toLowerCase();
-  const legacy=/\\bcalculator\\b|\\bcalc\\b|\\bmath app\\b|\\barithmetic\\b|\\bcard game\\b|\\bmemory (match|card)\\b|\\bmatching cards?\\b|\\bflip cards?\\b|\\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\\b/.test(lowerCommand);
+  const legacy=/\bcalculator\b|\bcalc\b|\bmath app\b|\barithmetic\b|\bcard game\b|\bmemory (match|card)\b|\bmatching cards?\b|\bflip cards?\b|\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\b/.test(lowerCommand);
   if(!legacy) return generateUniversalProject(command);
   const title=clean(command).replace(/^build\s+/i,"").replace(/^create\s+/i,"").replace(/^make\s+/i,"").slice(0,90)||"Jora Application";
   const name=slug(title);
