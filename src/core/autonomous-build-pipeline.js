@@ -4,11 +4,12 @@ export class AutonomousBuildPipeline {
     this.projectBuilder=projectBuilder; this.testRunner=testRunner; this.evaluator=evaluator;
     this.securityCouncil=securityCouncil; this.benchmarkStore=benchmarkStore;
   }
-  async executeProject({request,specification}) {
-    const result=await this.projectBuilder.build({command:request.command,specification,context:request.context});
+  async executeProject({request,specification,progress=null}) {
+    progress?.({phase:"CODING",status:"RUNNING",message:"Generating project files"});
+    const result=await this.projectBuilder.build({command:request.command,specification,context:request.context,progress});
     return {...result,status:"SUCCEEDED"};
   }
-  async evaluateProject({request,specification,result}) {
+  async evaluateProject({request,specification,result,progress=null}) {
     // The browser request does not carry the internal workspace path.
     // Use the WorkspaceRepository root as the authoritative test directory.
     // Keep an explicit request workspace as an override for trusted callers.
