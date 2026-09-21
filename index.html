@@ -279,13 +279,20 @@ function renderProgress(progress){
     if(event.file?.path){
       const file=document.createElement("span");file.className="progressFile";file.textContent=" · "+event.file.path;row.appendChild(file);
       const existing=workspaceFiles.findIndex(x=>x.path===event.file.path);
-      if(existing>=0) workspaceFiles[existing]={...workspaceFiles[existing],content:event.file.content??workspaceFiles[existing].content,truncated:Boolean(event.file.truncated)};
-      else workspaceFiles.push({path:event.file.path,content:event.file.content??"",truncated:Boolean(event.file.truncated)});
-      if(workspaceFiles.length) renderWorkspace();
+      if(existing<0) workspaceFiles.push({path:event.file.path,content:"// Jora is writing this file…",truncated:Boolean(event.file.truncated)});
+      else workspaceFiles[existing]={...workspaceFiles[existing],truncated:Boolean(event.file.truncated)};
+      renderLiveFileTree();
     }
     list.appendChild(row);
   });
   activity.appendChild(list);
+}
+function renderLiveFileTree(){
+  const panel=document.getElementById("workspacePanel");panel.style.display="block";
+  document.getElementById("workspaceMeta").textContent="Live engineering run · "+workspaceFiles.length+" files";
+  const tree=document.getElementById("fileTree");tree.innerHTML="";
+  workspaceFiles.forEach((file,i)=>{const b=document.createElement("button");b.className="fileItem";b.textContent="📄 "+file.path;b.onclick=()=>selectWorkspaceFile(i);tree.appendChild(b)});
+  if(workspaceFiles.length) selectWorkspaceFile(Math.max(0,Math.min(workspaceFiles.length-1,window.joraSelectedFile||0)));
 }
 function renderWorkspace(){
   const panel=document.getElementById("workspacePanel");panel.style.display="block";
