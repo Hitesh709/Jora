@@ -1070,8 +1070,9 @@ export class OperatorApi {
         return json(res,503,{requestId,accepted:false,status:"JORA_ENGINE_NOT_CONFIGURED",error:"Jora AI engine is not configured on the backend"});
       }
 
-      if(this.backgroundExecutions.size>=2) {
-        return json(res,429,{requestId,accepted:false,status:"ASYNC_CAPACITY_REACHED",error:"Jora is already processing two autonomous tasks. Retry shortly.",retryAfterSeconds:10});
+      const activeExecutions=[...this.backgroundExecutions.values()].filter(item=>item.status==="RUNNING");
+      if(activeExecutions.length>=2) {
+        return json(res,429,{requestId,accepted:false,status:"ASYNC_CAPACITY_REACHED",error:"Jora is already processing two autonomous tasks. Retry shortly.",retryAfterSeconds:10,activeTasks:activeExecutions.length});
       }
 
       const record={requestId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora"};
