@@ -83,3 +83,24 @@ test("Jora autonomously generates, tests, detects failure, repairs, and passes a
     await fs.rm(root,{recursive:true,force:true});
   }
 });
+
+test("Jora native provider generates a real playable mini game",async()=>{
+  const root=await fs.mkdtemp(path.join(os.tmpdir(),"jora-native-game-"));
+  try{
+    const provider=new JoraNativeProvider();
+    const repository=new MemoryRepository(root);
+    const builder=new ModelProjectBuilder({modelGateway:provider,repository});
+    const result=await builder.build({command:"Build a PC mini game",context:{cycle:1}});
+    assert.equal(result.status,"SUCCEEDED");
+    const html=await fs.readFile(path.join(root,"src/index.html"),"utf8");
+    assert.match(html,/canvas id="game"/);
+    assert.match(html,/requestAnimationFrame\(loop\)/);
+    assert.match(html,/Move with/);
+    assert.match(html,/pointermove/);
+    const generated=await runGeneratedTests(root);
+    assert.equal(generated.ok,true,generated.stderr||generated.stdout);
+  } finally {
+    await fs.rm(root,{recursive:true,force:true});
+  }
+});
+
