@@ -1090,9 +1090,14 @@ export class OperatorApi {
       let child;
       try {
         child=fork(new URL("./jora-async-worker.js",import.meta.url),[],{
-          stdio:["ignore","ignore","ignore","ipc"],
-          execArgv:["--max-old-space-size=256"]
+          // Keep stdout/stderr visible in Railway logs so native crashes or
+          // V8 out-of-memory errors are diagnosable instead of surfacing only
+          // as "async worker terminated by SIGABRT".
+          stdio:["ignore","pipe","pipe","ipc"],
+          execArgv:["--max-old-space-size=512"]
         });
+        child.stdout?.on("data",chunk=>process.stdout.write("[jora-worker] "+String(chunk)));
+        child.stderr?.on("data",chunk=>process.stderr.write("[jora-worker] "+String(chunk)));
         record.child=child;
         child.send({
           command:body.command.trim(),
