@@ -9,6 +9,7 @@ import {AutonomousBuildPipeline} from "./autonomous-build-pipeline.js";
 import {DockerSandbox} from "./docker-sandbox.js";
 import {createProjectTestRunner} from "./project-test-runner.js";
 import {createProjectRuntimeVerifier} from "./project-runtime-verifier.js";
+import {createProjectInteractionVerifier} from "./project-interaction-verifier.js";
 import {ProductionAgentBuilder} from "./production-agent-builder.js";
 import {AutonomousDelivery} from "./autonomous-delivery.js";
 import {AutonomousController} from "./autonomous-controller.js";
@@ -200,10 +201,11 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const sandbox=new DockerSandbox({image:config.docker.image,network:config.docker.network});
   const testRunner=createProjectTestRunner({sandbox});
   const runtimeVerifier=createProjectRuntimeVerifier({sandbox,port:config.docker.runtimePort??4173});
+  const interactionVerifier=createProjectInteractionVerifier({runtimeVerifier});
   const evaluator=new Evaluator({minimumScore:0.8});
   const projectBuilder=new ModelProjectBuilder({modelGateway,repository});
   const buildPipeline=new AutonomousBuildPipeline({
-    projectBuilder,testRunner,evaluator,runtimeVerifier,securityCouncil,benchmarkStore
+    projectBuilder,testRunner,evaluator,runtimeVerifier,interactionVerifier,securityCouncil,benchmarkStore
   });
   const factory=new ProjectFactory({
     pipeline:buildPipeline,
