@@ -26,7 +26,7 @@ function applyExistingChange(command,existing){
   const htmlFile=files.find(file=>/^(src\/)?index\.html$/i.test(file.path))||files.find(file=>/\.html?$/i.test(file.path));
   if(!htmlFile) return {name:existing.project?.name||"jora-project",files};
   let content=htmlFile.content;
-  const titleMatch=String(command).match(/(?:title|heading|name)\s+(?:to|as|=)\s+["“']?(.+?)["”']?\s*$/i);
+  const titleMatch=String(command).match(/(?:title|heading|name)\s+(?:to|as|=)\s+["“']?(.+?)["”']?(?=\s+and\s+(?:button|start button)\b|$)/i);
   if(titleMatch){
     const title=titleMatch[1].trim();
     content=content.replace(/<title>[^<]*<\/title>/i,"<title>"+title+"</title>");
@@ -53,7 +53,7 @@ function applyExistingChange(command,existing){
   const speedMatch=String(command).match(/(?:player\s+)?speed\s+(?:to|=)\s*(\d+(?:\.\d+)?)/i);
   if(speedMatch) content=content.replace(/(speed:)\s*\d+(?:\.\d+)?/i,"$1"+speedMatch[1]);
   const buttonText=String(command).match(/(?:button|start button)\s+(?:text|label)\s+(?:to|as|=)\s+["“']?(.+?)["”']?\s*$/i);
-  if(buttonText) content=content.replace(/(<button[^>]*id=["']start["'][^>]*>)[^<]*(<\/button>)/i,"$1"+buttonText[1].trim()+"$2");
+  if(buttonText) content=content.replace(/(<button[^>]*id=["']start["'][^>]*>)[^<]*(<\/button>)/i,"$1"+buttonText[1].trim().replace(/[.!?]\s*$/,"")+"$2");
   const widthMatch=String(command).match(/(?:canvas|game)\s+width\s+(?:to|=)\s*(\d+)/i);
   if(widthMatch) content=content.replace(/(<canvas[^>]*width=["'])\d+(")/i,"$1"+widthMatch[1]+"$2");
   htmlFile.content=content;
