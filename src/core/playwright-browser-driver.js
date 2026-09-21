@@ -34,7 +34,7 @@ export function createPlaywrightBrowserDriver({
           if(message.type()==="error") errors.push("console: "+message.text());
         });
 
-        const baseUrl=String(process.env.JORA_INTERACTION_BASE_URL||"http://127.0.0.1:4173").replace(/\\/$/,"");
+        const baseUrl=String(started?.url||process.env.JORA_INTERACTION_BASE_URL||"http://127.0.0.1:4173").replace(/\\/$/,"");
 
         for(const action of actions) {
           switch(action.type) {
@@ -118,7 +118,7 @@ export function createPlaywrightBrowserDriver({
           errors:[...errors,error.message]
         };
       } finally {
-        await browser?.close().catch(()=>{});
+        await browser?.close().catch(()=>{});\n        await started?.stop?.().catch(()=>{});
       }
     }
   };
