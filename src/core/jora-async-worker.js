@@ -46,20 +46,34 @@ function compactPlanning(planning) {
 }
 
 async function compactResult(result,repository) {
-  const paths=[...collectFilePaths(result)];
+  // The builder writes files to the isolated workspace. Do not depend on the
+  // shape of the controller/evaluation object to discover them; the workspace
+  // itself is the source of truth for the files the user should receive.
+  let paths=[];
+  try {
+    paths=await repository.list(".");
+  } catch {
+    paths=[...collectFilePaths(result)];
+  }
+  paths=paths
+    .filter(filePath=>typeof filePath==="string"&&!filePath.startsWith(".git/")&&!filePath.endsWith(".jora-tmp"))
+    .slice(0,30);
+
   const files=[];
   for(const filePath of paths) {
     try {
       const content=await repository.read(filePath);
-      const limited=String(content).slice(0,6000);
+      const text=typeof content==="string" ? content : String(content?.content??"");
+      const limited=text.slice(0,6000);
       files.push({
         path:filePath,
         lines:limited.split("\n").length,
-        truncated:content.length>6000,
+        truncated:text.length>6000,
         content:limited
       });
     } catch {}
   }
+
   const latest=Array.isArray(result?.results) ? result.results[result.results.length-1] : null;
   const candidate=result?.champion ?? latest?.promotion?.candidate ?? latest?.project?.project ?? latest?.project ?? null;
   const evaluation=candidate?.evaluation ?? latest?.project?.evaluation ?? {};
