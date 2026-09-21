@@ -76,6 +76,10 @@ async function compactResult(result,repository) {
 
 async function main(request){
   const config=runtimeConfig();
+  const progress=event=>{
+    if(!process.send) return;
+    process.send({type:"progress",event:{timestamp:new Date().toISOString(),...event}});
+  };
   const providers=new Map();
   providers.set("jora",new JoraNativeProvider());
   const modelGateway=new MultiModelGateway({
@@ -88,7 +92,7 @@ async function main(request){
     const result=await composed.runtime.execute({
       command:request.command,
       constraints:request.constraints??{},
-      context:request.context??{}
+      context:{...(request.context??{}),progress}
     });
     const compact=await compactResult(result,composed.repository);
     if(process.send) process.send({ok:true,result:compact});
