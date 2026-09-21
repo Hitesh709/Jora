@@ -77,3 +77,36 @@ test("model project builder passes product planning and demands real workflows",
   assert.match(prompt,/Implement booking workflow/i);
   assert.match(prompt,/real implementation/i);
 });
+
+
+test("autonomous build pipeline repairs a failed project and verifies it on retry",async()=>{
+  let testRuns=0;
+  const buildContexts=[];
+  const p=new AutonomousBuildPipeline({
+    maxRepairCycles:2,
+    projectBuilder:{
+      repository:{root:"/tmp/jora-generated-project"},
+      build:async(args)=>{
+        buildContexts.push(args.context);
+        return {status:"SUCCEEDED",files:[{path:"src/index.js",hash:"fixed"}]};
+      }
+    },
+    testRunner:async()=>{
+      testRuns++;
+      return testRuns===1
+        ? {ok:false,code:1,stderr:"AssertionError: expected booking button"}
+        : {ok:true,code:0,stdout:"2 tests passed"};
+    },
+    evaluator:{evaluate:x=>({passed:x.testsPassed&&x.securityPassed,...x})}
+  });
+  const result=await p.executeProject({request:{command:"Build booking app",context:{}},specification:{}});
+  const evaluation=await p.evaluateProject({
+    request:{command:"Build booking app",context:{}},
+    specification:{},
+    result
+  });
+  assert.equal(testRuns,2);
+  assert.equal(evaluation.passed,true);
+  assert.equal(evaluation.repairCycles,1);
+  assert.match(buildContexts[1].repairFeedback.diagnosis,/failed/i);
+});
