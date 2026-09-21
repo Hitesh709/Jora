@@ -106,8 +106,7 @@ async function main(request){
         path:typeof source.file.path==="string" ? source.file.path : "",
         bytes:Number.isFinite(source.file.bytes) ? source.file.bytes : 0,
         truncated:Boolean(source.file.truncated),
-        preview:typeof source.file.preview==="string" ? source.file.preview.slice(0,1200) : ""
-      };
+              };
     }
     try {
       process.send({type:"progress",event:safeEvent});
