@@ -38,7 +38,7 @@ export class ProductUnderstandingEngine {
     return goals.slice(0,10);
   }
 
-  _ambiguities(input) {
+  _ambiguities(input,goals=[]) {
     const text=this._clean(input);
     const checks=[
       ["target_users",/\b(?:for|target(?:ing)?)\b/i],
@@ -77,7 +77,7 @@ export class ProductUnderstandingEngine {
     if(!request) throw new Error("input is required");
     const constraints=this._extractConstraints(request);
     const goals=this._goals(request);
-    const ambiguities=this._ambiguities(request);
+    const ambiguities=this._ambiguities(request,goals);
     const requirements={
       functional:goals.map((goal,index)=>({id:"FR-"+String(index+1).padStart(3,"0"),statement:goal,priority:index===0?"high":"medium"})),
       nonFunctional:["Observable execution status","Verifiable acceptance criteria","Safe failure and recovery behavior"],
