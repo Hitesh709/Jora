@@ -547,7 +547,7 @@ function showView(view){
 }
 async function checkBackend(){
   const el=document.getElementById("conn");
-  try{const r=await fetch(base()+"/health",{cache:"no-store"});if(!r.ok)throw new Error();const p=await fetch(base()+"/v1/platform",{cache:"no-store"});const d=p.ok?await p.json():null;el.textContent=d?.platform?.version?"● Jora OS "+d.platform.version+" online":"● Backend online";el.className="conn"}catch{el.textContent="● Backend offline";el.className="conn off"}
+  try{const r=await fetch(base()+"/health",{cache:"no-store"});if(!r.ok)throw new Error();const p=await fetch(base()+"/v1/platform",{cache:"no-store"});const d=p.ok?await p.json():null;el.textContent=d?.version?"● Jora OS "+d.version+" online":"● Backend online";el.className="conn"}catch{el.textContent="● Backend offline";el.className="conn off"}
 }
 async function loadRuns(){try{const e=await get("/v1/executions?limit=30");document.getElementById("runs").textContent=JSON.stringify(e.executions,null,2)}catch(e){document.getElementById("runs").textContent="Unable to load runs: "+e.message}}
 async function refreshControl(){
