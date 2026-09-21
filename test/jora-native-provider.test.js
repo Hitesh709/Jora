@@ -18,3 +18,16 @@ test("Jora native engine generates a runnable project contract",async()=>{
   assert.ok(parsed.files.some(file=>file.path==="src/index.js"));
   assert.ok(parsed.files.some(file=>file.path==="test/index.test.js"));
 });
+
+
+test("Jora native engine answers arithmetic questions",async()=>{
+  const provider=new JoraNativeProvider();
+  const result=await provider.complete({messages:[{role:"user",content:"What is 125 * 8 + 20?"}]});
+  assert.match(result.text,/The answer is 1020/);
+});
+
+test("Jora native engine answers common knowledge questions",async()=>{
+  const provider=new JoraNativeProvider();
+  const result=await provider.complete({messages:[{role:"user",content:"What is JavaScript?"}]});
+  assert.match(result.text,/programming language/i);
+});
