@@ -25,6 +25,8 @@ export class JoraRuntime {
     }) : null;
     const startedAt=Date.now();
     const executionId=execution?.id??`command-${Date.now()}`;
+    const progress=typeof context.progress==="function" ? context.progress : ()=>{};
+    progress({phase:"REQUIREMENTS",status:"RUNNING",message:"Understanding requirements and acceptance criteria"});
     const governance={transition:async(to,metadata={})=>this.governance?.transition({executionId,to,actorId:context.actorId??"system",tenantId:context.tenantId??"default",metadata})};
     await governance.transition("AUTHORIZED",{command});
     await governance.transition("PLANNED");
@@ -37,6 +39,7 @@ export class JoraRuntime {
       // useful without an external model API key.
       let planning=null;
       if(this.productUnderstanding&&this.architecturePlanner&&this.taskDAGGenerator){
+        progress({phase:"ARCHITECTURE",status:"RUNNING",message:"Planning architecture and task DAG"});
         const specification=await this.productUnderstanding.understand({input:command,context:{...context,executionId:execution?.id}});
         const architecture=await this.architecturePlanner.plan({specification,input:command,context:{...context,executionId:execution?.id}});
         const dag=this.taskDAGGenerator.generate({specification,architecture:architecture.plan});
@@ -50,6 +53,7 @@ export class JoraRuntime {
           criticalPath:dag.dag.criticalPath
         });
       }
+      progress({phase:"TASKS",status:"COMPLETED",message:planning ? `Planned ${planning.dag.nodes.length} engineering tasks` : "Using direct engineering plan"});
       const researchRequested=Boolean(context.research)||/\b(research|search|latest|news|look up|compare sources)\b/i.test(command);
       if(researchRequested&&this.searchProvider?.search){
         try{
@@ -76,12 +80,17 @@ export class JoraRuntime {
       }
 
       await governance.transition("BUILDING");
-      const built=await this.builder.build({command,constraints,context:candidateContext});
+      progress({phase:"CODING",status:"RUNNING",message:"Writing project files and implementing the requested product"});
+      const built=await this.builder.build({command,constraints,context:{...candidateContext,progress}});
+      progress({phase:"CODING",status:"COMPLETED",message:`Generated ${Array.isArray(built?.files) ? built.files.length : 0} project files`});
       await governance.transition("TESTING");
+      progress({phase:"TESTING",status:"RUNNING",message:"Running generated project tests"});
       if(execution) await this.executionStore.append(execution.id,{type:"BUILD_COMPLETE",status:built?.status});
 
       await governance.transition("SECURITY_CHECK");
+      progress({phase:"SECURITY",status:"RUNNING",message:"Scanning generated files and runtime policy"});
       await governance.transition("BENCHMARKING");
+      progress({phase:"BENCHMARK",status:"RUNNING",message:"Evaluating tests, quality and production readiness"});
       await governance.transition("CANDIDATE");
       let result=await this.controller.run({
         command,
@@ -91,6 +100,7 @@ export class JoraRuntime {
         result={...result,planning:planning??null,research:candidateContext.research??null,researchError:candidateContext.researchError??null};
       }
 
+      progress({phase:"REPAIR_OR_PROMOTION",status:"COMPLETED",message:`Evaluation result: ${result.status}`});
       await governance.transition("PROMOTION_CHECK",{status:result.status});
       if(result.status==="PROMOTED") {
         await this.policyEngine?.enforce?.({
