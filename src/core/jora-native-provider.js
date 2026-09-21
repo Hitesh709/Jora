@@ -155,6 +155,33 @@ ${command}
   ]};
 }
 
+function evaluateArithmetic(input){
+  const source=String(input||"").replace(/,/g,"").trim();
+  if(!/^[0-9+\\-*/%.()\\s]+$/.test(source)||!/[+\\-*/]/.test(source)) return null;
+  const tokens=source.match(/(?:\\d+(?:\\.\\d*)?|\\.\\d+)|[+\\-*/%()]/g);
+  if(!tokens||tokens.join("")!==source.replace(/\\s+/g,"")) return null;
+  let i=0;
+  const primary=()=>{const t=tokens[i];if(t==="("){i++;const v=add();if(tokens[i]!==")")throw Error();i++;return v}if(!t||!/^\\d/.test(t)&&t[0]!==".")throw Error();i++;return Number(t)};
+  const unary=()=>{if(tokens[i]==="+"){i++;return unary()}if(tokens[i]==="-"){i++;return -unary()}return primary()};
+  const mul=()=>{let v=unary();while(["*","/","%"].includes(tokens[i])){const op=tokens[i++],b=unary();if(op==="*")v*=b;else if(op==="/"){if(b===0)throw Error();v/=b}else v%=b}return v};
+  const add=()=>{let v=mul();while(["+","-"].includes(tokens[i])){const op=tokens[i++],b=mul();v=op==="+"?v+b:v-b}return v};
+  const value=add();if(i!==tokens.length||!Number.isFinite(value))return null;return value;
+}
+function simpleAnswer(question){
+  const q=clean(question),l=q.toLowerCase();
+  try{
+    const arithmetic=evaluateArithmetic(q.replace(/^(what is|calculate|solve|compute)\\s+/i,""));
+    if(arithmetic!==null)return "The answer is "+String(Number(arithmetic.toPrecision(12)))+".";
+  }catch{}
+  if(/^(who|what)\\s+(are|is)\\s+you\\??$/i.test(q)) return "I’m Jora, an autonomous software factory. I can answer questions, research information, and build, test and repair software.";
+  if(/what is (ai|artificial intelligence)/i.test(l)) return "Artificial intelligence (AI) is software that performs tasks that normally require human-like capabilities such as understanding language, recognizing patterns, reasoning, learning, and generating content.";
+  if(/what is (javascript|js)/i.test(l)) return "JavaScript is a programming language widely used to make web pages and applications interactive. It also runs outside browsers, for example on servers with Node.js.";
+  if(/what is (python)/i.test(l)) return "Python is a general-purpose programming language known for readable syntax and widely used in web development, automation, data analysis, scientific computing, and AI.";
+  if(/what is (gravity)/i.test(l)) return "Gravity is the interaction associated with mass-energy that causes bodies to accelerate toward one another. Near Earth’s surface, the acceleration is about 9.81 m/s².";
+  if(/^(hi|hello|hey)(\\s+jora)?[!?]?$/.test(l)) return "I’m ready. Ask me a question, give me a calculation, ask for current information, or describe software you want built.";
+  return null;
+}
+
 function taskList(prompt){
   const objective=extractCommand(prompt);
   const lower=objective.toLowerCase();
@@ -181,6 +208,8 @@ export class JoraNativeProvider{
       return {text:json(taskList(user)),model:"jora",engine:this.kind};
     }
     const lower=user.toLowerCase();
+    const directAnswer=simpleAnswer(user);
+    if(directAnswer) return {text:directAnswer,model:"jora",engine:this.kind};
     if(/\b(what(?:'s| is)?|tell me|give me)?\s*(the\s*)?(date|day)\s*(today|now)?\b|\btoday(?:'s| is)?\s*(date|day)\b/.test(lower)){
       const now=new Date();
       const date=new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(now);
