@@ -32,9 +32,13 @@ export class AutonomousBuildPipeline {
 
       if(tests?.ok) break;
 
+      const existingProject=this.projectBuilder.repository?.snapshot
+        ? {files:await this.projectBuilder.repository.snapshot()}
+        : null;
       const failure={
         cycle,
         code:tests?.code??null,
+        files:Array.isArray(tests?.files)?tests.files:[],
         stderr:String(tests?.stderr??"").slice(-12000),
         stdout:String(tests?.stdout??"").slice(-12000)
       };
