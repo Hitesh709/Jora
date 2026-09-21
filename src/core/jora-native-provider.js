@@ -3,7 +3,7 @@ function slug(value="jora-project"){return clean(value).toLowerCase().replace(/[
 function json(value){return JSON.stringify(value,null,2);}
 function extractCommand(prompt){
   const text=clean(prompt);
-  const match=text.match(/Command:\s*([\s\S]*?)(?:\s+Specification:|\s+This is a repair cycle\.|$)/i);
+  const match=text.match(/Command:\s*([\s\S]*?)(?:\s+Specification:|\s+This is a repair cycle\.|\s+Existing project JSON \(preserve all working behavior and modify these files for the new request\):|$)/i);
   return clean(match?.[1]||text).slice(0,2000);
 }
 function extractExistingProject(prompt){
