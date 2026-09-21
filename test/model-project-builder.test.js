@@ -43,3 +43,20 @@ test("autonomous build pipeline evaluates sandbox tests",async()=>{
   const evaluation=await p.evaluateProject({request:{command:"x",context:{}},specification:{},result});
   assert.equal(evaluation.passed,true);
 });
+
+
+test("autonomous build pipeline uses repository workspace when request context has no workspace",async()=>{
+  let testedCwd=null;
+  const p=new AutonomousBuildPipeline({
+    projectBuilder:{
+      repository:{root:"/tmp/jora-generated-project"},
+      build:async()=>({status:"SUCCEEDED"})
+    },
+    testRunner:async({cwd})=>{testedCwd=cwd;return {ok:true}},
+    evaluator:{evaluate:x=>({passed:true,...x})}
+  });
+  const result=await p.executeProject({request:{command:"today's date",context:{}},specification:{}});
+  const evaluation=await p.evaluateProject({request:{command:"today's date",context:{}},specification:{},result});
+  assert.equal(evaluation.passed,true);
+  assert.equal(testedCwd,"/tmp/jora-generated-project");
+});
