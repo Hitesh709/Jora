@@ -72,7 +72,7 @@ export class ModelProjectBuilder {
     this.modelGateway=modelGateway; this.repository=repository;
   }
 
-  async build({command,specification,context={},repository=this.repository}={}) {
+  async build({command,specification,context={},repository=this.repository,progress:progressCallback=null}={}) {
     const repair=context.repairFeedback
       ? " This is a repair cycle. Diagnose the supplied failure evidence, preserve working behavior, and return corrected complete files. Failure evidence: "+JSON.stringify({
           diagnosis:context.repairFeedback.diagnosis,
@@ -93,7 +93,7 @@ export class ModelProjectBuilder {
 
     if(!Array.isArray(parsed.files)||parsed.files.length===0) throw new Error("Model returned no project files");
     const written=[];
-    const progress=typeof context.progress==="function" ? context.progress : ()=>{};
+    const progress=typeof progressCallback==="function" ? progressCallback : ()=>{};
     progress({phase:"CODING",status:"RUNNING",message:`Generating ${parsed.files.length} project files`});
     for(const file of parsed.files){
       if(!file?.path||typeof file.content!=="string") throw new Error("Invalid generated file");
