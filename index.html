@@ -186,8 +186,9 @@ async function sendPrompt(){
         if(state.status==="FAILED"||state.status==="CANCELLED"||state.status==="TIMEOUT") addMessage("Jora task "+state.status.toLowerCase()+": "+(state.error||"No further execution was performed."),"system");
         else {
           const result=state.result||{};
-          if(Array.isArray(result.files)&&result.files.length){
-            workspaceFiles=result.files;
+          const completedFiles=extractWorkspaceFiles(state);
+          if(completedFiles.length){
+            workspaceFiles=completedFiles;
             workspaceProject=modifyingExisting?{...workspaceProject,requestId,createdAt:new Date().toISOString()}:{name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};
             renderWorkspace();
             await saveWorkspace();
@@ -466,6 +467,37 @@ async function pushWorkspaceToGitHub(){
   }catch(e){activity.innerHTML='<span class="pill githubOff">GitHub error</span> '+e.message}
 }
 function saveToDevice(){return saveWorkspaceToDevice()}
+function extractWorkspaceFiles(state){
+  const candidates=[];
+  const result=state?.result;
+  const push=(value)=>{
+    if(!Array.isArray(value)||!value.length)return;
+    if(value.some(x=>x&&typeof x==="object"&&(typeof x.path==="string"||typeof x.name==="string"))){
+      candidates.push(value);
+    }
+  };
+  push(state?.files);
+  push(result?.files);
+  push(result?.candidate?.files);
+  push(result?.project?.files);
+  push(result?.project?.project?.files);
+  push(result?.project?.candidate?.files);
+  push(result?.candidate?.project?.files);
+  for(const item of (Array.isArray(result?.results)?result.results:[])){
+    push(item?.files);
+    push(item?.project?.files);
+    push(item?.project?.project?.files);
+    push(item?.project?.candidate?.files);
+    push(item?.candidate?.files);
+    push(item?.candidate?.project?.files);
+  }
+  const files=candidates.find(Boolean)||[];
+  return files.map(file=>({
+    path:String(file.path||file.name||"index.html"),
+    content:String(file.content??file.text??file.source??"")
+  })).filter(file=>file.path);
+}
+
 function formatAgentResult(d){
   const r=d?.result||{};
   const status=r.status||d?.status||"COMPLETED";
