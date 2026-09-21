@@ -20,7 +20,7 @@ main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62p
 .composer{border:1px solid #343b47;background:#11151c;border-radius:14px;padding:10px;flex:0 0 auto;box-shadow:0 10px 35px #0008}
 textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outline:0;background:transparent;color:#fff;padding:8px}.composeRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.modes{display:flex;gap:5px;overflow:auto}.mode{border:1px solid #303744;background:#171b23;color:#aeb7c5;border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px}.mode.active{background:#26303d;color:#fff;border-color:#4b5668}.send{border:0;border-radius:8px;background:#fff;color:#111;padding:9px 15px;font-weight:700;cursor:pointer}.send:disabled{opacity:.5}
 .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.quick button{border:1px solid #292f39;background:#12161d;color:#cdd3dd;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.quick button:hover{background:#181d26}
-.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:12px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden;flex:0 1 auto;min-height:0}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBody{display:grid;grid-template-columns:230px 1fr;height:min(430px,calc(100vh - 300px));min-height:240px}.fileTree{border-right:1px solid #29303a;overflow:auto;padding:8px}.fileItem{display:block;width:100%;text-align:left;background:transparent;color:#aeb7c5;border:0;border-radius:7px;padding:8px;cursor:pointer;font-size:12px}.fileItem:hover,.fileItem.active{background:#1b212b;color:#fff}.codePane{min-width:0;min-height:0;overflow:hidden}.codeHead{padding:9px 12px;border-bottom:1px solid #29303a;color:#aeb7c5;font-size:12px}.codePane pre{margin:0;padding:14px;max-height:none;height:100%;font-size:12px;line-height:1.55;white-space:pre;overflow:auto;color:#d7dde7}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.progressList{display:grid;gap:5px;margin-top:8px;max-height:180px;overflow:auto}.progressEvent{display:flex;gap:8px;align-items:flex-start}.progressPhase{min-width:112px;color:#d7dde7;font-weight:650}.progressFile{color:#7ee787}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.content{padding:14px 12px 12px}.workspaceBody{grid-template-columns:1fr;height:min(440px,calc(100vh - 330px))}.fileTree{border-right:0;border-bottom:1px solid #29303a;max-height:130px;display:flex;gap:5px;overflow:auto}.fileItem{min-width:max-content}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
+.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:12px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden;flex:0 1 auto;min-height:0}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBody{display:block;height:min(300px,calc(100vh - 360px));min-height:150px}.fileTree{height:100%;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:8px}.fileItem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:#141922;color:#d7dde7;border:1px solid #2d3541;border-radius:9px;padding:10px 12px;cursor:default;font-size:12px}.fileItem:hover,.fileItem.active{background:#141922;color:#d7dde7}.fileStatus{margin-left:auto;color:#7ee787;font-size:11px;white-space:nowrap}.codePane,.codeHead,#codeView{display:none}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.progressList{display:grid;gap:5px;margin-top:8px;max-height:180px;overflow:auto}.progressEvent{display:flex;gap:8px;align-items:flex-start}.progressPhase{min-width:112px;color:#d7dde7;font-weight:650}.progressFile{color:#7ee787}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.content{padding:14px 12px 12px}.workspaceBody{height:min(300px,calc(100vh - 380px));min-height:150px}.fileTree{grid-template-columns:1fr;overflow:auto}.fileItem{min-width:0}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
 .overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input,.modal select{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
 @media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.content{padding:18px 14px 90px}.hero{padding:34px 0 22px}.hero h1{font-size:27px}.grid{grid-template-columns:repeat(2,1fr)}.top{padding:0 14px}.quick{grid-template-columns:1fr}.msg.user{margin-left:0}}
 </style></head>
@@ -61,17 +61,14 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
       <div class="workspaceHead">
         <div><div class="workspaceTitle">Jora Workspace</div><div id="workspaceMeta" class="muted">Generated project files</div></div>
         <div class="workspaceActions">
-          <button class="workspaceBtn" id="stopRun" onclick="cancelActiveRun()" style="display:none">■ Stop</button><button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Device</button>
+          <button class="workspaceBtn" id="stopRun" onclick="cancelActiveRun()" style="display:none">■ Stop</button><button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Save folder</button>
           <button class="workspaceBtn" onclick="exportWorkspace()">⬇ Export</button>
           <button class="workspaceBtn" onclick="importWorkspace()">⬆ Import</button>
           <button class="workspaceBtn" onclick="pushWorkspaceToGitHub()">↗ GitHub</button>
           <input id="workspaceImport" type="file" accept=".json,.jora.json,application/json" style="display:none" onchange="handleWorkspaceImport(event)">
         </div>
       </div>
-      <div class="workspaceBody">
-        <div id="fileTree" class="fileTree"></div>
-        <div class="codePane"><div id="codeHead" class="codeHead">Select a file</div><pre id="codeView">// Jora generated code will appear here.</pre></div>
-      </div>
+      <div class="workspaceBody"><div id="fileTree" class="fileTree"></div></div>
       <div id="workspaceActivity" class="activity"><span class="pill">Local workspace</span> Files are saved in this browser until you export or sync them.</div>
     </section>
     <div class="quick">
@@ -101,7 +98,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="actions"><button class="secondary" onclick="saveSettings()">Save &amp; connect</button><button class="secondary" onclick="resetApi()">Reset to production</button><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiConfigVersion="2026-09-20-production-3";
+const apiConfigVersion="2026-09-21-folder-completed-ui-1";
 const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
 if(localStorage.getItem("jora_api_config_version")!==apiConfigVersion){
   localStorage.setItem("jora_api_base",defaultApi);
@@ -125,6 +122,11 @@ async function sendPrompt(){
   const command=promptInput.value.trim();if(!command)return;
   addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage(mode==="research"?"Searching the web…":"Working…","system");
   try{
+    const engineeringBuild=(mode==="agent"||mode==="build")&&isEngineeringRequest(command);
+    if(engineeringBuild){
+      const folderReady=await chooseDeviceFolderBeforeBuild();
+      if(!folderReady){sendBtn.disabled=false;return;}
+    }
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
     if(mode==="agent" && !isEngineeringRequest(command)){
       try{
@@ -231,6 +233,8 @@ async function cancelActiveRun(){
 }
 let workspaceFiles=[];
 let workspaceProject={name:"jora-project",requestId:null,createdAt:null};
+let deviceDirectoryHandle=null;
+let deviceDirectoryName="";
 
 function idbOpen(){
   return new Promise((resolve,reject)=>{
@@ -270,35 +274,70 @@ function handleWorkspaceImport(event){
     workspaceProject=data.project||{name:"imported-project"};workspaceFiles=data.files;renderWorkspace();await saveWorkspace();
   }catch(e){addMessage("Import failed: "+e.message,"system")}finally{event.target.value=""}};reader.readAsText(file);
 }
+async function chooseDeviceFolderBeforeBuild(){
+  if(!window.showDirectoryPicker){
+    addMessage("This browser does not support direct folder saving. Jora will keep the completed files in the browser workspace; use Export to save them.","system");
+    return true;
+  }
+  try{
+    const dir=await window.showDirectoryPicker({mode:"readwrite"});
+    deviceDirectoryHandle=dir;
+    deviceDirectoryName=dir.name||"selected folder";
+    const system=document.querySelector("#messages .msg.system:last-child");
+    if(system)system.textContent="Folder selected: "+deviceDirectoryName+". Jora can now create the completed files there.";
+    return true;
+  }catch(e){
+    if(e.name==="AbortError"){
+      document.querySelector("#messages .msg.system:last-child")?.remove();
+      addMessage("Build cancelled. Select a folder first so Jora can save the completed project.","system");
+      return false;
+    }
+    throw e;
+  }
+}
 async function saveWorkspaceToDevice(){
   if(!workspaceFiles.length)return;
+  if(deviceDirectoryHandle){
+    await writeWorkspaceToDirectory(deviceDirectoryHandle);
+    return;
+  }
   if(window.showDirectoryPicker){
     try{
       const dir=await window.showDirectoryPicker({mode:"readwrite"});
-      for(const file of workspaceFiles){
-        const parts=file.path.split("/");let folder=dir;
-        for(const part of parts.slice(0,-1))folder=await folder.getDirectoryHandle(part,{create:true});
-        const fh=await folder.getFileHandle(parts.at(-1),{create:true});const w=await fh.createWritable();await w.write(String(file.content||""));await w.close();
-      }
-      document.getElementById("workspaceActivity").innerHTML='<span class="pill">Device</span> Files written to the selected folder.';
+      deviceDirectoryHandle=dir;
+      deviceDirectoryName=dir.name||"selected folder";
+      await writeWorkspaceToDirectory(dir);
       return;
     }catch(e){if(e.name==="AbortError")return}
   }
   exportWorkspace();
-  document.getElementById("workspaceActivity").innerHTML='<span class="pill">Mobile/Browser</span> Exported a Jora workspace file because direct folder access is not supported here.';
+  document.getElementById("workspaceActivity").innerHTML='<span class="pill">Browser</span> Exported a Jora workspace file because direct folder access is not supported here.';
+}
+async function writeWorkspaceToDirectory(dir){
+  for(const file of workspaceFiles){
+    const parts=file.path.split("/");let folder=dir;
+    for(const part of parts.slice(0,-1))folder=await folder.getDirectoryHandle(part,{create:true});
+    const fh=await folder.getFileHandle(parts.at(-1),{create:true});
+    const w=await fh.createWritable();
+    await w.write(String(file.content||""));
+    await w.close();
+  }
+  document.getElementById("workspaceActivity").innerHTML='<span class="pill">Completed</span> '+workspaceFiles.length+' files saved to <strong>'+escapeHtml(deviceDirectoryName||"selected folder")+'</strong>.';
+}
+function escapeHtml(value){
+  return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]||ch));
 }
 function renderProgress(progress){
   const panel=document.getElementById("workspacePanel");
   panel.style.display="block";
-  const events=Array.isArray(progress?.events)?progress.events:[];
-  document.getElementById("workspaceMeta").textContent="Live engineering run · "+(progress?.phase||"RUNNING");
+  document.getElementById("workspaceMeta").textContent="Jora is building · "+(progress?.phase||"RUNNING");
   const activity=document.getElementById("workspaceActivity");
   activity.innerHTML="";
   const head=document.createElement("div");
-  head.textContent="Live · "+String(progress?.message||"Jora is working…");
+  head.textContent=String(progress?.message||"Jora is working…");
   activity.appendChild(head);
   const list=document.createElement("div");list.className="progressList";
-  let filesChanged=false;
+  const events=Array.isArray(progress?.events)?progress.events:[];
   events.slice(-18).forEach(event=>{
     const row=document.createElement("div");row.className="progressEvent";
     const phase=document.createElement("span");phase.className="progressPhase";phase.textContent=String(event.phase||"RUNNING");
@@ -306,38 +345,23 @@ function renderProgress(progress){
     row.appendChild(phase);row.appendChild(msg);
     if(event.file?.path){
       const file=document.createElement("span");file.className="progressFile";file.textContent=" · "+event.file.path;row.appendChild(file);
-      const existing=workspaceFiles.findIndex(x=>x.path===event.file.path);
-      if(existing<0){
-        workspaceFiles.push({path:event.file.path,content:String(event.file.preview||"// Jora is writing this file…"),truncated:Boolean(event.file.truncated)});
-        filesChanged=true;
-      }else if(event.file.preview){
-        workspaceFiles[existing]={...workspaceFiles[existing],content:String(event.file.preview),truncated:Boolean(event.file.truncated)};
-      }
     }
     list.appendChild(row);
   });
   activity.appendChild(list);
-  if(filesChanged) renderLiveFileTree();
-}
-function renderLiveFileTree(){
-  const panel=document.getElementById("workspacePanel");panel.style.display="block";
-  document.getElementById("workspaceMeta").textContent="Live engineering run · "+workspaceFiles.length+" files";
-  const tree=document.getElementById("fileTree");tree.innerHTML="";
-  workspaceFiles.forEach((file,i)=>{const b=document.createElement("button");b.className="fileItem";b.textContent="📄 "+file.path;b.onclick=()=>selectWorkspaceFile(i);tree.appendChild(b)});
-  if(workspaceFiles.length) selectWorkspaceFile(Math.max(0,Math.min(workspaceFiles.length-1,window.joraSelectedFile||0)));
 }
 function renderWorkspace(){
   const panel=document.getElementById("workspacePanel");panel.style.display="block";
-  document.getElementById("workspaceMeta").textContent=(workspaceProject.name||"Project")+" · "+workspaceFiles.length+" files";
+  document.getElementById("workspaceMeta").textContent=(workspaceProject.name||"Project")+" · "+workspaceFiles.length+" completed files";
   const tree=document.getElementById("fileTree");tree.innerHTML="";
-  workspaceFiles.forEach((file,i)=>{const b=document.createElement("button");b.className="fileItem";b.textContent="📄 "+file.path;b.onclick=()=>selectWorkspaceFile(i);tree.appendChild(b)});
-  if(workspaceFiles.length)selectWorkspaceFile(0);
-}
-function selectWorkspaceFile(index){
-  const file=workspaceFiles[index];if(!file)return;
-  document.querySelectorAll(".fileItem").forEach((x,i)=>x.classList.toggle("active",i===index));
-  document.getElementById("codeHead").textContent=file.path+(file.truncated?" · preview truncated":"");
-  document.getElementById("codeView").textContent=String(file.content||"");
+  workspaceFiles.forEach((file)=>{
+    const item=document.createElement("div");item.className="fileItem";
+    const name=document.createElement("span");name.textContent="📄 "+file.path;
+    const status=document.createElement("span");status.className="fileStatus";
+    const bytes=new Blob([String(file.content||"")]).size;
+    status.textContent="Completed · "+(bytes<1024?(bytes+" B"):(bytes/1024).toFixed(1)+" KB");
+    item.appendChild(name);item.appendChild(status);tree.appendChild(item);
+  });
 }
 async function pushWorkspaceToGitHub(){
   if(!workspaceFiles.length){addMessage("Generate a project first.","system");return}
@@ -375,9 +399,9 @@ function formatAgentResult(d){
   if(r.cycles!=null) lines.push("Cycles: "+r.cycles);
   if(r.planning?.taskCount!=null) lines.push("Planned tasks: "+r.planning.taskCount);
   if(files.length){
-    lines.push("","Generated code ("+files.length+" files)");
-    files.slice(0,8).forEach(file=>{const text=String(file.content||"");lines.push("","===== "+file.path+" =====",text.slice(0,6000)+(text.length>6000?"\n…(preview truncated)":""));});
-  } else lines.push("","No generated file preview was returned for this run.");
+    lines.push("","Completed files ("+files.length+")");
+    files.slice(0,20).forEach(file=>lines.push("• "+file.path));
+  } else lines.push("","No completed files were returned for this run.");
   const reason=evaluation.reasons?.join?.("; ")||latest?.promotion?.decision?.reasons?.join?.("; ");
   if(reason) lines.push("","Verification: "+reason);
   if(status==="NOT_PROMOTED"||status==="BUILD_BLOCKED"||status==="SECURITY_BLOCKED"||status==="REJECTED") lines.push("","Promotion result: "+status+". The generated candidate remains available above for inspection.");
