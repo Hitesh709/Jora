@@ -5,10 +5,15 @@
 <title>Jora — AI Engineering Agent</title>
 <style>
 *{box-sizing:border-box}body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#0b0d11;color:#f3f4f6}
-button,input,textarea,select{font:inherit}.app{min-height:100vh;display:grid;grid-template-columns:240px 1fr}
-aside{border-right:1px solid #252a33;background:#0f1218;padding:18px;display:flex;flex-direction:column;gap:14px}
-.logo{font-size:20px;font-weight:800}.sub{font-size:11px;color:#8b94a5}.new{width:100%;padding:11px;border:1px solid #343b47;background:#171b23;color:#fff;border-radius:9px;cursor:pointer}
-nav{display:grid;gap:5px}nav button{border:0;background:transparent;color:#aab3c2;text-align:left;padding:10px;border-radius:8px;cursor:pointer}nav button.active,nav button:hover{background:#1a1f28;color:#fff}
+button,input,textarea,select{font:inherit}.app{--sidebar-w:64px;min-height:100vh;display:grid;grid-template-columns:var(--sidebar-w) 1fr;transition:grid-template-columns .18s ease}
+.app.sidebarExpanded{--sidebar-w:240px}
+aside{border-right:1px solid #252a33;background:#0f1218;padding:10px 8px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.logo{font-size:18px;font-weight:800;display:flex;align-items:center;justify-content:center;min-height:32px;white-space:nowrap}.logoText{display:none}.logoMark{display:inline}
+.sub{display:none}.new{width:100%;height:38px;padding:8px;border:1px solid #343b47;background:#171b23;color:#fff;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}.sideLabel{display:none}.sideIcon{font-size:18px;line-height:1}
+nav{display:grid;gap:5px}nav button{border:0;background:transparent;color:#aab3c2;text-align:center;padding:10px 6px;border-radius:8px;cursor:pointer;min-height:40px}nav button.active,nav button:hover{background:#1a1f28;color:#fff}.navIcon{display:block;font-size:16px;line-height:1}.navLabel{display:none}
+.sideBottom{margin-top:auto;display:grid;gap:8px}.sideBottom .secondary{padding:9px 6px;font-size:16px}.conn{font-size:11px;color:#7ee787;text-align:center;white-space:nowrap}.conn.off{color:#f2cc60}
+.sidebarToggle{width:100%;height:30px;border:1px solid #2d3541;background:#141922;color:#aeb7c5;border-radius:7px;cursor:pointer}
+.app.sidebarExpanded aside{padding:18px;gap:14px}.app.sidebarExpanded .logo{justify-content:flex-start;font-size:20px}.app.sidebarExpanded .logoText{display:inline}.app.sidebarExpanded .logoMark{display:none}.app.sidebarExpanded .new{height:auto;padding:11px}.app.sidebarExpanded .sideLabel{display:inline}.app.sidebarExpanded nav button{text-align:left;padding:10px}.app.sidebarExpanded .navIcon{display:inline-block;width:24px}.app.sidebarExpanded .navLabel{display:inline}.app.sidebarExpanded .conn{text-align:left}
 .sideBottom{margin-top:auto;display:grid;gap:8px}.conn{font-size:11px;color:#7ee787}.conn.off{color:#f2cc60}
 main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62px;border-bottom:1px solid #252a33;display:flex;align-items:center;justify-content:space-between;padding:0 22px;gap:12px}.topTitle{font-weight:700}.top small{color:#8b94a5}
 .content{width:min(1100px,100%);margin:0 auto;padding:22px 22px 18px;overflow:hidden;flex:1;min-height:0}
@@ -20,30 +25,44 @@ main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62p
 .composer{border:1px solid #343b47;background:#11151c;border-radius:14px;padding:10px;flex:0 0 auto;box-shadow:0 10px 35px #0008}
 textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outline:0;background:transparent;color:#fff;padding:8px}.composeRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.modes{display:flex;gap:5px;overflow:auto}.mode{border:1px solid #303744;background:#171b23;color:#aeb7c5;border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px}.mode.active{background:#26303d;color:#fff;border-color:#4b5668}.send{border:0;border-radius:8px;background:#fff;color:#111;padding:9px 15px;font-weight:700;cursor:pointer}.send:disabled{opacity:.5}
 .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.quick button{border:1px solid #292f39;background:#12161d;color:#cdd3dd;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.quick button:hover{background:#181d26}
-.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:12px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden;flex:0 1 auto;min-height:0}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn:disabled{opacity:.5;cursor:not-allowed}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBtn.previewBtn{background:#fff;color:#111;display:none}.workspace.previewAvailable .previewBtn{display:inline-block}.workspaceBody{display:grid;grid-template-columns:1fr 1fr;height:min(420px,calc(100vh - 330px));min-height:220px}.workspace.previewClosed .workspaceBody{grid-template-columns:1fr}.fileTree{height:100%;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:8px}.fileItem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:#141922;color:#d7dde7;border:1px solid #2d3541;border-radius:9px;padding:10px 12px;cursor:default;font-size:12px}.fileItem:hover,.fileItem.active{background:#141922;color:#d7dde7}.fileStatus{margin-left:auto;color:#7ee787;font-size:11px;white-space:nowrap}.codePane,.codeHead,#codeView{display:none}.previewPane{display:none;min-width:0;min-height:0;border-left:1px solid #29303a;background:#080b10;position:relative}.workspace.previewOpen .previewPane{display:flex;flex-direction:column}.previewHead{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #29303a;color:#d7dde7;font-size:12px}.previewFrame{display:block;width:100%;height:100%;border:0;background:#fff}.previewEmpty{display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:#8b94a5}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.progressList{display:grid;gap:5px;margin-top:8px;max-height:180px;overflow:auto}.progressEvent{display:flex;gap:8px;align-items:flex-start}.progressPhase{min-width:112px;color:#d7dde7;font-weight:650}.progressFile{color:#7ee787}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.content{padding:14px 12px 12px}.workspaceBody{height:min(520px,calc(100vh - 380px));min-height:260px;grid-template-columns:1fr}.workspace.previewOpen .workspaceBody{grid-template-columns:1fr}.workspace.previewOpen .fileTree{display:none}.previewPane{border-left:0;border-top:1px solid #29303a}.fileTree{grid-template-columns:1fr;overflow:auto}.fileItem{min-width:0}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
+.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:12px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden;flex:0 1 auto;min-height:0}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn:disabled{opacity:.5;cursor:not-allowed}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBtn.previewBtn{background:#fff;color:#111;display:none}.workspace.previewAvailable .previewBtn{display:inline-block}.workspaceBody{display:grid;grid-template-columns:1fr 1fr;height:min(420px,calc(100vh - 330px));min-height:220px}.workspace.previewClosed .workspaceBody{grid-template-columns:1fr}.fileTree{height:100%;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:8px}.fileItem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:#141922;color:#d7dde7;border:1px solid #2d3541;border-radius:9px;padding:10px 12px;cursor:default;font-size:12px}.fileItem:hover,.fileItem.active{background:#141922;color:#d7dde7}.fileStatus{margin-left:auto;color:#7ee787;font-size:11px;white-space:nowrap}.codePane,.codeHead,#codeView{display:none}.previewPane{display:none;min-width:0;min-height:0;border-left:1px solid #29303a;background:#080b10;position:relative}.workspace.previewOpen .previewPane{display:flex;flex-direction:column}.previewHead{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #29303a;color:#d7dde7;font-size:12px}.previewFrame{display:block;width:100%;height:100%;border:0;background:#fff}.previewEmpty{display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:#8b94a5}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.progressList{display:grid;gap:5px;margin-top:8px;max-height:180px;overflow:auto}.progressEvent{display:flex;gap:8px;align-items:flex-start}.progressPhase{min-width:112px;color:#d7dde7;font-weight:650}.progressFile{color:#7ee787}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.content{padding:14px 10px 12px}.workspaceBody{height:min(520px,calc(100vh - 330px));min-height:220px;grid-template-columns:1fr}.workspace.previewOpen .workspaceBody{grid-template-columns:1fr}.workspace.previewOpen .fileTree{display:none}.previewPane{border-left:0;border-top:1px solid #29303a}.fileTree{grid-template-columns:1fr;overflow:auto}.fileItem{min-width:0}.hero{padding:20px 0 12px}.hero h1{font-size:24px}.composer{padding:7px}.composer textarea{min-height:64px}.workspaceActions{gap:4px}.workspaceBtn{padding:6px 8px;font-size:11px}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
 .overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input,.modal select{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
-@media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.content{padding:18px 14px 90px}.hero{padding:34px 0 22px}.hero h1{font-size:27px}.grid{grid-template-columns:repeat(2,1fr)}.top{padding:0 14px}.quick{grid-template-columns:1fr}.msg.user{margin-left:0}}
-@media(min-width:761px){
-.content.previewMode{width:100%;max-width:none;margin:0;padding-right:calc(50vw + 22px)}
+@media(max-width:520px){.content{padding-bottom:90px}.top{padding:0 10px}.topTitle small{display:none}.grid{grid-template-columns:repeat(2,1fr)}.msg.user{margin-left:0}.workspaceActions .workspaceBtn:not(.previewBtn):nth-of-type(n+4){display:none}.workspaceHead{padding:9px}.workspaceTitle{font-size:13px}}
+@media(min-width:521px){
+.content.previewMode{width:100%;max-width:none;margin:0;padding-right:50vw}
 .content.previewMode #workspacePanel.previewOpen{position:fixed;top:62px;right:0;bottom:0;width:50vw;height:calc(100vh - 62px);margin:0;border-radius:0;z-index:30}
 .content.previewMode #workspacePanel.previewOpen .workspaceBody{height:calc(100vh - 125px);min-height:0;grid-template-columns:1fr}
 .content.previewMode #workspacePanel.previewOpen .fileTree{display:none}
 .content.previewMode #workspacePanel.previewOpen .previewPane{display:flex;border-left:0}
+}
+@media(max-width:520px){
+  .app{--sidebar-w:52px}
+  aside{padding:8px 6px}
+  .sidebarToggle{height:28px}
+  .new{height:34px}
+  nav button{padding:8px 4px;min-height:36px}
+  .top{height:56px}
+  .content{padding-left:8px;padding-right:8px}
+  .workspace.previewOpen{position:fixed;inset:56px 0 0 52px;z-index:30;margin:0;border-radius:0}
+  .workspace.previewOpen .workspaceBody{height:calc(100vh - 98px);min-height:0}
+  .workspace.previewOpen .previewPane{display:flex;border-left:0}
+  .workspace.previewOpen .fileTree{display:none}
 }</style></head>
 <body>
 <div class="app">
 <aside>
-  <div><div class="logo">✦ Jora</div><div class="sub">AI Engineering Agent</div></div>
-  <button class="new" onclick="newChat()">＋ New task</button>
+  <button class="sidebarToggle" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Expand sidebar" title="Expand sidebar">☰</button>
+  <div><div class="logo"><span class="logoMark">✦</span><span class="logoText">Jora</span></div><div class="sub">AI Engineering Agent</div></div>
+  <button class="new" onclick="newChat()" title="New task"><span class="sideIcon">＋</span><span class="sideLabel">New task</span></button>
   <nav>
-    <button class="active" id="navChat" onclick="showView('chat')">Chat</button>
-    <button onclick="showView('projects')">Projects</button>
-    <button onclick="showView('runs')">Runs &amp; jobs</button>
-    <button onclick="showView('control')">Control center</button>
+    <button class="active" id="navChat" onclick="showView('chat')" title="Chat"><span class="navIcon">💬</span><span class="navLabel">Chat</span></button>
+    <button onclick="showView('projects')" title="Projects"><span class="navIcon">▦</span><span class="navLabel">Projects</span></button>
+    <button onclick="showView('runs')" title="Runs &amp; jobs"><span class="navIcon">▶</span><span class="navLabel">Runs &amp; jobs</span></button>
+    <button onclick="showView('control')" title="Control center"><span class="navIcon">⚙</span><span class="navLabel">Control center</span></button>
   </nav>
   <div class="sideBottom">
-    <div id="conn" class="conn off">● Backend not connected</div>
-    <button class="secondary" onclick="openSettings()">Backend settings</button>
+    <div id="conn" class="conn off" title="Backend status">●</div>
+    <button class="secondary" onclick="openSettings()" title="Backend settings">⚙</button>
   </div>
 </aside>
 <main>
@@ -97,7 +116,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="actions"><button class="secondary" onclick="saveSettings()">Save &amp; connect</button><button class="secondary" onclick="resetApi()">Reset to production</button><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-v2-observability-fix-production.up.railway.app";
-const apiConfigVersion="2026-09-21-folder-completed-ui-1";
+const apiConfigVersion="2026-09-21-folder-completed-ui-2";
 const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
 if(localStorage.getItem("jora_api_config_version")!==apiConfigVersion){
   localStorage.setItem("jora_api_base",defaultApi);
@@ -537,6 +556,19 @@ function resetApi(){
   checkBackend()
 }
 
+function toggleSidebar(){
+  const app=document.querySelector(".app");
+  const expanded=app.classList.toggle("sidebarExpanded");
+  localStorage.setItem("jora_sidebar_expanded",expanded?"1":"0");
+  const btn=document.getElementById("sidebarToggle");
+  if(btn){btn.textContent=expanded?"‹":"☰";btn.title=expanded?"Minimize sidebar":"Expand sidebar";btn.setAttribute("aria-label",btn.title)}
+}
+(function(){
+  const expanded=localStorage.getItem("jora_sidebar_expanded")==="1";
+  if(expanded)document.querySelector(".app").classList.add("sidebarExpanded");
+  const btn=document.getElementById("sidebarToggle");
+  if(btn){btn.textContent=expanded?"‹":"☰";btn.title=expanded?"Minimize sidebar":"Expand sidebar";btn.setAttribute("aria-label",btn.title)}
+})();
 function newChat(){document.getElementById("messages").innerHTML='<div class="msg system">New Jora task. What should I build or solve?</div>';promptInput.focus()}
 function showView(view){
   ["chat","projects","runs","control"].forEach(v=>document.getElementById(v+"View").style.display=v===view?"block":"none");
