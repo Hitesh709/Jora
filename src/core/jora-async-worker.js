@@ -1,4 +1,7 @@
 import {runtimeConfig} from "./runtime-config.js";
+import {mkdtemp} from "node:fs/promises";
+import {tmpdir} from "node:os";
+import path from "node:path";
 import {MultiModelGateway} from "./multi-model-gateway.js";
 import {JoraNativeProvider} from "./jora-native-provider.js";
 import {createProductionJoraRuntime} from "./production-runtime.js";
@@ -90,6 +93,38 @@ async function compactResult(result,repository) {
 }
 
 async function main(request){
+  // Autonomous build workers must not hydrate Jora's long-lived learning,
+  // observability, execution and control-plane JSON state. Those files can grow
+  // independently of a single customer build and a large JSON.parse can exhaust
+  // the worker heap before the requested project is even generated.
+  // Give each isolated worker a fresh ephemeral state directory instead.
+  const stateDir=await mkdtemp(path.join(tmpdir(),"jora-build-state-"));
+  const stateFiles={
+    JORA_STATE_FILE:"executions.json",
+    JORA_CHAMPION_STATE_FILE:"champion.json",
+    JORA_BENCHMARK_STATE_FILE:"benchmarks.json",
+    JORA_LINEAGE_STATE_FILE:"lineage.json",
+    JORA_LEARNING_STATE_FILE:"learning.json",
+    JORA_ARCHITECTURE_STATE_FILE:"architectures.json",
+    JORA_MISSION_ROADMAP_STATE_FILE:"roadmap.json",
+    JORA_AGENT_MEMORY_STATE_FILE:"agent-memory.json",
+    JORA_KNOWLEDGE_STATE_FILE:"knowledge.json",
+    JORA_OBSERVABILITY_STATE_FILE:"observability.json",
+    JORA_WORKER_STATE_FILE:"worker.json",
+    JORA_LOCAL_QUEUE_FILE:"v2-queue.json",
+    JORA_EXECUTION_LEDGER_FILE:"v2-execution-ledger.json",
+    JORA_CHECKPOINT_FILE:"v2-checkpoints.json"
+  };
+  for(const [envName,fileName] of Object.entries(stateFiles)){
+    process.env[envName]=path.join(stateDir,fileName);
+  }
+  // A build worker is an isolated request executor, not Jora's continuous
+  // mission/evolution daemon. Keep those background loops off.
+  process.env.JORA_MISSION_ENABLED="false";
+  process.env.JORA_OPERATIONAL_HEALTH_ENABLED="false";
+  process.env.JORA_SLO_ENABLED="false";
+  process.env.JORA_DEPLOYMENT_ENABLED="false";
+
   const config=runtimeConfig();
   const progress=event=>{
     if(!process.send) return;
