@@ -17,7 +17,7 @@ main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62p
 .composer{border:1px solid #343b47;background:#11151c;border-radius:14px;padding:10px;position:sticky;bottom:15px;box-shadow:0 10px 35px #0008}
 textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outline:0;background:transparent;color:#fff;padding:8px}.composeRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.modes{display:flex;gap:5px;overflow:auto}.mode{border:1px solid #303744;background:#171b23;color:#aeb7c5;border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px}.mode.active{background:#26303d;color:#fff;border-color:#4b5668}.send{border:0;border-radius:8px;background:#fff;color:#111;padding:9px 15px;font-weight:700;cursor:pointer}.send:disabled{opacity:.5}
 .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.quick button{border:1px solid #292f39;background:#12161d;color:#cdd3dd;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.quick button:hover{background:#181d26}
-.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
+.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:18px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBody{display:grid;grid-template-columns:230px 1fr;min-height:360px}.fileTree{border-right:1px solid #29303a;overflow:auto;padding:8px}.fileItem{display:block;width:100%;text-align:left;background:transparent;color:#aeb7c5;border:0;border-radius:7px;padding:8px;cursor:pointer;font-size:12px}.fileItem:hover,.fileItem.active{background:#1b212b;color:#fff}.codePane{min-width:0}.codeHead{padding:9px 12px;border-bottom:1px solid #29303a;color:#aeb7c5;font-size:12px}.codePane pre{margin:0;padding:14px;max-height:560px;height:100%;font-size:12px;line-height:1.55;white-space:pre;overflow:auto;color:#d7dde7}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.workspaceBody{grid-template-columns:1fr}.fileTree{border-right:0;border-bottom:1px solid #29303a;max-height:150px;display:flex;gap:5px;overflow:auto}.fileItem{min-width:max-content}.codePane pre{max-height:420px}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
 .overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input,.modal select{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
 @media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.content{padding:18px 14px 90px}.hero{padding:34px 0 22px}.hero h1{font-size:27px}.grid{grid-template-columns:repeat(2,1fr)}.top{padding:0 14px}.quick{grid-template-columns:1fr}.msg.user{margin-left:0}}
 </style></head>
@@ -54,6 +54,23 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
         <button class="mode" data-mode="build" onclick="setMode(this)">Build</button>
       </div><button class="send" id="send" onclick="sendPrompt()">Send</button></div>
     </div></div>
+    <section id="workspacePanel" class="workspace">
+      <div class="workspaceHead">
+        <div><div class="workspaceTitle">Jora Workspace</div><div id="workspaceMeta" class="muted">Generated project files</div></div>
+        <div class="workspaceActions">
+          <button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Device</button>
+          <button class="workspaceBtn" onclick="exportWorkspace()">⬇ Export</button>
+          <button class="workspaceBtn" onclick="importWorkspace()">⬆ Import</button>
+          <button class="workspaceBtn" onclick="pushWorkspaceToGitHub()">↗ GitHub</button>
+          <input id="workspaceImport" type="file" accept=".json,.jora.json,application/json" style="display:none" onchange="handleWorkspaceImport(event)">
+        </div>
+      </div>
+      <div class="workspaceBody">
+        <div id="fileTree" class="fileTree"></div>
+        <div class="codePane"><div id="codeHead" class="codeHead">Select a file</div><pre id="codeView">// Jora generated code will appear here.</pre></div>
+      </div>
+      <div id="workspaceActivity" class="activity"><span class="pill">Local workspace</span> Files are saved in this browser until you export or sync them.</div>
+    </section>
     <div class="quick">
       <button onclick="quick('Build a production-ready web application for me. First understand the requirements, then create the architecture and implementation plan.')">🚀 Build a new application</button>
       <button onclick="setResearchQuick()">🌐 Search the web</button>
@@ -149,12 +166,16 @@ async function sendPrompt(){
         const state=await s.json().catch(()=>({status:"FAILED",error:"Invalid task status response"}));
         if(state.status==="RUNNING"){
           const system=document.querySelector("#messages .msg.system:last-child");
-          if(system) system.textContent="Jora is working… ("+Math.round(attempts*1.5)+"s)";
+          if(system) system.textContent="Jora is coding, testing and repairing… ("+Math.round(attempts*1.5)+"s)";
           continue;
         }
         document.querySelector("#messages .msg.system:last-child")?.remove();
         if(state.status==="FAILED") addMessage("Jora task failed: "+(state.error||"Unknown error"),"system");
-        else addMessage(formatAgentResult({requestId,state,status:state.status,result:state.result,model:state.model}),"assistant");
+        else {
+          const result=state.result||{};
+          if(Array.isArray(result.files)&&result.files.length){workspaceFiles=result.files;workspaceProject={name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};renderWorkspace();saveWorkspace();}
+          addMessage(formatAgentResult({requestId,state,status:state.status,result:state.result,model:state.model}),"assistant");
+        }
         return;
       }
       document.querySelector("#messages .msg.system:last-child")?.remove();
@@ -179,6 +200,99 @@ async function sendPrompt(){
   }catch(e){document.querySelector("#messages .msg.system:last-child")?.remove();addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system")}
   finally{sendBtn.disabled=false}
 }
+let workspaceFiles=[];
+let workspaceProject={name:"jora-project",requestId:null,createdAt:null};
+
+function idbOpen(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open("jora-workspace-v1",1);
+    req.onupgradeneeded=()=>req.result.createObjectStore("projects",{keyPath:"id"});
+    req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
+  });
+}
+async function saveWorkspace(){
+  if(!workspaceFiles.length){addMessage("There are no generated files to save yet.","system");return}
+  try{
+    const db=await idbOpen();
+    await new Promise((resolve,reject)=>{const tx=db.transaction("projects","readwrite");tx.objectStore("projects").put({id:"current",project:workspaceProject,files:workspaceFiles,savedAt:new Date().toISOString()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+    const activity=document.getElementById("workspaceActivity");
+    activity.innerHTML='<span class="pill">Saved</span> '+workspaceFiles.length+' files are stored locally on this device/browser.';
+  }catch(e){addMessage("Could not save the workspace locally: "+e.message,"system")}
+}
+async function loadWorkspace(){
+  try{
+    const db=await idbOpen();
+    const data=await new Promise((resolve,reject)=>{const tx=db.transaction("projects","readonly");const req=tx.objectStore("projects").get("current");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+    if(data?.files?.length){workspaceProject=data.project||workspaceProject;workspaceFiles=data.files;renderWorkspace();document.getElementById("workspaceActivity").innerHTML='<span class="pill">Restored</span> '+workspaceFiles.length+' files restored from this browser.'}
+  }catch{}
+}
+function exportWorkspace(){
+  if(!workspaceFiles.length){addMessage("Generate a project first.","system");return}
+  const payload={format:"jora-workspace",version:1,project:workspaceProject,files:workspaceFiles};
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=(workspaceProject.name||"jora-project")+".jora.json";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importWorkspace(){document.getElementById("workspaceImport").click()}
+function handleWorkspaceImport(event){
+  const file=event.target.files?.[0];if(!file)return;
+  const reader=new FileReader();reader.onload=async()=>{try{
+    const data=JSON.parse(reader.result);
+    if(data.format!=="jora-workspace"||!Array.isArray(data.files))throw new Error("Not a Jora workspace file");
+    workspaceProject=data.project||{name:"imported-project"};workspaceFiles=data.files;renderWorkspace();await saveWorkspace();
+  }catch(e){addMessage("Import failed: "+e.message,"system")}finally{event.target.value=""}};reader.readAsText(file);
+}
+async function saveWorkspaceToDevice(){
+  if(!workspaceFiles.length)return;
+  if(window.showDirectoryPicker){
+    try{
+      const dir=await window.showDirectoryPicker({mode:"readwrite"});
+      for(const file of workspaceFiles){
+        const parts=file.path.split("/");let folder=dir;
+        for(const part of parts.slice(0,-1))folder=await folder.getDirectoryHandle(part,{create:true});
+        const fh=await folder.getFileHandle(parts.at(-1),{create:true});const w=await fh.createWritable();await w.write(String(file.content||""));await w.close();
+      }
+      document.getElementById("workspaceActivity").innerHTML='<span class="pill">Device</span> Files written to the selected folder.';
+      return;
+    }catch(e){if(e.name==="AbortError")return}
+  }
+  exportWorkspace();
+  document.getElementById("workspaceActivity").innerHTML='<span class="pill">Mobile/Browser</span> Exported a Jora workspace file because direct folder access is not supported here.';
+}
+function renderWorkspace(){
+  const panel=document.getElementById("workspacePanel");panel.style.display="block";
+  document.getElementById("workspaceMeta").textContent=(workspaceProject.name||"Project")+" · "+workspaceFiles.length+" files";
+  const tree=document.getElementById("fileTree");tree.innerHTML="";
+  workspaceFiles.forEach((file,i)=>{const b=document.createElement("button");b.className="fileItem";b.textContent="📄 "+file.path;b.onclick=()=>selectWorkspaceFile(i);tree.appendChild(b)});
+  if(workspaceFiles.length)selectWorkspaceFile(0);
+  panel.scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function selectWorkspaceFile(index){
+  const file=workspaceFiles[index];if(!file)return;
+  document.querySelectorAll(".fileItem").forEach((x,i)=>x.classList.toggle("active",i===index));
+  document.getElementById("codeHead").textContent=file.path+(file.truncated?" · preview truncated":"");
+  document.getElementById("codeView").textContent=String(file.content||"");
+}
+async function pushWorkspaceToGitHub(){
+  if(!workspaceFiles.length){addMessage("Generate a project first.","system");return}
+  const activity=document.getElementById("workspaceActivity");activity.innerHTML='<span class="pill">GitHub</span> Checking GitHub connection…';
+  try{
+    const s=await fetch(base()+"/v2/github",{method:"POST",headers:headers(),body:JSON.stringify({operation:"status",payload:{}})});
+    const status=await s.json();
+    if(!s.ok||status.status==="GITHUB_NOT_CONNECTED"){activity.innerHTML='<span class="pill githubOff">GitHub not connected</span> Configure GITHUB_TOKEN, JORA_GITHUB_OWNER and JORA_GITHUB_REPO on the Railway backend.';return}
+    const slug=(workspaceProject.name||"jora-project").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,36);
+    const branch="jora/"+slug+"-"+Date.now();
+    const pub=await fetch(base()+"/v2/github",{method:"POST",headers:headers(),body:JSON.stringify({operation:"publishCandidate",payload:{branch,targetBranch:status.result.branch||"main",files:workspaceFiles,message:"Jora: "+(workspaceProject.name||"generated project")}})});
+    const data=await pub.json();
+    if(!pub.ok||!data.result){throw new Error(data.error||"GitHub publish failed")}
+    let pr=null;
+    try{
+      const prRes=await fetch(base()+"/v2/github",{method:"POST",headers:headers(),body:JSON.stringify({operation:"createPullRequest",payload:{title:"Jora: "+(workspaceProject.name||"generated project"),body:"Generated and verified by Jora. Branch: "+branch,head:branch,base:status.result.branch||"main"}})});
+      const prData=await prRes.json();if(prRes.ok)pr=prData.result;
+    }catch{}
+    activity.innerHTML='<span class="pill githubOn">GitHub synced</span> Branch: '+branch+(pr?.html_url?' · <a href="'+pr.html_url+'" target="_blank" rel="noopener">Open PR</a>':"");
+  }catch(e){activity.innerHTML='<span class="pill githubOff">GitHub error</span> '+e.message}
+}
+function saveToDevice(){return saveWorkspaceToDevice()}
 function formatAgentResult(d){
   const r=d?.result||{};
   const status=r.status||d?.status||"COMPLETED";
