@@ -42,21 +42,26 @@ export class ProductUnderstandingEngine {
     const text=this._clean(input);
     const checks=[
       ["target_users",/\b(?:for|target(?:ing)?)\b/i],
-      ["platform",/\b(?:web|website|mobile|android|ios|desktop)\b/i],
-      ["success_criteria",/\b(?:success|metric|kpi|acceptance|goal)\b/i],
+      ["platform",/\b(?:web|website|mobile|android|ios|desktop|pc|game|app)\b/i],
+      ["success_criteria",/\b(?:success|metric|kpi|acceptance|goal|working|playable|runnable|production-ready)\b/i],
       ["deadline",/\b(?:today|tomorrow|day|week|month|deadline|by)\b/i],
       ["integrations",/\b(?:api|integrat|connect|github|stripe|google|slack|database)\b/i]
     ];
+    // A concrete build request is executable even when the user has not
+    // specified business metadata such as target users or a deadline. Those
+    // are implementation assumptions, not blockers for the coding engine.
+    const concreteGoal=goals.length>0 && goals[0].length>=4;
     return checks.filter(([,pattern])=>!pattern.test(text)).map(([field])=>({
       field,
-      severity:field==="target_users"||field==="success_criteria"?"high":"medium",
+      severity:concreteGoal?"medium":(field==="target_users"||field==="success_criteria"?"high":"medium"),
       question:{
         target_users:"Who are the primary users or customers?",
         platform:"Which platforms must be supported?",
         success_criteria:"What measurable outcome defines success?",
         deadline:"Is there a required delivery deadline?",
         integrations:"Which external systems or integrations are required?"
-      }[field]
+      }[field],
+      blocking:!concreteGoal && (field==="target_users"||field==="success_criteria")
     }));
   }
 
@@ -90,7 +95,10 @@ export class ProductUnderstandingEngine {
       requirements,
       ambiguities,
       riskFlags,
-      executionReadiness:ambiguities.some(x=>x.severity==="high")?"NEEDS_CLARIFICATION":"READY_FOR_ARCHITECTURE",
+      // Specific product requests such as "build a pc mini game" can proceed
+      // with sensible engineering defaults; clarification remains available
+      // as metadata but no longer prevents file generation.
+      executionReadiness:goals.length ? "READY_FOR_ARCHITECTURE" : "NEEDS_CLARIFICATION",
       contextKeys:Object.keys(context??{}),
       generatedAt:new Date().toISOString()
     };
