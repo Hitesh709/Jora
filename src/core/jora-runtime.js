@@ -81,7 +81,7 @@ export class JoraRuntime {
 
       await governance.transition("BUILDING");
       progress({phase:"CODING",status:"RUNNING",message:"Writing project files and implementing the requested product"});
-      const built=await this.builder.build({command,constraints,context:{...candidateContext,progress}});
+      const built=await this.builder.build({command,constraints,context:candidateContext,progress});
       progress({phase:"CODING",status:"COMPLETED",message:`Generated ${Array.isArray(built?.files) ? built.files.length : 0} project files`});
       await governance.transition("TESTING");
       progress({phase:"TESTING",status:"RUNNING",message:"Running generated project tests"});
