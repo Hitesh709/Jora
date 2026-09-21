@@ -1,8 +1,8 @@
 export class AutonomousBuildPipeline {
-  constructor({projectBuilder,testRunner,evaluator,securityCouncil=null,benchmarkStore=null,maxRepairCycles=2}={}) {
+  constructor({projectBuilder,testRunner,evaluator,runtimeVerifier=null,securityCouncil=null,benchmarkStore=null,maxRepairCycles=2}={}) {
     if(!projectBuilder||!testRunner||!evaluator) throw new Error("projectBuilder, testRunner and evaluator are required");
     this.projectBuilder=projectBuilder; this.testRunner=testRunner; this.evaluator=evaluator;
-    this.securityCouncil=securityCouncil; this.benchmarkStore=benchmarkStore;
+    this.runtimeVerifier=runtimeVerifier; this.securityCouncil=securityCouncil; this.benchmarkStore=benchmarkStore;
     this.maxRepairCycles=Math.max(0,Number(maxRepairCycles)||0);
   }
 
@@ -71,6 +71,40 @@ export class AutonomousBuildPipeline {
       progress?.({phase:"TESTING",status:"RETRY",message:"Repair written; rerunning generated project tests",cycle:cycle+1});
     }
 
+    let runtime=null;
+    if(tests?.ok && this.runtimeVerifier){
+      progress?.({phase:"TESTING",status:"RUNTIME_RUNNING",message:"Starting the generated application for runtime verification"});
+      runtime=await this.runtimeVerifier({cwd:workspace});
+      if(!runtime?.ok){
+        progress?.({phase:"TESTING",status:"RUNTIME_FAILED",message:"Generated application failed runtime verification"});
+        if(repairHistory.length<repairLimit){
+          const existingProject=this.projectBuilder.repository?.snapshot
+            ? {files:await this.projectBuilder.repository.snapshot()}
+            : null;
+          progress?.({phase:"REPAIR_OR_PROMOTION",status:"REPAIR_RUNNING",message:`Repairing runtime failure (cycle ${repairHistory.length+1} of ${repairLimit})`});
+          current=await this.projectBuilder.build({
+            command:request.command,
+            specification,
+            context:{
+              ...(request.context||{}),
+              cycle:repairHistory.length+2,
+              repairFeedback:{
+                diagnosis:"Generated application failed runtime verification",
+                hypothesis:"The application starts incorrectly, crashes during startup, or does not return a successful response at the expected root endpoint.",
+                failingFiles:[],
+                evidence:runtime
+              },
+              existingProject,
+              repairHistory
+            },
+            progress
+          });
+          tests=await this.testRunner({cwd:workspace});
+          if(tests?.ok) runtime=await this.runtimeVerifier({cwd:workspace});
+        }
+      }
+    }
+
     const security=this.securityCouncil
       ? await this.securityCouncil.review({command:request.command,context:request.context,project:current})
       : {passed:true,reports:[]};
@@ -84,16 +118,16 @@ export class AutonomousBuildPipeline {
       ...evaluation,
       tests,
       security,
-      productionReady:evaluation.passed,
+      productionReady:evaluation.passed && (!this.runtimeVerifier || Boolean(runtime?.ok)),
       repairCycles:repairHistory.length,
       repairHistory,
-      finalProject:current
+      finalProject:current,\n      runtime
     };
     this.benchmarkStore?.record(report);
     progress?.({
       phase:"REPAIR_OR_PROMOTION",
-      status:evaluation.passed?"VERIFIED":"FAILED",
-      message:evaluation.passed
+      status:evaluation.passed && (!this.runtimeVerifier || Boolean(runtime?.ok))?"VERIFIED":"FAILED",
+      message:evaluation.passed && (!this.runtimeVerifier || Boolean(runtime?.ok))
         ? `Project verified after ${repairHistory.length} repair cycle(s)`
         : `Project verification failed after ${repairHistory.length} repair cycle(s)`
     });
