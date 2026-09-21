@@ -21,9 +21,9 @@ export class DockerSandbox {
     if(!unavailable) return dockerResult;
     return this.runner.run("npm",commandArgs,{cwd,env:{}});
   }
-  async start({cwd,command="npm",commandArgs=[],ports=[],timeoutMs=15000}={}) {
+  async start({cwd,command="npm",commandArgs=[],ports=[],timeoutMs=15000,network="bridge"}={}) {
     if(!cwd) throw new Error("cwd is required");
-    const args=this.buildArgs({cwd,command,commandArgs,detach:true,ports});
+    const args=this.buildArgs({cwd,command,commandArgs,detach:true,ports,network});
     const started=await this.runner.run("docker",args,{cwd,env:{}});
     if(!started.ok) return started;
 
