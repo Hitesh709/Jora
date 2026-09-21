@@ -283,7 +283,7 @@ function handleWorkspaceImport(event){
     workspaceProject=data.project||{name:"imported-project"};workspaceFiles=data.files;renderWorkspace();await saveWorkspace();
   }catch(e){addMessage("Import failed: "+e.message,"system")}finally{event.target.value=""}};reader.readAsText(file);
 }
-async async function chooseDeviceFolderBeforeBuild(){
+async function chooseDeviceFolderBeforeBuild(){
   if(!window.showDirectoryPicker){
     addMessage("This browser does not support direct folder saving. Jora will keep the completed files in the browser workspace; use Export to save them.","system");
     return true;
