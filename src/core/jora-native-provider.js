@@ -74,7 +74,8 @@ function applyExistingChange(command,existing){
 function projectFor(command){
   // Universal generation is now the primary path. Domain-specific generators
   // remain below as compatibility fallbacks, not as request routing.
-  try{
+  const specializedCompatibility=/\\bcalculator\\b|\\bcalc\\b|\\bmath app\\b|\\barithmetic\\b|\\bcard game\\b|\\bmemory (match|card)\\b|\\bmatching cards?\\b|\\bflip cards?\\b/.test(String(command||"").toLowerCase());
+  if(!specializedCompatibility) try{
     const universal=generateUniversalProject(command);
     const files=Array.isArray(universal?.files)?universal.files:[];
     const valid=files.length>0
