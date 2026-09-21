@@ -363,6 +363,7 @@ async function refreshControl(){
   if(d.approvals)approvals.textContent=(d.approvals.approvals||[]).length;
   if(d.metrics)metrics.textContent=JSON.stringify(d.metrics,null,2);if(d.executions)recent.textContent=JSON.stringify(d.executions.executions,null,2);if(d.jobs)jobs.textContent=JSON.stringify(d.jobs.jobs,null,2);if(d.approvals)approvalList.textContent=JSON.stringify(d.approvals.approvals,null,2);if(d.incidents)incidents.textContent=JSON.stringify(d.incidents.incidents,null,2);
 }
+loadWorkspace();
 checkBackend();
 setInterval(checkBackend,15000);
 </script></body></html>
