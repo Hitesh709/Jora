@@ -1116,7 +1116,7 @@ export class OperatorApi {
           record.progress.phase=event.phase||record.progress.phase;
           record.progress.message=event.message||record.progress.message;
           const safeEvent={...event};
-          if(safeEvent.file) safeEvent.file={path:safeEvent.file.path,bytes:safeEvent.file.bytes,truncated:Boolean(safeEvent.file.truncated),preview:typeof safeEvent.file.preview==="string"?safeEvent.file.preview.slice(0,1200):""};
+          if(safeEvent.file) safeEvent.file={path:safeEvent.file.path,bytes:safeEvent.file.bytes,truncated:Boolean(safeEvent.file.truncated)};
           record.progress.events=[...(record.progress.events||[]),safeEvent].slice(-40);
           record.updatedAt=Date.now();
           return;
