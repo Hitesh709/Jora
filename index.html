@@ -276,7 +276,13 @@ function renderProgress(progress){
     const phase=document.createElement("span");phase.className="progressPhase";phase.textContent=String(event.phase||"RUNNING");
     const msg=document.createElement("span");msg.textContent=String(event.message||"");
     row.appendChild(phase);row.appendChild(msg);
-    if(event.file?.path){const file=document.createElement("span");file.className="progressFile";file.textContent=" · "+event.file.path;row.appendChild(file)}
+    if(event.file?.path){
+      const file=document.createElement("span");file.className="progressFile";file.textContent=" · "+event.file.path;row.appendChild(file);
+      const existing=workspaceFiles.findIndex(x=>x.path===event.file.path);
+      if(existing>=0) workspaceFiles[existing]={...workspaceFiles[existing],content:event.file.content??workspaceFiles[existing].content,truncated:Boolean(event.file.truncated)};
+      else workspaceFiles.push({path:event.file.path,content:event.file.content??"",truncated:Boolean(event.file.truncated)});
+      if(workspaceFiles.length) renderWorkspace();
+    }
     list.appendChild(row);
   });
   activity.appendChild(list);
