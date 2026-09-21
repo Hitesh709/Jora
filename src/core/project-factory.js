@@ -5,7 +5,7 @@ export class ProjectFactory {
     this.evaluator = evaluator;
   }
 
-  async create({type = "project", request, specification} = {}) {
+  async create({type = "project", request, specification, progress=null} = {}) {
     if (!request || !specification) throw new Error("request and specification are required");
     const plan = await this.pipeline.plan?.({type, request, specification})
       ?? {type, request, specification};
@@ -14,14 +14,16 @@ export class ProjectFactory {
       type,
       request,
       specification,
-      plan
+      plan,
+      progress
     }) ?? {status: "PLANNED", plan};
 
     const evaluation = await this.evaluator.evaluateProject?.({
       type,
       request,
       specification,
-      result
+      result,
+      progress
     }) ?? {passed: result.status === "SUCCEEDED"};
 
     return {
