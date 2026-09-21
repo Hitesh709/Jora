@@ -2,9 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {ModelProjectBuilder,AutonomousBuildPipeline} from "../src/index.js";
 
-function makeBuilder(text,writes) {
+function makeBuilder(text,writes,calls=[]) {
   return new ModelProjectBuilder({
-    modelGateway:{complete:async()=>({text,model:"test"})},
+    modelGateway:{complete:async(request)=>{calls.push(request);return {text,model:"test"}}},
     repository:{write:async(p,c)=>{writes.push([p,c]);return {path:p}}}
   });
 }
@@ -59,4 +59,21 @@ test("autonomous build pipeline uses repository workspace when request context h
   const evaluation=await p.evaluateProject({request:{command:"today's date",context:{}},specification:{},result});
   assert.equal(evaluation.passed,true);
   assert.equal(testedCwd,"/tmp/jora-generated-project");
+});
+
+
+test("model project builder passes product planning and demands real workflows",async()=>{
+  const writes=[];
+  const calls=[];
+  const builder=makeBuilder(JSON.stringify({files:[{path:"src/index.html",content:"<main>booking workflow</main>"}]}),writes,calls);
+  await builder.build({
+    command:"Build a restaurant booking platform",
+    specification:{goals:["search restaurants","create booking"],entities:["restaurant","booking"]},
+    context:{planning:{architecture:{components:["search","booking"]},dag:{nodes:[{title:"Implement booking workflow"}]}}}
+  });
+  const prompt=calls[0].messages.find(message=>message.role==="user").content;
+  assert.match(prompt,/restaurant booking platform/i);
+  assert.match(prompt,/search restaurants/i);
+  assert.match(prompt,/Implement booking workflow/i);
+  assert.match(prompt,/real implementation/i);
 });
