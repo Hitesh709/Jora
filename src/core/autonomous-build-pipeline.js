@@ -1,8 +1,9 @@
 export class AutonomousBuildPipeline {
-  constructor({projectBuilder,testRunner,evaluator,runtimeVerifier=null,securityCouncil=null,benchmarkStore=null,maxRepairCycles=2}={}) {
+  constructor({projectBuilder,testRunner,evaluator,runtimeVerifier=null,interactionVerifier=null,securityCouncil=null,benchmarkStore=null,maxRepairCycles=2}={}) {
     if(!projectBuilder||!testRunner||!evaluator) throw new Error("projectBuilder, testRunner and evaluator are required");
     this.projectBuilder=projectBuilder; this.testRunner=testRunner; this.evaluator=evaluator;
-    this.runtimeVerifier=runtimeVerifier; this.securityCouncil=securityCouncil; this.benchmarkStore=benchmarkStore;
+    this.runtimeVerifier=runtimeVerifier; this.interactionVerifier=interactionVerifier;
+    this.securityCouncil=securityCouncil; this.benchmarkStore=benchmarkStore;
     this.maxRepairCycles=Math.max(0,Number(maxRepairCycles)||0);
   }
 
@@ -13,28 +14,44 @@ export class AutonomousBuildPipeline {
   }
 
   async evaluateProject({request,specification,result,progress=null}) {
-    // The browser request does not carry the internal workspace path.
-    // Use the WorkspaceRepository root as the authoritative test directory.
-    // Keep an explicit request workspace as an override for trusted callers.
     const workspace=request.context?.workspace ?? this.projectBuilder.repository?.root;
     if(!workspace) throw new Error("Generated project workspace is not available");
 
     let current=result;
     let tests=null;
+    let runtime=null;
+    let interaction=null;
     let repairHistory=[];
     const repairLimit=Number.isFinite(Number(request.context?.maxRepairCycles))
       ? Math.max(0,Number(request.context.maxRepairCycles))
       : this.maxRepairCycles;
 
-    for(let cycle=0;;cycle++){
-      progress?.({phase:"TESTING",status:"RUNNING",message:cycle===0?"Running generated project tests":"Running tests after repair",cycle});
-      tests=await this.testRunner({cwd:workspace});
-
-      if(tests?.ok) break;
-
+    const repair=async({diagnosis,hypothesis,evidence,failingFiles=[]}={})=>{
       const existingProject=this.projectBuilder.repository?.snapshot
         ? {files:await this.projectBuilder.repository.snapshot()}
         : null;
+      const cycle=repairHistory.length+1;
+      progress?.({phase:"REPAIR_OR_PROMOTION",status:"REPAIR_RUNNING",message:`Repair cycle ${cycle} of ${repairLimit}`,cycle});
+      repairHistory.push({cycle,diagnosis,hypothesis,evidence,failingFiles});
+      current=await this.projectBuilder.build({
+        command:request.command,
+        specification,
+        context:{
+          ...(request.context||{}),
+          cycle:cycle+1,
+          repairFeedback:{diagnosis,hypothesis,evidence,failingFiles},
+          repairHistory,
+          existingProject
+        },
+        progress
+      });
+    };
+
+    for(let cycle=0;;cycle++){
+      progress?.({phase:"TESTING",status:"RUNNING",message:cycle===0?"Running generated project tests":"Running tests after repair",cycle});
+      tests=await this.testRunner({cwd:workspace});
+      if(tests?.ok) break;
+
       const failure={
         cycle,
         code:tests?.code??null,
@@ -42,92 +59,90 @@ export class AutonomousBuildPipeline {
         stderr:String(tests?.stderr??"").slice(-12000),
         stdout:String(tests?.stdout??"").slice(-12000)
       };
-      repairHistory.push(failure);
 
-      if(cycle>=repairLimit || typeof this.projectBuilder.build!=="function"){
-        progress?.({phase:"REPAIR_OR_PROMOTION",status:"REPAIR_LIMIT_REACHED",message:`Tests still failing after ${cycle} repair cycle(s)`});
+      if(repairHistory.length>=repairLimit){
+        progress?.({phase:"REPAIR_OR_PROMOTION",status:"REPAIR_LIMIT_REACHED",message:`Tests still failing after ${repairHistory.length} repair cycle(s)`});
         break;
       }
 
       progress?.({phase:"TESTING",status:"TEST_FAILED",message:"Generated project tests failed; preparing an autonomous repair",cycle});
-      const diagnosis={
+      await repair({
         diagnosis:"Generated project test suite failed",
         hypothesis:"The generated project contains an implementation or test/runtime defect exposed by the reported test output.",
-        evidence:failure
-      };
-      progress?.({phase:"REPAIR_OR_PROMOTION",status:"REPAIR_RUNNING",message:`Repair cycle ${cycle+1} of ${repairLimit}`,cycle:cycle+1});
-
-      current=await this.projectBuilder.build({
-        command:request.command,
-        specification,
-        context:{
-          ...(request.context||{}),
-          cycle:cycle+2,
-          repairFeedback:diagnosis,
-          repairHistory
-        },
-        progress
+        evidence:failure,
+        failingFiles:failure.files
       });
       progress?.({phase:"TESTING",status:"RETRY",message:"Repair written; rerunning generated project tests",cycle:cycle+1});
     }
 
-    let runtime=null;
     if(tests?.ok && this.runtimeVerifier){
       progress?.({phase:"TESTING",status:"RUNTIME_RUNNING",message:"Starting the generated application for runtime verification"});
       runtime=await this.runtimeVerifier({cwd:workspace});
-      if(!runtime?.ok){
+      if(!runtime?.ok && repairHistory.length<repairLimit){
         progress?.({phase:"TESTING",status:"RUNTIME_FAILED",message:"Generated application failed runtime verification"});
+        await repair({
+          diagnosis:"Generated application failed runtime verification",
+          hypothesis:"The application starts incorrectly, crashes during startup, or does not return a successful response at the expected root endpoint.",
+          evidence:runtime
+        });
+        tests=await this.testRunner({cwd:workspace});
+        if(tests?.ok) runtime=await this.runtimeVerifier({cwd:workspace});
+      }
+    }
+
+    if(tests?.ok && runtime?.ok && this.interactionVerifier){
+      progress?.({phase:"TESTING",status:"INTERACTION_RUNNING",message:"Checking the generated application's interactive surface"});
+      interaction=await this.interactionVerifier({cwd:workspace,command:request.command,specification});
+      if(!interaction?.ok){
+        progress?.({phase:"TESTING",status:"INTERACTION_FAILED",message:"Interactive verification found a product-surface defect"});
         if(repairHistory.length<repairLimit){
-          const existingProject=this.projectBuilder.repository?.snapshot
-            ? {files:await this.projectBuilder.repository.snapshot()}
-            : null;
-          progress?.({phase:"REPAIR_OR_PROMOTION",status:"REPAIR_RUNNING",message:`Repairing runtime failure (cycle ${repairHistory.length+1} of ${repairLimit})`});
-          current=await this.projectBuilder.build({
-            command:request.command,
-            specification,
-            context:{
-              ...(request.context||{}),
-              cycle:repairHistory.length+2,
-              repairFeedback:{
-                diagnosis:"Generated application failed runtime verification",
-                hypothesis:"The application starts incorrectly, crashes during startup, or does not return a successful response at the expected root endpoint.",
-                failingFiles:[],
-                evidence:runtime
-              },
-              existingProject,
-              repairHistory
-            },
-            progress
+          await repair({
+            diagnosis:"Generated application failed interactive verification",
+            hypothesis:"The live application does not expose the interactive controls or game surface expected for the requested product.",
+            evidence:interaction
           });
           tests=await this.testRunner({cwd:workspace});
-          if(tests?.ok) runtime=await this.runtimeVerifier({cwd:workspace});
+          if(tests?.ok && this.runtimeVerifier) runtime=await this.runtimeVerifier({cwd:workspace});
+          if(tests?.ok && runtime?.ok) interaction=await this.interactionVerifier({cwd:workspace,command:request.command,specification});
         }
+      } else {
+        progress?.({phase:"TESTING",status:"INTERACTION_VERIFIED",message:"Interactive application surface verified"});
       }
     }
 
     const security=this.securityCouncil
       ? await this.securityCouncil.review({command:request.command,context:request.context,project:current})
       : {passed:true,reports:[]};
+
     const evaluation=this.evaluator.evaluate({
       testsPassed:Boolean(tests?.ok),
       securityPassed:Boolean(security?.passed),
       benchmarkScore:tests?.ok&&security?.passed?1:0,
       qualityScore:tests?.ok&&security?.passed?1:0
     });
+
+    const verifiedRuntime=!this.runtimeVerifier || Boolean(runtime?.ok);
+    const verifiedInteraction=!this.interactionVerifier || Boolean(interaction?.ok);
+    const passed=evaluation.passed&&verifiedRuntime&&verifiedInteraction;
+
     const report={
       ...evaluation,
+      passed,
       tests,
       security,
-      productionReady:evaluation.passed && (!this.runtimeVerifier || Boolean(runtime?.ok)),
+      runtime,
+      interaction,
+      productionReady:passed,
       repairCycles:repairHistory.length,
       repairHistory,
-      finalProject:current,\n      runtime
+      finalProject:current
     };
+
     this.benchmarkStore?.record(report);
     progress?.({
       phase:"REPAIR_OR_PROMOTION",
-      status:evaluation.passed && (!this.runtimeVerifier || Boolean(runtime?.ok))?"VERIFIED":"FAILED",
-      message:evaluation.passed && (!this.runtimeVerifier || Boolean(runtime?.ok))
+      status:passed?"VERIFIED":"FAILED",
+      message:passed
         ? `Project verified after ${repairHistory.length} repair cycle(s)`
         : `Project verification failed after ${repairHistory.length} repair cycle(s)`
     });
