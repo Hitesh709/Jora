@@ -64,7 +64,8 @@ async function compactResult(result,repository) {
     try {
       const content=await repository.read(filePath);
       const text=typeof content==="string" ? content : String(content?.content??"");
-      const limited=text.slice(0,6000);
+      const limit=filePath==="src/index.html"||filePath==="index.html"?30000:12000;
+      const limited=text.slice(0,limit);
       files.push({
         path:filePath,
         lines:limited.split("\n").length,
