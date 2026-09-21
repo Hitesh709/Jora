@@ -93,9 +93,12 @@ export class ModelProjectBuilder {
 
     if(!Array.isArray(parsed.files)||parsed.files.length===0) throw new Error("Model returned no project files");
     const written=[];
+    const progress=typeof context.progress==="function" ? context.progress : ()=>{};
+    progress({phase:"CODING",status:"RUNNING",message:`Generating ${parsed.files.length} project files`});
     for(const file of parsed.files){
       if(!file?.path||typeof file.content!=="string") throw new Error("Invalid generated file");
       written.push(await repository.write(file.path,file.content));
+      progress({phase:"CODING",status:"FILE_WRITTEN",message:`Wrote ${file.path}`,file:{path:file.path,bytes:Buffer.byteLength(file.content,"utf8")}});
     }
     return {status:"SUCCEEDED",files:written,model:response.model,cycle:context.cycle??1,repairCycle:Boolean(context.repairFeedback),repository};
   }
