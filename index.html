@@ -114,11 +114,11 @@ async function sendPrompt(){
   addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage("Working…","system");
   try{
     const engineeringBuild=(mode==="coding"||mode==="build"||(mode==="agent"&&isEngineeringRequest(command)));
+    const modifyingExisting=engineeringBuild && workspaceFiles.length>0 && isExistingProjectChange(command);
 
     if(engineeringBuild){
       const folderReady=await chooseDeviceFolderBeforeBuild();
       if(!folderReady){sendBtn.disabled=false;return;}
-      const modifyingExisting=workspaceFiles.length>0 && isExistingProjectChange(command);
       if(!modifyingExisting) clearActiveWorkspace("Starting a new Jora build…");
       else {
         const system=document.querySelector("#messages .msg.system:last-child");
@@ -182,7 +182,7 @@ async function sendPrompt(){
           const result=state.result||{};
           if(Array.isArray(result.files)&&result.files.length){
             workspaceFiles=result.files;
-            workspaceProject={name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};
+            workspaceProject=modifyingExisting?{...workspaceProject,requestId,createdAt:new Date().toISOString()}:{name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};
             renderWorkspace();
             await saveWorkspace();
             showWorkspacePreview();
