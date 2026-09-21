@@ -25,7 +25,7 @@ function applyExistingChange(command,existing){
   const lower=String(command||"").toLowerCase();
   const htmlFile=files.find(file=>/^(src\/)?index\.html$/i.test(file.path))||files.find(file=>/\.html?$/i.test(file.path));
   if(!htmlFile) return {name:existing.project?.name||"jora-project",files};
-  if(/\bcard game\b|\bmemory (match|card)\b|\bmatching cards?\b|\bflip cards?\b/.test(lower)) {\n    const generated=projectFor("Build card game");\n    const generatedHtml=generated.files.find(file=>/^(src\/)?index\\.html$/i.test(file.path));\n    if(generatedHtml) htmlFile.content=generatedHtml.content;\n    const readme=files.find(file=>file.path==="README.md");\n    if(readme && !readme.content.includes("Jora change: "+command)) readme.content+="\\n\\nJora change: "+command+"\\n";\n    return {name:existing.project?.name||"card-game",files};\n  }\n  let content=htmlFile.content;
+  if(/\bcard game\b|\bmemory (match|card)\b|\bmatching cards?\b|\bflip cards?\b/.test(lower)) {\n    const generated=projectFor("Build card game");\n    const generatedHtml=generated.files.find(file=>/^(src\/)?index\.html$/i.test(file.path));\n    if(generatedHtml) htmlFile.content=generatedHtml.content;\n    const readme=files.find(file=>file.path==="README.md");\n    if(readme && !readme.content.includes("Jora change: "+command)) readme.content+="\\n\\nJora change: "+command+"\\n";\n    return {name:existing.project?.name||"card-game",files};\n  }\n  let content=htmlFile.content;
   const titleMatch=String(command).match(/(?:title|heading|name)\s+(?:to|as|=)\s+["“']?(.+?)["”']?(?=\s+and\s+(?:button|start button)\b|$)/i);
   if(titleMatch){
     const title=titleMatch[1].trim();
