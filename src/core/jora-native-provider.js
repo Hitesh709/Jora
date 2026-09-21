@@ -137,7 +137,8 @@ export class JoraNativeProvider{
     if(/Return ONLY a JSON array of implementation tasks/i.test(user)){
       return {text:json(taskList(user)),model:"jora",engine:this.kind};
     }
-    const lower=user.toLowerCase();\n    if(/\b(what(?:'s| is)?|tell me|give me)?\s*(the\s*)?(date|day)\s*(today|now)?\b|\btoday(?:'s| is)?\s*(date|day)\b/.test(lower)){
+    const lower=user.toLowerCase();
+    if(/\b(what(?:'s| is)?|tell me|give me)?\s*(the\s*)?(date|day)\s*(today|now)?\b|\btoday(?:'s| is)?\s*(date|day)\b/.test(lower)){
       const now=new Date();
       const date=new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(now);
       return {text:"Today is "+date+".",model:"jora",engine:this.kind};
