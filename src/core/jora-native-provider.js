@@ -6,6 +6,62 @@ function extractCommand(prompt){
   const match=text.match(/Command:\s*([\s\S]*?)(?:\s+Specification:|\s+This is a repair cycle\.|$)/i);
   return clean(match?.[1]||text).slice(0,2000);
 }
+function extractExistingProject(prompt){
+  const marker="Existing project JSON (preserve all working behavior and modify these files for the new request):";
+  const index=prompt.indexOf(marker);
+  if(index<0) return null;
+  try{return JSON.parse(prompt.slice(index+marker.length).trim())}catch{return null}
+}
+function requestedColor(command){
+  const lower=String(command||"").toLowerCase();
+  const named={red:"#ef4444",green:"#22c55e",blue:"#3b82f6",yellow:"#facc15",orange:"#f97316",purple:"#a855f7",pink:"#ec4899",white:"#ffffff",black:"#000000",gray:"#6b7280",grey:"#6b7280",cyan:"#06b6d4"};
+  const hex=lower.match(/#([0-9a-f]{3}|[0-9a-f]{6})\\b/i);
+  if(hex) return "#"+hex[1];
+  for(const [name,value] of Object.entries(named)) if(new RegExp("\\b"+name+"\\b").test(lower)) return value;
+  return null;
+}
+function applyExistingChange(command,existing){
+  const files=(existing.files||[]).map(file=>({path:file.path,content:String(file.content||"")}));
+  const lower=String(command||"").toLowerCase();
+  const htmlFile=files.find(file=>/^(src\/)?index\.html$/i.test(file.path))||files.find(file=>/\.html?$/i.test(file.path));
+  if(!htmlFile) return {name:existing.project?.name||"jora-project",files};
+  let content=htmlFile.content;
+  const titleMatch=String(command).match(/(?:title|heading|name)\s+(?:to|as|=)\s+["“']?(.+?)["”']?\s*$/i);
+  if(titleMatch){
+    const title=titleMatch[1].trim();
+    content=content.replace(/<title>[^<]*<\/title>/i,"<title>"+title+"</title>");
+    content=content.replace(/(<h1[^>]*>)[^<]*(<\/h1>)/i,"$1"+title+"$2");
+    content=content.replace(/(<div[^>]*class=["'][^"']*title[^"']*["'][^>]*>)[^<]*(<\/div>)/i,"$1"+title+"$2");
+  }
+  const color=requestedColor(command);
+  if(color){
+    if(/background/.test(lower)){
+      content=content.replace(/(body[^{}]*\{[^}]*background:)\s*[^;}]*/i,"$1"+color);
+      content=content.replace(/(background:)\s*#[0-9a-f]{3,8}/ig,"$1"+color);
+      content=content.replace(/(ctx\.fillStyle=)["'][^"']+(["'];ctx\.fillRect\(0,0,canvas\.width,canvas\.height\))/i,"$1\""+color+"\"$2");
+    }
+    if(/player/.test(lower)){
+      content=content.replace(/(ctx\.fillStyle=)["']#fff(["'];ctx\.fillRect\(player\.x,player\.y,player\.w,player\.h\))/i,"$1\""+color+"\"$2");
+    }
+    if(/item|enemy|ball|target/.test(lower)){
+      content=content.replace(/(ctx\.fillStyle=)["']#f3b34c(["'];)/i,"$1\""+color+"\"$2");
+    }
+    if(/button/.test(lower)){
+      content=content.replace(/(button[^{}]*\{[^}]*background:)\s*[^;}]*/i,"$1"+color);
+    }
+  }
+  const speedMatch=String(command).match(/(?:player\s+)?speed\s+(?:to|=)\s*(\d+(?:\.\d+)?)/i);
+  if(speedMatch) content=content.replace(/(speed:)\s*\d+(?:\.\d+)?/i,"$1"+speedMatch[1]);
+  const buttonText=String(command).match(/(?:button|start button)\s+(?:text|label)\s+(?:to|as|=)\s+["“']?(.+?)["”']?\s*$/i);
+  if(buttonText) content=content.replace(/(<button[^>]*id=["']start["'][^>]*>)[^<]*(<\/button>)/i,"$1"+buttonText[1].trim()+"$2");
+  const widthMatch=String(command).match(/(?:canvas|game)\s+width\s+(?:to|=)\s*(\d+)/i);
+  if(widthMatch) content=content.replace(/(<canvas[^>]*width=["'])\d+(")/i,"$1"+widthMatch[1]+"$2");
+  htmlFile.content=content;
+  const readme=files.find(file=>file.path==="README.md");
+  if(readme && !readme.content.includes("Jora change: "+command)) readme.content+="\n\nJora change: "+command+"\n";
+  return {name:existing.project?.name||"jora-project",files};
+}
+
 function projectFor(command){
   const title=clean(command).replace(/^build\s+/i,"").replace(/^create\s+/i,"").replace(/^make\s+/i,"").slice(0,90)||"Jora Application";
   const name=slug(title);
@@ -201,7 +257,9 @@ export class JoraNativeProvider{
   async complete({messages=[]}={}){
     const user=clean(messages.filter(x=>x.role==="user").map(x=>x.content).join("\n"));
     if(/Return ONLY JSON with a files array/i.test(user)){
-      const project=projectFor(extractCommand(user));
+      const command=extractCommand(user);
+      const existing=extractExistingProject(user);
+      const project=existing?applyExistingChange(command,existing):projectFor(command);
       return {text:json({files:project.files}),model:"jora",engine:this.kind};
     }
     if(/Return ONLY a JSON array of implementation tasks/i.test(user)){
