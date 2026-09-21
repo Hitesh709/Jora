@@ -183,7 +183,16 @@ async function sendPrompt(){
         if(state.status==="FAILED"||state.status==="CANCELLED"||state.status==="TIMEOUT") addMessage("Jora task "+state.status.toLowerCase()+": "+(state.error||"No further execution was performed."),"system");
         else {
           const result=state.result||{};
-          if(Array.isArray(result.files)&&result.files.length){workspaceFiles=result.files;workspaceProject={name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};renderWorkspace();saveWorkspace();}
+          if(Array.isArray(result.files)&&result.files.length){
+            workspaceFiles=result.files;
+            workspaceProject={name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};
+            renderWorkspace();
+            await saveWorkspace();
+            if(deviceDirectoryHandle){
+              try{await writeWorkspaceToDirectory(deviceDirectoryHandle);}
+              catch(e){addMessage("Jora completed the build, but could not save to the selected folder: "+e.message,"system");}
+            }
+          }
           addMessage(formatAgentResult({requestId,state,status:state.status,result:state.result,model:state.model}),"assistant");
         }
         activeRequestId=null;
@@ -274,7 +283,7 @@ function handleWorkspaceImport(event){
     workspaceProject=data.project||{name:"imported-project"};workspaceFiles=data.files;renderWorkspace();await saveWorkspace();
   }catch(e){addMessage("Import failed: "+e.message,"system")}finally{event.target.value=""}};reader.readAsText(file);
 }
-async function chooseDeviceFolderBeforeBuild(){
+async async function chooseDeviceFolderBeforeBuild(){
   if(!window.showDirectoryPicker){
     addMessage("This browser does not support direct folder saving. Jora will keep the completed files in the browser workspace; use Export to save them.","system");
     return true;
