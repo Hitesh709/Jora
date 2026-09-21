@@ -235,7 +235,7 @@ let deviceDirectoryHandle=null;
 let deviceDirectoryName="";
 let workspacePreviewOpen=false;
 function isExistingProjectChange(text){
-  return /\b(change|modify|update|add|remove|delete|fix|improve|adjust|replace|rename|redesign|restyle|make|turn|increase|decrease|disable|enable)\b/i.test(String(text||""));
+  return /\b(change|modify|update|add|remove|delete|fix|improve|adjust|replace|rename|redesign|restyle|turn|increase|decrease|disable|enable)\b/i.test(String(text||""));
 }
 function previewFile(){
   return workspaceFiles.find(f=>f.path==="src/index.html")||workspaceFiles.find(f=>f.path==="index.html")||workspaceFiles.find(f=>/\.html?$/i.test(f.path||""))||null;
