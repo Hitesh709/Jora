@@ -41,7 +41,7 @@ function shellStyle(){return "*{box-sizing:border-box}body{margin:0;font-family:
 function appHtml(bp){
   const b=JSON.stringify(bp).replace(/</g,"\\u003c");
   const entity=bp.entities[0], label=entity.label;
-  return \`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(bp.title)}</title><style>${shellStyle()}</style></head><body><main class="app">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(bp.title)}</title><style>${shellStyle()}</style></head><body><main class="app">
 <header class="top"><div><div class="brand">${escapeHtml(bp.title)}</div><div class="muted">${escapeHtml(bp.description)}</div></div><span class="badge">Jora Universal Builder</span></header>
 <div class="grid"><section class="panel"><h2>${label}</h2><div class="form"><input id="name" placeholder="${entity.name} name"><input id="detail" placeholder="Status or detail"><div class="actions"><button class="button primary" id="add">Add</button><button class="button" id="clear">Clear all</button></div></div><div id="list" class="cards"></div></section>
 <section class="panel"><h2>Product status</h2><div class="stat" id="count">0</div><div class="muted">records in this running project</div><hr style="border-color:#27344a;margin:18px 0"><p id="capabilities" class="muted"></p><div class="actions"><button class="button" id="health">Check health</button><button class="button" id="seed">Seed demo data</button></div><p id="status" class="notice">Ready</p></section></div>
@@ -59,12 +59,12 @@ document.getElementById("seed").onclick=()=>{records=[{name:"Demo ${label.slice(
 document.getElementById("health").onclick=async()=>{try{const r=await fetch("/health");const d=await r.json();status.textContent=d.status==="ok"?"Healthy · "+new Date().toLocaleTimeString():"Health check failed"}catch{status.textContent="Running in preview mode"}};
 document.getElementById("capabilities").textContent=blueprint.kind==="api"?"Universal API service surface with a browser control panel.":"Universal application shell generated from the natural-language request.";
 render();
-</script></body></html>\`;
+</script></body></html>`;
   return b;
 }
 
 function gameHtml(bp){
-  return \`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(bp.title)}</title><style>${shellStyle()}</style></head><body><main class="app"><header class="top"><div><div class="brand">${escapeHtml(bp.title)}</div><div class="muted">${escapeHtml(bp.description)}</div></div><span class="badge">Jora Universal Game Builder</span></header><section class="panel gameWrap"><canvas id="game" width="900" height="520" aria-label="Playable game"></canvas><div class="actions" style="margin-top:12px"><button class="button primary" id="start">Start / Restart</button><span class="badge">Score: <strong id="score">0</strong></span></div><div id="status" class="notice">Press Start. Keyboard: arrows / A-D. Touch: drag.</div></section></main><script>
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(bp.title)}</title><style>${shellStyle()}</style></head><body><main class="app"><header class="top"><div><div class="brand">${escapeHtml(bp.title)}</div><div class="muted">${escapeHtml(bp.description)}</div></div><span class="badge">Jora Universal Game Builder</span></header><section class="panel gameWrap"><canvas id="game" width="900" height="520" aria-label="Playable game"></canvas><div class="actions" style="margin-top:12px"><button class="button primary" id="start">Start / Restart</button><span class="badge">Score: <strong id="score">0</strong></span></div><div id="status" class="notice">Press Start. Keyboard: arrows / A-D. Touch: drag.</div></section></main><script>
 const canvas=document.getElementById("game"),ctx=canvas.getContext("2d"),scoreEl=document.getElementById("score"),status=document.getElementById("status");
 const player={x:428,y:455,w:44,h:26,speed:7};let targets=[],keys=new Set(),score=0,running=false,raf=0,last=0,spawn=0;
 function hit(a,b){return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y}
@@ -76,13 +76,13 @@ function loop(now){if(!running)return;const dt=Math.min(32,now-last);last=now;if
 document.addEventListener("keydown",e=>{keys.add(e.key);if(e.key===" "&&!running)reset()});document.addEventListener("keyup",e=>keys.delete(e.key));
 canvas.addEventListener("pointermove",e=>{if(e.buttons===1||e.pointerType==="touch"){const r=canvas.getBoundingClientRect();player.x=Math.max(0,Math.min(canvas.width-player.w,(e.clientX-r.left)*canvas.width/r.width-player.w/2));if(!running)reset()}});
 document.getElementById("start").onclick=reset;draw();
-</script></body></html>\`;
+</script></body></html>`;
 }
 
 export function generateUniversalProject(command){
   const blueprint=inferBlueprint(command);
   const html=blueprint.features.game?gameHtml(blueprint):appHtml(blueprint);
-  const server=\`import http from "node:http";
+  const server=`import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
@@ -96,8 +96,8 @@ export function createServer(){
   });
 }
 if(import.meta.url==="file://"+process.argv[1]){const port=Number(process.env.PORT||3000);createServer().listen(port,()=>console.log("Jora Universal Builder project listening on "+port))}
-\`;
-  const test=\`import test from "node:test";
+`;
+  const test=`import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import {createServer} from "../src/index.js";
@@ -111,7 +111,7 @@ test("universal project is runnable and exposes inferred capabilities",async()=>
   assert.equal(response.status,200);assert.equal(body.engine,"jora-universal-builder");assert.equal(body.kind,"\${blueprint.kind}");
   await new Promise(resolve=>server.close(resolve));
 });
-\`;
+`;
   const readme="# "+blueprint.title+"\\n\\nGenerated by Jora Universal Builder from one natural-language request.\\n\\n## Request\\n"+command+"\\n\\n## Inferred blueprint\\n- Kind: "+blueprint.kind+"\\n- Entities: "+blueprint.entities.map(x=>x.label).join(", ")+"\\n- Features: "+(Object.entries(blueprint.features).filter(([,v])=>v).map(([k])=>k).join(", ")||"core application")+"\\n\\n## Run\\nnpm start\\n\\n## Verify\\nnpm test\\n";
   return {name:blueprint.name,blueprint,files:[
     {path:"package.json",content:JSON.stringify({name:blueprint.name,version:"0.1.0",private:true,type:"module",scripts:{start:"node src/index.js",test:"node --test"},engines:{node:">=20"}},null,2)},
