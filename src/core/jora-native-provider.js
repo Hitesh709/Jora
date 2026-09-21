@@ -25,7 +25,7 @@ function applyExistingChange(command,existing){
   const lower=String(command||"").toLowerCase();
   const htmlFile=files.find(file=>/^(src\/)?index\.html$/i.test(file.path))||files.find(file=>/\.html?$/i.test(file.path));
   if(!htmlFile) return {name:existing.project?.name||"jora-project",files};
-  let content=htmlFile.content;
+  if(/\\bcard game\\b|\\bmemory (match|card)\\b|\\bmatching cards?\\b|\\bflip cards?\\b/.test(lower)) {\n    const generated=projectFor("Build card game");\n    const generatedHtml=generated.files.find(file=>/^(src\\/)?index\\.html$/i.test(file.path));\n    if(generatedHtml) htmlFile.content=generatedHtml.content;\n    const readme=files.find(file=>file.path==="README.md");\n    if(readme && !readme.content.includes("Jora change: "+command)) readme.content+="\\n\\nJora change: "+command+"\\n";\n    return {name:existing.project?.name||"card-game",files};\n  }\n  let content=htmlFile.content;
   const titleMatch=String(command).match(/(?:title|heading|name)\s+(?:to|as|=)\s+["“']?(.+?)["”']?(?=\s+and\s+(?:button|start button)\b|$)/i);
   if(titleMatch){
     const title=titleMatch[1].trim();
@@ -70,7 +70,7 @@ function projectFor(command){
   const dataMode=/database|postgres|mysql|sqlite|data|crud|customer|user|login|auth|todo|task|inventory|loan|credit/.test(lower);
   const description=title.replace(/["\\]/g,"");
   const isCalculator=/\bcalculator\b|\bcalc\b|\bmath app\b|\barithmetic\b/.test(lower);
-  const isMiniGame=/\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\b/.test(lower);
+  const isCardGame=/\bcard game\b|\bmemory (match|card)\b|\bmatching cards?\b|\bflip cards?\b/.test(lower);\n  const isMiniGame=/\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\b/.test(lower);
 
   const html=`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -81,6 +81,16 @@ function projectFor(command){
 
   const calculatorHtml=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${description}</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{font-family:system-ui;margin:0;min-height:100vh;background:#0b0d11;color:#f3f4f6;display:grid;place-items:center;padding:20px}.calculator{width:min(390px,100%);background:#151922;border:1px solid #303744;border-radius:22px;padding:18px}h1{font-size:18px;margin:0 0 12px}.display{background:#0b0d11;border:1px solid #29303a;border-radius:14px;padding:18px;min-height:92px;text-align:right}.expression{font-size:14px;color:#8b94a5;min-height:22px}.value{font-size:34px;overflow:auto}.keys{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:12px}button{border:1px solid #343b47;background:#202631;color:#fff;border-radius:12px;padding:17px 10px;font-size:18px;cursor:pointer}.operator{background:#2a3442}.equal{grid-column:span 2;background:#fff;color:#111}.danger{background:#321f25}.history{margin-top:14px;color:#9da7b6;font-size:12px;max-height:90px;overflow:auto}</style></head><body><main class="calculator"><h1>${description}</h1><div class="display"><div id="expression" class="expression"></div><div id="value" class="value">0</div></div><div class="keys"><button class="danger" onclick="clearAll()">AC</button><button onclick="backspace()">⌫</button><button onclick="percent()">%</button><button class="operator" onclick="press(&quot;/&quot;)">÷</button><button onclick="press(&quot;7&quot;)">7</button><button onclick="press(&quot;8&quot;)">8</button><button onclick="press(&quot;9&quot;)">9</button><button class="operator" onclick="press(&quot;*&quot;)">×</button><button onclick="press(&quot;4&quot;)">4</button><button onclick="press(&quot;5&quot;)">5</button><button onclick="press(&quot;6&quot;)">6</button><button class="operator" onclick="press(&quot;-&quot;)">−</button><button onclick="press(&quot;1&quot;)">1</button><button onclick="press(&quot;2&quot;)">2</button><button onclick="press(&quot;3&quot;)">3</button><button class="operator" onclick="press(&quot;+&quot;)">+</button><button onclick="press(&quot;0&quot;)">0</button><button onclick="press(&quot;.&quot;)">.</button><button class="equal" onclick="calculate()">=</button></div><div id="history" class="history"></div></main><script>let current="0",expression="",justCalculated=false;const v=document.getElementById("value"),e=document.getElementById("expression"),h=document.getElementById("history");function render(){v.textContent=current;e.textContent=expression}function press(k){if(justCalculated&&!"+-*/".includes(k)){current="0";expression="";justCalculated=false}if(/[0-9.]/.test(k)){if(k==="."&&current.includes("."))return;current=current==="0"&&k!=="."?k:current+k;return render()}expression=(expression||current)+" "+k+" ";current="0";justCalculated=false;render()}function calculate(){const x=expression+current;if(!/[+\-*/]/.test(x)||!/^[0-9+\-*/. ()]+$/.test(x))return;try{const n=Function("return ("+x+")")();if(!Number.isFinite(n))throw Error();current=String(Number(n.toPrecision(12)));expression=x+" =";justCalculated=true;const row=document.createElement("div");row.textContent=x+" = "+current;h.prepend(row);render()}catch{current="Error";expression="";justCalculated=true;render()}}function clearAll(){current="0";expression="";justCalculated=false;render()}function backspace(){if(!justCalculated)current=current.length>1?current.slice(0,-1):"0";render()}function percent(){const n=Number(current);if(Number.isFinite(n))current=String(n/100);render()}document.addEventListener("keydown",k=>{if(/[0-9.+\-*/]/.test(k.key)){k.preventDefault();press(k.key)}else if(k.key==="Enter"||k.key==="="){k.preventDefault();calculate()}else if(k.key==="Escape")clearAll();else if(k.key==="Backspace")backspace()});render();</script></body></html>`;
 
+  const cardGameHtml=\`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>\${description}</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#080b10;color:#fff;font-family:system-ui;display:grid;place-items:center;padding:18px}.game{width:min(620px,100%);background:#121722;border:1px solid #303744;border-radius:20px;padding:18px;box-shadow:0 18px 60px #0008}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.title{font-weight:800}.stats{font-size:13px;color:#aeb7c5}.board{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.card{aspect-ratio:3/4;border:1px solid #3a4556;border-radius:14px;background:#202735;color:#fff;cursor:pointer;font-size:28px;font-weight:800;display:grid;place-items:center;user-select:none;transition:transform .12s ease,background .12s ease}.card:hover{transform:translateY(-2px)}.card.flipped,.card.matched{background:#f3f4f6;color:#111}.card.matched{outline:2px solid #7ee787}.controls{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px}.controls button{border:1px solid #3b4656;background:#202735;color:#fff;border-radius:10px;padding:10px 14px;cursor:pointer}.hint{font-size:12px;color:#98a2b3}.overlay{position:absolute;inset:0;display:grid;place-items:center;background:#0009;border-radius:14px}.overlay.hidden{display:none}.message{background:#111722;border:1px solid #394454;border-radius:14px;padding:18px;text-align:center}.stage{position:relative}.board{position:relative}@media(max-width:430px){.game{padding:12px}.board{gap:7px}.card{border-radius:10px;font-size:22px}.hint{font-size:11px}}</style></head><body><main class="game"><div class="top"><div class="title">\${description}</div><div class="stats">Moves: <strong id="moves">0</strong> · Matches: <strong id="matches">0</strong>/8</div></div><div class="stage"><div id="board" class="board" aria-label="Card matching game"></div><div id="overlay" class="overlay hidden"><div class="message"><strong id="message">You win!</strong><div style="margin-top:8px"><button id="restartOverlay">Play again</button></div></div></div></div><div class="controls"><span class="hint">Tap two cards to find matching pairs.</span><button id="restart">Restart</button></div></main><script>
+const board=document.getElementById("board"),movesEl=document.getElementById("moves"),matchesEl=document.getElementById("matches"),overlay=document.getElementById("overlay"),message=document.getElementById("message");
+const symbols=["♠","♥","♦","♣","★","☀","☂","☘"],deck=[...symbols,...symbols];
+let first=null,second=null,locked=false,moves=0,matches=0;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function reset(){first=null;second=null;locked=false;moves=0;matches=0;movesEl.textContent="0";matchesEl.textContent="0";overlay.classList.add("hidden");board.innerHTML="";shuffle([...deck]).forEach((symbol,index)=>{const button=document.createElement("button");button.type="button";button.className="card";button.dataset.symbol=symbol;button.dataset.index=String(index);button.setAttribute("aria-label","Hidden card");button.textContent="?";button.addEventListener("click",()=>flip(button));board.appendChild(button)})}
+function flip(card){if(locked||card===first||card.classList.contains("matched"))return;card.classList.add("flipped");card.textContent=card.dataset.symbol;card.setAttribute("aria-label","Card "+card.dataset.symbol);if(!first){first=card;return}second=card;moves++;movesEl.textContent=String(moves);locked=true;if(first.dataset.symbol===second.dataset.symbol){first.classList.add("matched");second.classList.add("matched");matches++;matchesEl.textContent=String(matches);first=null;second=null;locked=false;if(matches===symbols.length)win();return}setTimeout(()=>{first.classList.remove("flipped");second.classList.remove("flipped");first.textContent="?";second.textContent="?";first.setAttribute("aria-label","Hidden card");second.setAttribute("aria-label","Hidden card");first=null;second=null;locked=false},650)}
+function win(){message.textContent="You win in "+moves+" moves!";overlay.classList.remove("hidden")}
+document.getElementById("restart").addEventListener("click",reset);document.getElementById("restartOverlay").addEventListener("click",reset);reset();
+</script></body></html>\`;
   const gameHtml=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${description}</title><style>:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#080b10;color:#fff;font-family:system-ui;display:grid;place-items:center;padding:18px}.game{width:min(760px,100%);background:#121722;border:1px solid #303744;border-radius:20px;padding:16px;box-shadow:0 18px 60px #0008}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}.title{font-weight:800}.score{font-variant-numeric:tabular-nums}.stage{position:relative}.stage canvas{display:block;width:100%;height:auto;background:#070a10;border:1px solid #29303a;border-radius:14px;touch-action:none}.controls{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:10px}.controls button{border:1px solid #3b4656;background:#202735;color:#fff;border-radius:10px;padding:9px 13px;cursor:pointer}.hint{font-size:12px;color:#98a2b3}.overlay{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none}.card{background:#111722e8;border:1px solid #394454;border-radius:14px;padding:18px;text-align:center}.hidden{display:none}</style></head><body><main class="game"><div class="top"><div class="title">${description}</div><div>Score: <strong id="score">0</strong></div></div><div class="stage"><canvas id="game" width="720" height="420" aria-label="Mini game"></canvas><div id="overlay" class="overlay"><div class="card"><strong id="message">Press Start</strong></div></div></div><div class="controls"><span class="hint">Move with ← → / A D. On touch screens, drag the player.</span><button id="start">Start / Restart</button></div></main><script>
 const canvas=document.getElementById("game"),ctx=canvas.getContext("2d"),scoreEl=document.getElementById("score"),start=document.getElementById("start"),overlay=document.getElementById("overlay"),message=document.getElementById("message");
 const player={x:canvas.width/2-22,y:canvas.height-48,w:44,h:24,speed:7},keys=new Set();let items=[],score=0,running=false,raf=0,last=0,spawn=0;
@@ -96,7 +106,7 @@ canvas.addEventListener("pointermove",e=>{if(e.buttons===1||e.pointerType==="tou
 start.addEventListener("click",reset);draw();
 </script></body></html>`;
 
-  const finalHtml=isMiniGame?gameHtml:(isCalculator?calculatorHtml:html);
+  const finalHtml=isCardGame?cardGameHtml:(isMiniGame?(gameHtml):(isCalculator?calculatorHtml:html));
   const index=`import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
@@ -146,6 +156,26 @@ test("mini game contains playable canvas mechanics and a health endpoint",async(
   await new Promise(resolve=>server.close(resolve));
 });
 `;
+  const cardGameTest=\`import test from "node:test";
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+import {createServer} from "../src/index.js";
+
+test("card game contains real matching-card behavior and a health endpoint",async()=>{
+  const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");
+  assert.match(html,/class="card"/);
+  assert.match(html,/function flip\(card\)/);
+  assert.match(html,/function shuffle\(a\)/);
+  assert.match(html,/matches===symbols\.length/);
+  const server=createServer();
+  await new Promise(resolve=>server.listen(0,resolve));
+  const response=await fetch("http://127.0.0.1:"+server.address().port+"/api/capabilities");
+  const body=await response.json();
+  assert.equal(response.status,200);
+  assert.equal(body.game,true);
+  await new Promise(resolve=>server.close(resolve));
+});
+\`;
   const calculatorTest=`import test from "node:test";
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
@@ -179,7 +209,7 @@ test("generated service exposes a health endpoint",async()=>{
   await new Promise(resolve=>server.close(resolve));
 });
 `;
-  const test=isMiniGame?gameTest:(isCalculator?calculatorTest:genericTest);
+  const test=isCardGame?cardGameTest:(isMiniGame?gameTest:(isCalculator?calculatorTest:genericTest));
   const readme=`# ${description}
 
 Generated by Jora Native Engineering Engine.
@@ -198,7 +228,7 @@ Runtime:
 - Browser UI served by the Node service
 
 Features:
-${isMiniGame?"- Playable canvas mini game with keyboard and touch controls\n":""}${isCalculator?"- Interactive calculator with keyboard support\n":""}
+${isCardGame?"- Interactive matching card game with shuffled pairs, move counter, match tracking, win state and restart\n":""}${isMiniGame?"- Playable canvas mini game with keyboard and touch controls\n":""}${isCalculator?"- Interactive calculator with keyboard support\n":""}
 Original request:
 ${command}
 `;
