@@ -23,7 +23,13 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 .panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:12px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden;flex:0 1 auto;min-height:0}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn:disabled{opacity:.5;cursor:not-allowed}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBtn.previewBtn{background:#fff;color:#111;display:none}.workspace.previewAvailable .previewBtn{display:inline-block}.workspaceBody{display:grid;grid-template-columns:1fr 1fr;height:min(420px,calc(100vh - 330px));min-height:220px}.workspace.previewClosed .workspaceBody{grid-template-columns:1fr}.fileTree{height:100%;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:8px}.fileItem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:#141922;color:#d7dde7;border:1px solid #2d3541;border-radius:9px;padding:10px 12px;cursor:default;font-size:12px}.fileItem:hover,.fileItem.active{background:#141922;color:#d7dde7}.fileStatus{margin-left:auto;color:#7ee787;font-size:11px;white-space:nowrap}.codePane,.codeHead,#codeView{display:none}.previewPane{display:none;min-width:0;min-height:0;border-left:1px solid #29303a;background:#080b10;position:relative}.workspace.previewOpen .previewPane{display:flex;flex-direction:column}.previewHead{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #29303a;color:#d7dde7;font-size:12px}.previewFrame{display:block;width:100%;height:100%;border:0;background:#fff}.previewEmpty{display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:#8b94a5}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.progressList{display:grid;gap:5px;margin-top:8px;max-height:180px;overflow:auto}.progressEvent{display:flex;gap:8px;align-items:flex-start}.progressPhase{min-width:112px;color:#d7dde7;font-weight:650}.progressFile{color:#7ee787}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.content{padding:14px 12px 12px}.workspaceBody{height:min(520px,calc(100vh - 380px));min-height:260px;grid-template-columns:1fr}.workspace.previewOpen .workspaceBody{grid-template-columns:1fr}.workspace.previewOpen .fileTree{display:none}.previewPane{border-left:0;border-top:1px solid #29303a}.fileTree{grid-template-columns:1fr;overflow:auto}.fileItem{min-width:0}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
 .overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input,.modal select{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
 @media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.content{padding:18px 14px 90px}.hero{padding:34px 0 22px}.hero h1{font-size:27px}.grid{grid-template-columns:repeat(2,1fr)}.top{padding:0 14px}.quick{grid-template-columns:1fr}.msg.user{margin-left:0}}
-</style></head>
+@media(min-width:761px){
+.content.previewMode{width:100%;max-width:none;margin:0;padding-right:calc(50vw + 22px)}
+.content.previewMode #workspacePanel.previewOpen{position:fixed;top:62px;right:0;bottom:0;width:50vw;height:calc(100vh - 62px);margin:0;border-radius:0;z-index:30}
+.content.previewMode #workspacePanel.previewOpen .workspaceBody{height:calc(100vh - 125px);min-height:0;grid-template-columns:1fr}
+.content.previewMode #workspacePanel.previewOpen .fileTree{display:none}
+.content.previewMode #workspacePanel.previewOpen .previewPane{display:flex;border-left:0}
+}</style></head>
 <body>
 <div class="app">
 <aside>
@@ -243,7 +249,7 @@ function previewFile(){
 function showWorkspacePreview(){
   const file=previewFile(),panel=document.getElementById("workspacePanel"),btn=document.getElementById("previewBtn");
   if(!file){panel.classList.remove("previewAvailable","previewOpen");workspacePreviewOpen=false;return}
-  panel.classList.add("previewAvailable","previewOpen");workspacePreviewOpen=true;
+  panel.classList.add("previewAvailable","previewOpen");workspacePreviewOpen=true;document.getElementById("content").classList.add("previewMode");
   if(btn)btn.textContent="■ Hide preview";
   const empty=document.getElementById("previewEmpty"),frame=document.getElementById("previewFrame");
   if(empty)empty.style.display="none";
@@ -254,6 +260,7 @@ function toggleWorkspacePreview(){
   if(workspacePreviewOpen){
     workspacePreviewOpen=false;
     document.getElementById("workspacePanel").classList.remove("previewOpen");
+    document.getElementById("content").classList.remove("previewMode");
     const btn=document.getElementById("previewBtn");if(btn)btn.textContent="▶ Preview";
   }else showWorkspacePreview();
 }
@@ -267,6 +274,7 @@ function idbOpen(){
 }
 function clearActiveWorkspace(message="Starting a new Jora build…"){
   workspacePreviewOpen=false;
+  document.getElementById("content").classList.remove("previewMode");
   workspaceFiles=[];
   workspaceProject={name:"jora-project",requestId:null,createdAt:null};
   const panel=document.getElementById("workspacePanel");
