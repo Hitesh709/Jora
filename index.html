@@ -126,6 +126,7 @@ async function sendPrompt(){
     if(engineeringBuild){
       const folderReady=await chooseDeviceFolderBeforeBuild();
       if(!folderReady){sendBtn.disabled=false;return;}
+      clearActiveWorkspace("Starting a new Jora build…");
     }
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
     if(mode==="agent" && !isEngineeringRequest(command)){
@@ -252,6 +253,53 @@ function idbOpen(){
     req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error);
   });
 }
+function clearActiveWorkspace(message="Starting a new Jora build…"){
+  workspaceFiles=[];
+  workspaceProject={name:"jora-project",requestId:null,createdAt:null};
+  const panel=document.getElementById("workspacePanel");
+  panel.style.display="block";
+  document.getElementById("workspaceMeta").textContent=message;
+  document.getElementById("fileTree").innerHTML="";
+  document.getElementById("workspaceActivity").innerHTML='<span class="pill">Building</span> Previous project cleared. Waiting for completed files…';
+}
+
+function crc32(bytes){
+  let crc=0xffffffff;
+  for(const b of bytes){
+    crc^=b;
+    for(let i=0;i<8;i++) crc=(crc>>>1)^(crc&1?0xedb88320:0);
+  }
+  return (crc^0xffffffff)>>>0;
+}
+function u16(n){return new Uint8Array([n&255,(n>>>8)&255])}
+function u32(n){return new Uint8Array([n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255])}
+function concatBytes(parts){
+  const total=parts.reduce((n,p)=>n+p.length,0),out=new Uint8Array(total);
+  let offset=0; for(const p of parts){out.set(p,offset);offset+=p.length} return out;
+}
+async function downloadWorkspaceZip(){
+  if(!workspaceFiles.length)return;
+  const enc=new TextEncoder(),local=[],central=[];let offset=0;
+  for(const file of workspaceFiles){
+    const name=enc.encode(String(file.path||"file.txt"));
+    const data=enc.encode(String(file.content||""));
+    const crc=crc32(data);
+    const lh=concatBytes([u32(0x04034b50),u16(20),u16(0),u16(0),u16(0),u16(0),u32(crc),u32(data.length),u32(data.length),u16(name.length),u16(0),name,data]);
+    local.push(lh);offset+=lh.length;
+    central.push({name,data,crc,offset:offset-lh.length});
+  }
+  let centralOffset=local.reduce((n,p)=>n+p.length,0);
+  const centralParts=central.map(x=>concatBytes([u32(0x02014b50),u16(20),u16(20),u16(0),u16(0),u16(0),u16(0),u32(x.crc),u32(x.data.length),u32(x.data.length),u16(x.name.length),u16(0),u16(0),u16(0),u16(0),u32(0),u32(x.offset),x.name]));
+  const centralBytes=concatBytes(centralParts);
+  const end=concatBytes([u32(0x06054b50),u16(0),u16(0),u16(centralParts.length),u16(centralParts.length),u32(centralBytes.length),u32(centralOffset),u16(0)]);
+  const blob=new Blob([concatBytes([...local,centralBytes,end])],{type:"application/zip"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=(workspaceProject.name||"jora-project").replace(/[^a-z0-9._-]+/gi,"-")+".zip";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+
 async function saveWorkspace(){
   if(!workspaceFiles.length){addMessage("There are no generated files to save yet.","system");return}
   try{
@@ -319,8 +367,8 @@ async function saveWorkspaceToDevice(){
       return;
     }catch(e){if(e.name==="AbortError")return}
   }
-  exportWorkspace();
-  document.getElementById("workspaceActivity").innerHTML='<span class="pill">Browser</span> Exported a Jora workspace file because direct folder access is not supported here.';
+  await downloadWorkspaceZip();
+  document.getElementById("workspaceActivity").innerHTML='<span class="pill">Downloaded</span> Project ZIP saved to your device because this browser does not support direct folder writing.';
 }
 async function writeWorkspaceToDirectory(dir){
   for(const file of workspaceFiles){
@@ -463,7 +511,6 @@ async function refreshControl(){
   if(d.approvals)approvals.textContent=(d.approvals.approvals||[]).length;
   if(d.metrics)metrics.textContent=JSON.stringify(d.metrics,null,2);if(d.executions)recent.textContent=JSON.stringify(d.executions.executions,null,2);if(d.jobs)jobs.textContent=JSON.stringify(d.jobs.jobs,null,2);if(d.approvals)approvalList.textContent=JSON.stringify(d.approvals.approvals,null,2);if(d.incidents)incidents.textContent=JSON.stringify(d.incidents.incidents,null,2);
 }
-loadWorkspace();
 checkBackend();
 setInterval(checkBackend,15000);
 </script></body></html>
