@@ -9,7 +9,7 @@ export class AutonomousBuildPipeline {
     return {...result,status:"SUCCEEDED"};
   }
   async evaluateProject({request,specification,result}) {
-    const tests=await this.testRunner({cwd:request.context?.workspace});
+    // The browser request context does not carry the internal workspace path.\n    // The generated project is written through the same WorkspaceRepository, so\n    // use its root as the authoritative test working directory. Keep an explicit\n    // request workspace as an override for callers that intentionally provide one.\n    const workspace=request.context?.workspace ?? this.projectBuilder.repository?.root;\n    const tests=await this.testRunner({cwd:workspace});
     const security=this.securityCouncil
       ? await this.securityCouncil.review({command:request.command,context:request.context,project:result})
       : {passed:true,reports:[]};
