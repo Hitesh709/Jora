@@ -95,15 +95,25 @@ async function main(request){
       context:{...(request.context??{}),progress}
     });
     const compact=await compactResult(result,composed.repository);
-    if(process.send) process.send({ok:true,result:compact});
+    if(process.send) {
+      await new Promise(resolve=>process.send({ok:true,result:compact},()=>resolve()));
+    }
   } finally {
     try { composed.runtime.stop(); } catch {}
+    // The production runtime owns timers/workers outside JoraRuntime as well.
+    // This process is a single isolated execution, so never leave it alive after
+    // the result has been delivered to the parent API.
+    setImmediate(()=>process.exit(0));
   }
 }
 
 process.once("message",request=>{
-  main(request).catch(error=>{
-    if(process.send) process.send({ok:false,error:error?.message||String(error)});
+  main(request).catch(async error=>{
+    const message=error?.message||String(error);
+    if(process.send) {
+      try { await new Promise(resolve=>process.send({ok:false,error:message},()=>resolve())); } catch {}
+    }
     process.exitCode=1;
+    setImmediate(()=>process.exit(1));
   });
 });
