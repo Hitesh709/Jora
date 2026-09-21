@@ -20,7 +20,7 @@ main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62p
 .composer{border:1px solid #343b47;background:#11151c;border-radius:14px;padding:10px;flex:0 0 auto;box-shadow:0 10px 35px #0008}
 textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outline:0;background:transparent;color:#fff;padding:8px}.composeRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.modes{display:flex;gap:5px;overflow:auto}.mode{border:1px solid #303744;background:#171b23;color:#aeb7c5;border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px}.mode.active{background:#26303d;color:#fff;border-color:#4b5668}.send{border:0;border-radius:8px;background:#fff;color:#111;padding:9px 15px;font-weight:700;cursor:pointer}.send:disabled{opacity:.5}
 .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.quick button{border:1px solid #292f39;background:#12161d;color:#cdd3dd;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.quick button:hover{background:#181d26}
-.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:12px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden;flex:0 1 auto;min-height:0}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBody{display:block;height:min(300px,calc(100vh - 360px));min-height:150px}.fileTree{height:100%;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:8px}.fileItem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:#141922;color:#d7dde7;border:1px solid #2d3541;border-radius:9px;padding:10px 12px;cursor:default;font-size:12px}.fileItem:hover,.fileItem.active{background:#141922;color:#d7dde7}.fileStatus{margin-left:auto;color:#7ee787;font-size:11px;white-space:nowrap}.codePane,.codeHead,#codeView{display:none}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.progressList{display:grid;gap:5px;margin-top:8px;max-height:180px;overflow:auto}.progressEvent{display:flex;gap:8px;align-items:flex-start}.progressPhase{min-width:112px;color:#d7dde7;font-weight:650}.progressFile{color:#7ee787}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.content{padding:14px 12px 12px}.workspaceBody{height:min(300px,calc(100vh - 380px));min-height:150px}.fileTree{grid-template-columns:1fr;overflow:auto}.fileItem{min-width:0}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
+.panel{border:1px solid #292f39;background:#11151c;border-radius:12px;padding:16px;margin-top:18px}.panel h3{margin:0 0 12px}.workspace{display:none;margin-top:12px;border:1px solid #303744;background:#0f131a;border-radius:14px;overflow:hidden;flex:0 1 auto;min-height:0}.workspaceHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid #29303a}.workspaceTitle{font-weight:700}.workspaceActions{display:flex;gap:6px;flex-wrap:wrap}.workspaceBtn{border:1px solid #3a4351;background:#171c25;color:#fff;border-radius:8px;padding:7px 10px;cursor:pointer;font-size:12px}.workspaceBtn:disabled{opacity:.5;cursor:not-allowed}.workspaceBtn.primary{background:#fff;color:#111}.workspaceBtn.previewBtn{background:#fff;color:#111;display:none}.workspace.previewAvailable .previewBtn{display:inline-block}.workspaceBody{display:grid;grid-template-columns:1fr 1fr;height:min(420px,calc(100vh - 330px));min-height:220px}.workspace.previewClosed .workspaceBody{grid-template-columns:1fr}.fileTree{height:100%;overflow:auto;padding:10px;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:8px}.fileItem{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;text-align:left;background:#141922;color:#d7dde7;border:1px solid #2d3541;border-radius:9px;padding:10px 12px;cursor:default;font-size:12px}.fileItem:hover,.fileItem.active{background:#141922;color:#d7dde7}.fileStatus{margin-left:auto;color:#7ee787;font-size:11px;white-space:nowrap}.codePane,.codeHead,#codeView{display:none}.previewPane{display:none;min-width:0;min-height:0;border-left:1px solid #29303a;background:#080b10;position:relative}.workspace.previewOpen .previewPane{display:flex;flex-direction:column}.previewHead{height:42px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid #29303a;color:#d7dde7;font-size:12px}.previewFrame{display:block;width:100%;height:100%;border:0;background:#fff}.previewEmpty{display:grid;place-items:center;height:100%;padding:24px;text-align:center;color:#8b94a5}.activity{padding:10px 14px;border-top:1px solid #29303a;color:#9da7b6;font-size:12px}.progressList{display:grid;gap:5px;margin-top:8px;max-height:180px;overflow:auto}.progressEvent{display:flex;gap:8px;align-items:flex-start}.progressPhase{min-width:112px;color:#d7dde7;font-weight:650}.progressFile{color:#7ee787}.pill{display:inline-block;border:1px solid #343b47;border-radius:999px;padding:3px 8px;margin-right:5px}.githubOn{color:#7ee787}.githubOff{color:#f2cc60}@media(max-width:760px){.content{padding:14px 12px 12px}.workspaceBody{height:min(520px,calc(100vh - 380px));min-height:260px;grid-template-columns:1fr}.workspace.previewOpen .workspaceBody{grid-template-columns:1fr}.workspace.previewOpen .fileTree{display:none}.previewPane{border-left:0;border-top:1px solid #29303a}.fileTree{grid-template-columns:1fr;overflow:auto}.fileItem{min-width:0}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.card{border:1px solid #292f39;background:#151922;border-radius:10px;padding:13px}.value{font-size:20px;font-weight:700;margin-top:5px}.muted{color:#8b94a5;font-size:12px}pre{white-space:pre-wrap;overflow:auto;max-height:260px;font-size:11px;color:#b9c1cd}
 .overlay{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:20px}.modal{width:min(560px,100%);background:#151922;border:1px solid #343b47;border-radius:14px;padding:20px}.modal input,.modal select{width:100%;background:#0e1116;color:#fff;border:1px solid #343b47;border-radius:8px;padding:10px;margin:7px 0 14px}.modal .actions{display:flex;justify-content:flex-end;gap:8px}.secondary{border:1px solid #343b47;background:#171b23;color:#fff;border-radius:8px;padding:9px 13px}
 @media(max-width:760px){.app{grid-template-columns:1fr}aside{display:none}.content{padding:18px 14px 90px}.hero{padding:34px 0 22px}.hero h1{font-size:27px}.grid{grid-template-columns:repeat(2,1fr)}.top{padding:0 14px}.quick{grid-template-columns:1fr}.msg.user{margin-left:0}}
 </style></head>
@@ -60,14 +60,14 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
       <div class="workspaceHead">
         <div><div class="workspaceTitle">Jora Workspace</div><div id="workspaceMeta" class="muted">Generated project files</div></div>
         <div class="workspaceActions">
-          <button class="workspaceBtn" id="stopRun" onclick="cancelActiveRun()" style="display:none">■ Stop</button><button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Save folder</button>
+          <button class="workspaceBtn" id="stopRun" onclick="cancelActiveRun()" style="display:none">■ Stop</button><button class="workspaceBtn previewBtn" id="previewBtn" onclick="toggleWorkspacePreview()">▶ Preview</button><button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Save folder</button>
           <button class="workspaceBtn" onclick="exportWorkspace()">⬇ Export</button>
           <button class="workspaceBtn" onclick="importWorkspace()">⬆ Import</button>
           <button class="workspaceBtn" onclick="pushWorkspaceToGitHub()">↗ GitHub</button>
           <input id="workspaceImport" type="file" accept=".json,.jora.json,application/json" style="display:none" onchange="handleWorkspaceImport(event)">
         </div>
       </div>
-      <div class="workspaceBody"><div id="fileTree" class="fileTree"></div></div>
+      <div class="workspaceBody"><div id="fileTree" class="fileTree"></div><div id="previewPane" class="previewPane"><div class="previewHead"><span>Live app preview</span><button class="workspaceBtn" onclick="refreshWorkspacePreview()">↻ Refresh</button></div><div id="previewEmpty" class="previewEmpty">Click Preview to run the completed app here.</div><iframe id="previewFrame" class="previewFrame" title="Jora build preview" sandbox="allow-scripts allow-forms"></iframe></div></div>
       <div id="workspaceActivity" class="activity"><span class="pill">Local workspace</span> Files are saved in this browser until you export or sync them.</div>
     </section>
 
@@ -118,14 +118,19 @@ async function sendPrompt(){
     if(engineeringBuild){
       const folderReady=await chooseDeviceFolderBeforeBuild();
       if(!folderReady){sendBtn.disabled=false;return;}
-      clearActiveWorkspace("Starting a new Jora build…");
+      const modifyingExisting=workspaceFiles.length>0 && isExistingProjectChange(command);
+      if(!modifyingExisting) clearActiveWorkspace("Starting a new Jora build…");
+      else {
+        const system=document.querySelector("#messages .msg.system:last-child");
+        if(system) system.textContent="Updating the current Jora project…";
+      }
     }
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
     if(mode==="agent" && !isEngineeringRequest(command)){
       try{
         const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({
           message:command,
-          context:{provider:"jora",mode,source:"browser"}
+          context:{provider:"jora",mode,source:"browser",existingProject:workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null}
         })});
         const data=await r.json().catch(()=>({error:"Invalid backend response"}));
         document.querySelector("#messages .msg.system:last-child")?.remove();
@@ -142,7 +147,7 @@ async function sendPrompt(){
       // asynchronous engineering worker.
       const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
         command,
-        context:{provider:"jora",mode,source:"browser"}
+        context:{provider:"jora",mode,source:"browser",existingProject:workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null}
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       if(r.status===401) {
@@ -180,6 +185,7 @@ async function sendPrompt(){
             workspaceProject={name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};
             renderWorkspace();
             await saveWorkspace();
+            showWorkspacePreview();
             if(deviceDirectoryHandle){
               try{await writeWorkspaceToDirectory(deviceDirectoryHandle);}
               catch(e){addMessage("Jora completed the build, but could not save to the selected folder: "+e.message,"system");}
@@ -227,6 +233,30 @@ let workspaceFiles=[];
 let workspaceProject={name:"jora-project",requestId:null,createdAt:null};
 let deviceDirectoryHandle=null;
 let deviceDirectoryName="";
+let workspacePreviewOpen=false;
+function isExistingProjectChange(text){
+  return /\b(change|modify|update|add|remove|delete|fix|improve|adjust|replace|rename|redesign|restyle|make|turn|increase|decrease|disable|enable)\b/i.test(String(text||""));
+}
+function previewFile(){
+  return workspaceFiles.find(f=>f.path==="src/index.html")||workspaceFiles.find(f=>f.path==="index.html")||workspaceFiles.find(f=>/\.html?$/i.test(f.path||""))||null;
+}
+function showWorkspacePreview(){
+  const file=previewFile(),panel=document.getElementById("workspacePanel"),btn=document.getElementById("previewBtn");
+  if(!file){panel.classList.remove("previewAvailable","previewOpen");workspacePreviewOpen=false;return}
+  panel.classList.add("previewAvailable","previewOpen");workspacePreviewOpen=true;
+  if(btn)btn.textContent="■ Hide preview";
+  const empty=document.getElementById("previewEmpty"),frame=document.getElementById("previewFrame");
+  if(empty)empty.style.display="none";
+  if(frame)frame.srcdoc=String(file.content||"");
+}
+function refreshWorkspacePreview(){showWorkspacePreview()}
+function toggleWorkspacePreview(){
+  if(workspacePreviewOpen){
+    workspacePreviewOpen=false;
+    document.getElementById("workspacePanel").classList.remove("previewOpen");
+    const btn=document.getElementById("previewBtn");if(btn)btn.textContent="▶ Preview";
+  }else showWorkspacePreview();
+}
 
 function idbOpen(){
   return new Promise((resolve,reject)=>{
@@ -236,10 +266,13 @@ function idbOpen(){
   });
 }
 function clearActiveWorkspace(message="Starting a new Jora build…"){
+  workspacePreviewOpen=false;
   workspaceFiles=[];
   workspaceProject={name:"jora-project",requestId:null,createdAt:null};
   const panel=document.getElementById("workspacePanel");
   panel.style.display="block";
+  panel.classList.remove("previewAvailable","previewOpen");
+  const previewBtn=document.getElementById("previewBtn");if(previewBtn)previewBtn.textContent="▶ Preview";
   document.getElementById("workspaceMeta").textContent=message;
   document.getElementById("fileTree").innerHTML="";
   document.getElementById("workspaceActivity").innerHTML='<span class="pill">Building</span> Previous project cleared. Waiting for completed files…';
@@ -391,6 +424,8 @@ function renderProgress(progress){
 }
 function renderWorkspace(){
   const panel=document.getElementById("workspacePanel");panel.style.display="block";
+  const preview=previewFile();panel.classList.toggle("previewAvailable",Boolean(preview));
+  if(!preview){panel.classList.remove("previewOpen");workspacePreviewOpen=false}
   document.getElementById("workspaceMeta").textContent=(workspaceProject.name||"Project")+" · "+workspaceFiles.length+" completed files";
   const tree=document.getElementById("fileTree");tree.innerHTML="";
   workspaceFiles.forEach((file)=>{
