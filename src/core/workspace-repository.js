@@ -41,6 +41,9 @@ export class WorkspaceRepository {
     await this.ensureReady();
     const status=await this.git.status().catch(()=> "");
     if(status) await this.git.runner.run("git",["reset","--hard","HEAD"],{cwd:this.root});
+    // Candidate workspaces must be isolated between runs. Remove untracked files from
+    // a rejected/previous candidate so stale artifacts cannot affect tests or security gates.
+    await this.git.runner.run("git",["clean","-fd"],{cwd:this.root});
     const branch=`jora/candidate-${String(id).replace(/[^a-zA-Z0-9._-]/g,"-")}`;
     const existing=await this.git.runner.run("git",["rev-parse","--verify",branch],{cwd:this.root});
     if(existing.ok) {
