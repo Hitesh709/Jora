@@ -110,3 +110,25 @@ test("autonomous build pipeline repairs a failed project and verifies it on retr
   assert.equal(evaluation.repairCycles,1);
   assert.match(buildContexts[1].repairFeedback.diagnosis,/failed/i);
 });
+
+
+test("repair cycle receives the real project snapshot and failing file list",async()=>{
+  let repairContext=null;
+  const repository={
+    root:"/tmp/jora-repair",
+    snapshot:async()=>[{path:"src/index.js",content:"broken()"}],
+    write:async(p,c)=>({path:p})
+  };
+  const p=new AutonomousBuildPipeline({
+    maxRepairCycles:1,
+    projectBuilder:{
+      repository,
+      build:async(args)=>{ repairContext=args.context; return {status:"SUCCEEDED",files:[]}; }
+    },
+    testRunner:async()=>({ok:false,code:1,files:["src/index.js"],stderr:"AssertionError"}),
+    evaluator:{evaluate:x=>({passed:false,...x})}
+  });
+  await p.evaluateProject({request:{command:"repair app",context:{}},specification:{},result:{status:"SUCCEEDED"}});
+  assert.deepEqual(repairContext.existingProject.files,[{path:"src/index.js",content:"broken()"}]);
+  assert.deepEqual(repairContext.repairFeedback.failingFiles,["src/index.js"]);
+});
