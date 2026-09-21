@@ -49,3 +49,14 @@ test("Jora native engine modifies an existing project instead of replacing it",a
   assert.match(html,/<title>New Game<\/title>/);
   assert.match(html,/>Play Now<\/button>/);
 });
+
+
+test("Jora native engine uses the Universal Builder for a new domain request",async()=>{
+  const provider=new JoraNativeProvider();
+  const result=await provider.complete({messages:[{role:"user",content:"Design and implement a production-ready AI agent project for this command. Return ONLY JSON with a files array. Command: Build a restaurant booking platform with search and customer records"}]});
+  const parsed=JSON.parse(result.text);
+  const readme=parsed.files.find(file=>file.path==="README.md")?.content||"";
+  const html=parsed.files.find(file=>file.path==="src/index.html")?.content||"";
+  assert.match(readme,/Jora Universal Builder/);
+  assert.match(html,/bookings/i);
+});
