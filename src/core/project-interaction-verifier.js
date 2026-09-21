@@ -1,15 +1,15 @@
 function inspectHtml(html="",command="") {
   const source=String(html||"");
   const lower=source.toLowerCase();
-  const buttons=(source.match(/<button\\b/gi)||[]).length;
-  const links=(source.match(/<a\\b/gi)||[]).length;
-  const inputs=(source.match(/<input\\b/gi)||[]).length;
-  const forms=(source.match(/<form\\b/gi)||[]).length;
-  const canvas=(source.match(/<canvas\\b/gi)||[]).length;
+  const buttons=(source.match(/<button\b/gi)||[]).length;
+  const links=(source.match(/<a\b/gi)||[]).length;
+  const inputs=(source.match(/<input\b/gi)||[]).length;
+  const forms=(source.match(/<form\b/gi)||[]).length;
+  const canvas=(source.match(/<canvas\b/gi)||[]).length;
   const interactive=buttons+links+inputs+forms+canvas;
-  const game=/\\b(game|play|player|score|canvas|pong|card|memory|racing)\\b/i.test(command);
-  const appHasScript=/<script\\b/i.test(source);
-  const hasMainContent=/<(?:main|body|section|div)\\b/i.test(source);
+  const game=/\b(game|play|player|score|canvas|pong|card|memory|racing)\b/i.test(command);
+  const appHasScript=/<script\b/i.test(source);
+  const hasMainContent=/<(?:main|body|section|div)\b/i.test(source);
   const expected=game ? canvas>0 : interactive>0;
   return {
     buttons,links,inputs,forms,canvas,interactive,
