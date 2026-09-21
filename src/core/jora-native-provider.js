@@ -137,7 +137,17 @@ export class JoraNativeProvider{
     if(/Return ONLY a JSON array of implementation tasks/i.test(user)){
       return {text:json(taskList(user)),model:"jora",engine:this.kind};
     }
-    const lower=user.toLowerCase();
+    const lower=user.toLowerCase();\n    if(/\b(what(?:'s| is)?|tell me|give me)?\s*(the\s*)?(date|day)\s*(today|now)?\b|\btoday(?:'s| is)?\s*(date|day)\b/.test(lower)){
+      const now=new Date();
+      const date=new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(now);
+      return {text:"Today is "+date+".",model:"jora",engine:this.kind};
+    }
+    if(/\b(what(?:'s| is)?\s*)?(the\s*)?(time|clock)\s*(now|today)?\b/.test(lower)){
+      const now=new Date();
+      const time=new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",hour:"numeric",minute:"2-digit",second:"2-digit",hour12:true}).format(now);
+      return {text:"The current time in India (IST) is "+time+".",model:"jora",engine:this.kind};
+    }
+
     if(/research|search|latest|news|look up/.test(lower)){
       return {text:"Jora is running in native mode. Web research is available through Jora's search tool; I can search, extract evidence, compare sources, and turn the findings into an implementation plan.",model:"jora",engine:this.kind};
     }
