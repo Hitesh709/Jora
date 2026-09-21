@@ -1,0 +1,33 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {generateUniversalProject} from "../src/core/universal-project-generator.js";
+
+const cases=[
+  ["Build a restaurant booking system", "web", "bookings"],
+  ["Build an e-commerce store with products and checkout", "web", "products"],
+  ["Build a customer CRM dashboard", "web", "customers"],
+  ["Build a chat application", "web", "items"],
+  ["Build a racing game for mobile", "game", "items"],
+  ["Build a REST API for inventory management", "api", "items"]
+];
+
+test("Universal Builder derives different product blueprints from natural-language requests",()=>{
+  for(const [command,kind,entity] of cases){
+    const project=generateUniversalProject(command);
+    assert.equal(project.blueprint.kind,kind,command);
+    assert.ok(project.files.some(file=>file.path==="src/index.html"),command);
+    assert.ok(project.files.some(file=>file.path==="src/index.js"),command);
+    assert.ok(project.files.some(file=>file.path==="test/index.test.js"),command);
+    assert.match(project.files.find(file=>file.path==="README.md").content,/Jora Universal Builder/);
+    assert.equal(project.blueprint.entities[0].name,entity,command);
+  }
+});
+
+test("Universal Builder creates a playable game artifact without game-name-specific routing",()=>{
+  const project=generateUniversalProject("Build a spaceship survival game with mobile controls");
+  const html=project.files.find(file=>file.path==="src/index.html").content;
+  assert.match(html,/canvas id="game"/);
+  assert.match(html,/requestAnimationFrame\(loop\)/);
+  assert.match(html,/pointermove/);
+  assert.match(project.files.find(file=>file.path==="src/index.js").content,/jora-universal-builder/);
+});
