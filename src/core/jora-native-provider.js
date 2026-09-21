@@ -1,3 +1,4 @@
+import {generateUniversalProject} from "./universal-project-generator.js";
 function clean(value=""){return String(value??"").replace(/\s+/g," ").trim();}
 function slug(value="jora-project"){return clean(value).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48)||"jora-project";}
 function json(value){return JSON.stringify(value,null,2);}
@@ -71,6 +72,9 @@ function applyExistingChange(command,existing){
 }
 
 function projectFor(command){
+  const lowerCommand=String(command||"").toLowerCase();
+  const legacy=/\\bcalculator\\b|\\bcalc\\b|\\bmath app\\b|\\barithmetic\\b|\\bcard game\\b|\\bmemory (match|card)\\b|\\bmatching cards?\\b|\\bflip cards?\\b|\\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\\b/.test(lowerCommand);
+  if(!legacy) return generateUniversalProject(command);
   const title=clean(command).replace(/^build\s+/i,"").replace(/^create\s+/i,"").replace(/^make\s+/i,"").slice(0,90)||"Jora Application";
   const name=slug(title);
   const lower=command.toLowerCase();
@@ -78,7 +82,8 @@ function projectFor(command){
   const dataMode=/database|postgres|mysql|sqlite|data|crud|customer|user|login|auth|todo|task|inventory|loan|credit/.test(lower);
   const description=title.replace(/["\\]/g,"");
   const isCalculator=/\bcalculator\b|\bcalc\b|\bmath app\b|\barithmetic\b/.test(lower);
-  const isCardGame=/\bcard game\b|\bmemory (match|card)\b|\bmatching cards?\b|\bflip cards?\b/.test(lower);\n  const isMiniGame=/\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\b/.test(lower);
+  const isCardGame=/\bcard game\b|\bmemory (match|card)\b|\bmatching cards?\b|\bflip cards?\b/.test(lower);
+  const isMiniGame=/\b(game|mini game|arcade|snake|pong|tetris|platformer|dodge|runner|shooting game)\b/.test(lower);
 
   const html=`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
