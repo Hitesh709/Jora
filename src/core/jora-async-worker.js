@@ -78,7 +78,29 @@ async function main(request){
   const config=runtimeConfig();
   const progress=event=>{
     if(!process.send) return;
-    process.send({type:"progress",event:{timestamp:new Date().toISOString(),...event}});
+    // IPC messages must be structured-clone safe. Never forward functions,
+    // repositories, runners, or other runtime objects from progress payloads.
+    const source = event && typeof event==="object" ? event : {message:String(event??"Jora progress")};
+    const safeEvent = {
+      timestamp:new Date().toISOString(),
+      phase:typeof source.phase==="string" ? source.phase : "RUNNING",
+      status:typeof source.status==="string" ? source.status : "RUNNING",
+      message:typeof source.message==="string" ? source.message : "",
+    };
+    if(source.file && typeof source.file==="object"){
+      safeEvent.file={
+        path:typeof source.file.path==="string" ? source.file.path : "",
+        bytes:Number.isFinite(source.file.bytes) ? source.file.bytes : 0,
+        truncated:Boolean(source.file.truncated),
+        preview:typeof source.file.preview==="string" ? source.file.preview.slice(0,1200) : ""
+      };
+    }
+    try {
+      process.send({type:"progress",event:safeEvent});
+    } catch(error) {
+      // Progress is observability only; an IPC serialization problem must
+      // never abort the actual engineering build.
+    }
   };
   const providers=new Map();
   providers.set("jora",new JoraNativeProvider());
