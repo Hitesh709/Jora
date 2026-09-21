@@ -80,7 +80,10 @@ export class ModelProjectBuilder {
           history:context.repairHistory
         })
       : "";
-    const prompt="Design and implement a production-ready AI agent project for this command. Return ONLY JSON with a files array. Each item must contain path and content. Command: "+command+" Specification: "+JSON.stringify(specification)+repair;
+    const existing=context.existingProject?.files?.length
+      ? "\n\nExisting project JSON (preserve all working behavior and modify these files for the new request): "+JSON.stringify({project:context.existingProject.project||{},files:context.existingProject.files.map(file=>({path:file.path,content:String(file.content||"").slice(0,30000)}))})
+      : "";
+    const prompt="Design and implement a production-ready AI agent project for this command. Return ONLY JSON with a files array. Each item must contain path and content. If an existing project is supplied, edit that project in place: preserve working behavior, make the requested changes, and return the complete updated files needed for the project. Command: "+command+" Specification: "+JSON.stringify(specification)+repair+existing;
     const response=await this.modelGateway.complete({
       messages:[
         {role:"system",content:"You are Jora's software factory. Generate complete, runnable project files. Do not include markdown fences. When repairing, fix the diagnosed failures rather than merely describing them."},
