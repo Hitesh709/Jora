@@ -78,3 +78,6 @@ Version 0.5 adds concrete provider, GitHub, persistence, and deployment adapter 
 - `DeploymentAdapter` — deployment/rollback integration boundary
 
 Credentials are read from environment/configuration and are never embedded in generated source. These adapters are intentionally dependency-injected so Jora's autonomous controller can run the same workflow against different production infrastructures.
+
+
+<!-- Jora production source sync: 2026-09-21 -->
