@@ -52,8 +52,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
       <textarea id="prompt" placeholder="Ask Jora anything about your software project…" onkeydown="keySend(event)"></textarea>
       <div class="composeRow"><div class="modes">
         <button class="mode active" data-mode="agent" onclick="setMode(this)">Agent</button>
-        <button class="mode" data-mode="research" onclick="setMode(this)">🌐 Research</button>
-        <button class="mode" data-mode="code" onclick="setMode(this)">Code</button>
+        <button class="mode" data-mode="coding" onclick="setMode(this)">Coding</button>
         <button class="mode" data-mode="build" onclick="setMode(this)">Build</button>
       </div><button class="send" id="send" onclick="sendPrompt()">Send</button></div>
     </div></div>
@@ -71,13 +70,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
       <div class="workspaceBody"><div id="fileTree" class="fileTree"></div></div>
       <div id="workspaceActivity" class="activity"><span class="pill">Local workspace</span> Files are saved in this browser until you export or sync them.</div>
     </section>
-    <div class="quick">
-      <button onclick="quick('Build a production-ready web application for me. First understand the requirements, then create the architecture and implementation plan.')">🚀 Build a new application</button>
-      <button onclick="setResearchQuick()">🌐 Search the web</button>
-      <button onclick="quick('Inspect my current project and identify the highest-priority engineering problems to fix next.')">🔎 Inspect a project</button>
-      <button onclick="quick('Create a coding plan for the feature I describe, including files, tests, risks and deployment steps.')">🧩 Plan a feature</button>
-      <button onclick="quick('Run a production-readiness review of this project: architecture, security, testing, reliability and deployment.')">🛡 Production review</button>
-    </div>
+
   </section>
   <section id="projectsView" style="display:none"><div class="hero"><h1>Projects</h1><p>Project and repository management will appear here as Jora connects to your workspace.</p></div><div class="panel"><h3>Connect a project</h3><p class="muted">Use Chat → “Inspect my current project” or configure your GitHub integration in the backend.</p></div></section>
   <section id="runsView" style="display:none"><div class="hero"><h1>Runs &amp; jobs</h1><p>Execution history from the Jora control plane.</p></div><div class="panel"><pre id="runs">Loading…</pre></div></section>
@@ -113,16 +106,15 @@ function isEngineeringRequest(text){
   const lower=text.toLowerCase().trim();
   return /\b(build|create|make|develop|implement|code|fix|debug|test|deploy|ship|launch|application|app|website|web app|api|backend|frontend|database|calculator|software project|project)\b/.test(lower);
 }
-function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",research:"What do you want Jora to research?",code:"Describe the code change you want…",build:"Describe the product you want built…"}[mode]}
-function quick(text){promptInput.value=text;promptInput.focus()}
-function setResearchQuick(){setMode(document.querySelector('.mode[data-mode="research"]'));promptInput.value="Search the web for the latest information about ";promptInput.focus();promptInput.setSelectionRange(promptInput.value.length,promptInput.value.length)}
+function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",coding:"Describe the coding task you want Jora to implement…",build:"Describe the product you want built…"}[mode]}
 function keySend(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendPrompt()}}
 function addMessage(text,who){const d=document.createElement("div");d.className="msg "+who;d.textContent=text;document.getElementById("messages").appendChild(d);d.scrollIntoView({behavior:"smooth",block:"end"})}
 async function sendPrompt(){
   const command=promptInput.value.trim();if(!command)return;
-  addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage(mode==="research"?"Searching the web…":"Working…","system");
+  addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage("Working…","system");
   try{
-    const engineeringBuild=(mode==="agent"||mode==="build")&&isEngineeringRequest(command);
+    const engineeringBuild=(mode==="coding"||mode==="build"||(mode==="agent"&&isEngineeringRequest(command)));
+
     if(engineeringBuild){
       const folderReady=await chooseDeviceFolderBeforeBuild();
       if(!folderReady){sendBtn.disabled=false;return;}
@@ -133,7 +125,7 @@ async function sendPrompt(){
       try{
         const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({
           message:command,
-          context:{provider:"jora",mode:"agent",source:"browser"}
+          context:{provider:"jora",mode,source:"browser"}
         })});
         const data=await r.json().catch(()=>({error:"Invalid backend response"}));
         document.querySelector("#messages .msg.system:last-child")?.remove();
@@ -145,10 +137,9 @@ async function sendPrompt(){
       }finally{sendBtn.disabled=false}
       return;
     }
-    if(mode==="agent" || mode==="build"){
-      // Agent and Build modes both use the isolated asynchronous engineering
-      // worker. Build mode must never fall through to the synchronous /v1/execute
-      // endpoint because project generation can be CPU-heavy and long-running.
+    if(mode==="coding" || mode==="build" || (mode==="agent" && isEngineeringRequest(command))){
+      // Coding, Build, and engineering requests in Agent mode use the isolated
+      // asynchronous engineering worker.
       const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
         command,
         context:{provider:"jora",mode:"agent",source:"browser"}
@@ -204,15 +195,6 @@ async function sendPrompt(){
       document.getElementById("stopRun").style.display="none";
       document.querySelector("#messages .msg.system:last-child")?.remove();
       addMessage("Jora is still working in the backend. Open Runs & jobs to monitor the execution.","system");
-      return;
-    }
-    if(mode==="research"){
-      const r=await fetch(base()+"/v1/search",{method:"POST",headers:headers(),body:JSON.stringify({query:command,maxResults:8})});
-      const data=await r.json().catch(()=>({error:"Invalid backend response"}));
-      document.querySelector("#messages .msg.system:last-child")?.remove();
-      if(r.status===401) addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
-      else if(!r.ok) addMessage(data.status==="SEARCH_NOT_CONFIGURED"?"Web search is not configured on the Jora backend yet. Configure JORA_SEARCH_PROVIDER plus a supported search API key.":("Search failed: "+(data.error||r.statusText)),"system");
-      else addMessage(formatSearchResult(data),"assistant");
       return;
     }
     const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode,provider:"jora"}})});
@@ -465,15 +447,6 @@ function formatAgentResult(d){
   return lines.join("\n");
 }
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
-function formatSearchResult(d){
-  const lines=[];
-  if(d?.answer) lines.push("Summary\n"+d.answer);
-  if(Array.isArray(d?.results)&&d.results.length){
-    lines.push("Sources");
-    d.results.forEach((x,i)=>lines.push((i+1)+". "+(x.title||"Untitled")+"\n"+(x.url||"")+"\n"+(x.snippet||"").slice(0,500)));
-  }
-  return lines.join("\n\n")||"No web results were returned.";
-}
 function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
 function saveSettings(){
