@@ -304,8 +304,10 @@ function renderProgress(progress){
       const file=document.createElement("span");file.className="progressFile";file.textContent=" · "+event.file.path;row.appendChild(file);
       const existing=workspaceFiles.findIndex(x=>x.path===event.file.path);
       if(existing<0){
-        workspaceFiles.push({path:event.file.path,content:"// Jora is writing this file…",truncated:Boolean(event.file.truncated)});
+        workspaceFiles.push({path:event.file.path,content:String(event.file.preview||"// Jora is writing this file…"),truncated:Boolean(event.file.truncated)});
         filesChanged=true;
+      }else if(event.file.preview){
+        workspaceFiles[existing]={...workspaceFiles[existing],content:String(event.file.preview),truncated:Boolean(event.file.truncated)};
       }
     }
     list.appendChild(row);
