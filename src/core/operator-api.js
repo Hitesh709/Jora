@@ -1097,7 +1097,16 @@ export class OperatorApi {
         return json(res,500,{requestId,accepted:false,status:"FAILED",error:error.message,provider:"jora",model:"jora"});
       }
 
-      child.once("message",message=>{
+      child.on("message",message=>{
+        if(message?.type==="progress") {
+          const event=message.event||{};
+          record.progress=record.progress||{phase:"RUNNING",message:"Jora is working",events:[]};
+          record.progress.phase=event.phase||record.progress.phase;
+          record.progress.message=event.message||record.progress.message;
+          record.progress.events=[...(record.progress.events||[]),event].slice(-120);
+          record.updatedAt=Date.now();
+          return;
+        }
         if(message?.ok) {
           record.status="COMPLETED";
           record.result=message.result;
@@ -1140,6 +1149,7 @@ export class OperatorApi {
         model:record.model,
         startedAt:record.startedAt,
         updatedAt:record.updatedAt,
+        ...(record.progress ? {progress:record.progress} : {}),
         ...(record.status==="COMPLETED" ? {result:record.result} : {}),
         ...(record.status==="FAILED" ? {error:record.error} : {})
       });
