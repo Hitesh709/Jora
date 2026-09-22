@@ -128,3 +128,5 @@ export { WebSearchProvider } from "./core/web-search-provider.js";
 export { JoraNativeProvider } from "./core/jora-native-provider.js";
 
 export { runExistingProjectModificationLoop, inspectExistingProject, extractExistingProjectContract, diffRequirementsAgainstProject } from "./core/existing-project-modification-engine.js";
+
+export { buildProjectMemory, compareProjectMemory, loadProjectMemory, loadProjectHistory, initializeProjectMemory, buildContinuationContext, recordProjectMemory } from "./core/project-memory-engine.js";
