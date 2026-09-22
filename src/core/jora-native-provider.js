@@ -272,15 +272,11 @@ ${command}
 
 function evaluateArithmetic(input){
   const source=String(input||"").replace(/,/g,"").trim();
-  if(!/^[0-9+\-*/%.()\s]+$/.test(source)||!/[+\-*/]/.test(source)) return null;
-  const tokens=source.match(/(?:\\d+(?:\\.\\d*)?|\\.\\d+)|[+\-*/%()]/g);
-  if(!tokens||tokens.join("")!==source.replace(/\s+/g,"")) return null;
-  let i=0;
-  const primary=()=>{const t=tokens[i];if(t==="("){i++;const v=add();if(tokens[i]!==")")throw Error();i++;return v}if(!t||!/^\d/.test(t)&&t[0]!==".")throw Error();i++;return Number(t)};
-  const unary=()=>{if(tokens[i]==="+"){i++;return unary()}if(tokens[i]==="-"){i++;return -unary()}return primary()};
-  const mul=()=>{let v=unary();while(["*","/","%"].includes(tokens[i])){const op=tokens[i++],b=unary();if(op==="*")v*=b;else if(op==="/"){if(b===0)throw Error();v/=b}else v%=b}return v};
-  const add=()=>{let v=mul();while(["+","-"].includes(tokens[i])){const op=tokens[i++],b=mul();v=op==="+"?v+b:v-b}return v};
-  const value=add();if(i!==tokens.length||!Number.isFinite(value))return null;return value;
+  if(!source||!/^[0-9+\-*/%.()\s]+$/.test(source)||!/[+\-*/]/.test(source)) return null;
+  try{
+    const value=Function('"use strict"; return ('+source+');')();
+    return Number.isFinite(value)?value:null;
+  }catch{return null}
 }
 function simpleAnswer(question){
   const q=clean(question),l=q.toLowerCase();
