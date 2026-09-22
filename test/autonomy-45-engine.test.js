@@ -60,3 +60,5 @@ test("command center aggregates persisted portfolio state",async()=>{
 });
 test("project intelligence stays unknown without evidence",()=>{assert.equal(buildProjectIntelligence({}).signals.health,"unknown");assert.equal(buildProjectIntelligence({}).signals.risk,"unknown")});
 test("enterprise readiness is gate-driven",async()=>{const root=await temp();const gated=await buildAutonomousEnterpriseState(root);assert.equal(gated.status,"AUTONOMOUS_ENTERPRISE_GATED")});
+
+test("governance protects nested test paths",()=>{const state=createGovernanceState({root:"/tmp/jora"});assert.equal(evaluateAutonomyAction(state,{verificationPassed:true,rollbackAvailable:true,files:["test/unit/x.js"]}).allowed,false)});
