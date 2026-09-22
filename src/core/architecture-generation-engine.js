@@ -102,6 +102,18 @@ export function buildArchitectureGenerationPlan(inspection) {
     operation:"review-refactor", path:item.file, lines:item.lines,
     reason:"Source file exceeds the architecture size threshold; inspect before extracting responsibilities."
   }));
+  if (inspection.files?.includes("src/modules/api-contract.js") && inspection.files?.includes("src/index.js")) {
+    refactors.push({
+      operation:"replace-source",
+      path:"src/index.js",
+      replacements:[
+        {before:'"/health"',after:"apiContract.health"},
+        {before:'"/api/capabilities"',after:"apiContract.capabilities"}
+      ],
+      importLine:'import {apiContract} from "./modules/api-contract.js";',
+      reason:"Centralize API route contracts in the generated API architecture module."
+    });
+  }
   return {
     version:VERSION,
     strategy:creates.length ? "generate-missing-modules" : refactors.length ? "refactor-candidates" : "architecture-stable",
@@ -131,7 +143,8 @@ export function validateArchitectureGenerationPlan(plan) {
     if (protectedPath(item.path)) reasons.push("protected path: " + item.path);
   }
   for (const item of plan?.creates || []) {
-    if (item.operation !== "create") reasons.push("unsupported create operation");
+    if (item.operation === "create" && (typeof item.content !== "string" || !item.content.trim())) reasons.push("empty generated module: " + item.path);
+    if (!["create","replace-source","review-refactor"].includes(item.operation)) reasons.push("unsupported architecture operation: " + item.operation);
     if (typeof item.content !== "string" || !item.content.trim()) reasons.push("empty generated module: " + item.path);
   }
   return {valid:reasons.length === 0,reasons};
@@ -144,10 +157,27 @@ export async function applyArchitectureGeneration(root, plan, {runTests} = {}) {
   const created = [];
   try {
     for (const item of plan.creates || []) {
-      if (await exists(root,item.path)) throw new Error("target already exists: " + item.path);
+      if (await exists(root,item.path)) continue;
       await fs.mkdir(path.dirname(path.join(root,item.path)),{recursive:true});
       await fs.writeFile(path.join(root,item.path),item.content,"utf8");
       created.push(item.path);
+    }
+    for (const item of plan.refactors || []) {
+      if (item.operation !== "replace-source") continue;
+      const target = await fs.readFile(path.join(root,item.path),"utf8");
+      let next = target;
+      for (const replacement of item.replacements || []) {
+        if (!next.includes(replacement.before)) throw new Error("refactor precondition not satisfied: " + item.path);
+        next = next.replace(replacement.before,replacement.after);
+      }
+      if (item.importLine && !next.includes(item.importLine)) {
+        next = item.importLine + "\n" + next;
+      }
+      if (next !== target) {
+        if (!safe(item.path) || protectedPath(item.path)) throw new Error("unsafe refactor target: " + item.path);
+        if (!created.includes(item.path)) created.push(item.path + " (refactored)");
+        await fs.writeFile(path.join(root,item.path),next,"utf8");
+      }
     }
     if (typeof runTests === "function") {
       const tests = await runTests(root);
