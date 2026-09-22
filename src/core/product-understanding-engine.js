@@ -151,6 +151,11 @@ export class ProductUnderstandingEngine {
       functional:goals.map((goal,index)=>({id:"FR-"+String(index+1).padStart(3,"0"),statement:goal,priority:index===0?"high":"medium"})),
       nonFunctional:["Observable execution status","Verifiable acceptance criteria","Safe failure and recovery behavior"],
       constraints,
+      platform,
+      actors,
+      features,
+      entities,
+      workflows,
       acceptanceCriteria:this._acceptance(goals,constraints)
     };
     const riskFlags=[];
