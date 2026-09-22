@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 const MEMORY_FILE=".jora/repair-memory.json";
+let globalMemory=null;
 
 export function createRepairMemory(seed={}){
   return {
@@ -55,17 +56,35 @@ export function rankRepairStrategies(memory,patches=[]){
 }
 
 export async function loadRepairMemory(root){
+  let local=createRepairMemory();
   try{
     const raw=await fs.readFile(path.join(root,MEMORY_FILE),"utf8");
-    return createRepairMemory(JSON.parse(raw));
-  }catch{
-    return createRepairMemory();
+    local=createRepairMemory(JSON.parse(raw));
+  }catch{}
+  if(!globalMemory) globalMemory=createRepairMemory();
+  const merged=createRepairMemory({
+    cycles:globalMemory.cycles+local.cycles,
+    outcomes:[...globalMemory.outcomes,...local.outcomes].slice(-50),
+    strategies:{...globalMemory.strategies}
+  });
+  for(const [key,value] of Object.entries(local.strategies||{})){
+    const existing=merged.strategies[key]||{attempts:0,successes:0,failures:0,lastUsed:null};
+    merged.strategies[key]={
+      attempts:existing.attempts+(value.attempts||0),
+      successes:existing.successes+(value.successes||0),
+      failures:existing.failures+(value.failures||0),
+      lastUsed:value.lastUsed||existing.lastUsed
+    };
   }
+  globalMemory=merged;
+  return createRepairMemory(merged);
 }
 
 export async function saveRepairMemory(root,memory){
   const target=path.join(root,MEMORY_FILE);
   await fs.mkdir(path.dirname(target),{recursive:true});
-  await fs.writeFile(target,JSON.stringify(createRepairMemory(memory),null,2)+"\n","utf8");
+  const normalized=createRepairMemory(memory);
+  globalMemory=normalized;
+  await fs.writeFile(target,JSON.stringify(normalized,null,2)+"\n","utf8");
   return target;
 }
