@@ -73,8 +73,33 @@ function inferBlueprint(command){
       constraints:requirements.constraints,
       acceptanceCriteria:requirements.acceptanceCriteria
     },
+    plan:buildPlan({version:"1.0",product:{name:slug(titleOf(text)),title:titleOf(text),kind:game?"game":api?"api":"web",description:text.slice(0,240)},roles:[...(requirements.auth.some(x=>x.includes("Admin"))?["admin"]:[]),...(requirements.auth.some(x=>x.includes("sign in"))?["user"]:[])],flows:requirements.userFlows,features:[...new Set([...Object.entries({chat,commerce,search}).filter(([,v])=>v).map(([k])=>k),...requirements.ui])],screens:requirements.ui.length?requirements.ui:game?["game"]:["main"],entities,api:requirements.api,authentication:requirements.auth,integrations:requirements.integrations,platform:requirements.platform,constraints:requirements.constraints,acceptanceCriteria:requirements.acceptanceCriteria}),
     assumptions:["Dependency-light by default","Runnable local project with health and capability endpoints","Local persistence unless a server database is explicitly required"]
   };
+}
+
+function buildPlan(projectBlueprint){
+  const b=projectBlueprint;
+  const steps=[];
+  const add=(id,title,description,dependsOn=[],type="implementation")=>steps.push({id,title,description,dependsOn,type,inputs:[],outputs:[],acceptanceCriteria:[]});
+  add("01-analyze","Validate requirements","Confirm the request, blueprint, scope, platform, roles, flows, and acceptance criteria.",[],"analysis");
+  if(b.roles?.length) add("02-auth","Set up access model","Implement the requested user/admin roles and authentication boundaries.",["01-analyze"],"foundation");
+  if(b.entities?.length) add("03-data","Define data model","Create the requested entities, fields, relationships, and persistence strategy.",["01-analyze"],"foundation");
+  add("04-shell","Build application shell","Create the navigation, responsive layout, entry screen, and shared UI structure.",["01-analyze"],"ui");
+  if(b.screens?.length) add("05-screens","Build requested screens","Implement the screens implied by the blueprint and connect them to the application shell.",["04-shell"],"ui");
+  if(b.flows?.length) add("06-flows","Implement user flows","Wire the requested user journeys and state transitions end-to-end.",["05-screens",...(b.entities?.length?["03-data"]:[])],"implementation");
+  if(b.api?.length) add("07-api","Implement API surface","Implement the requested API style and endpoints, including validation and error handling.",["03-data","06-flows"],"backend");
+  if(b.integrations?.length) add("08-integrations","Connect integrations","Add adapters/configuration for requested external integrations without hard-coding secrets.",["07-api"],"integration");
+  if(b.kind==="game") add("09-gameplay","Implement game mechanics","Implement the requested game type, controls, scoring/state, and restart behavior.",["04-shell"],"gameplay");
+  add("10-verify","Run acceptance tests","Verify the generated product against the blueprint, health endpoint, and requested acceptance criteria.",[...steps.slice(1).map(s=>s.id)],"verification");
+  add("11-repair","Repair failures","Analyze failed checks, make the smallest targeted fixes, and rerun affected tests.",["10-verify"],"repair");
+  add("12-preview","Prepare preview","Produce a runnable preview only after verification and repair pass.",["11-repair"],"delivery");
+  for(const step of steps){
+    step.inputs=[b.product?.title||"product blueprint"];
+    step.outputs=[step.id==="10-verify"?"verification report":step.id==="12-preview"?"preview artifact":"implementation changes"];
+    step.acceptanceCriteria=[...(b.acceptanceCriteria||[])];
+  }
+  return {version:"1.0",strategy:"dependency-aware",steps,entryStep:"01-analyze",finalStep:"12-preview"};
 }
 
 function escapeHtml(value){return String(value).replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]||ch));}
