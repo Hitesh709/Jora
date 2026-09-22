@@ -194,5 +194,6 @@ export default {
   buildArchitectureGenerationPlan,
   validateArchitectureGenerationPlan,
   applyArchitectureGeneration,
-  runArchitectureGenerationLoop
+  runArchitectureGenerationLoop,
+  persistArchitectureGenerationReport
 };
