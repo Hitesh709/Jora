@@ -1,0 +1,1 @@
+export function enforceAutonomousBudget({budget=0,estimated=0,spent=0,priority=0}={}){const remaining=budget-spent;const allowed=estimated<=remaining||priority>=90;return{version:"6.7",budget,spent,estimated,remaining,allowed,reason:allowed?"WITHIN_BUDGET":"BUDGET_EXCEEDED"}}
