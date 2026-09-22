@@ -64,6 +64,7 @@ export class ArchitecturePlanningEngine {
       architectureStyle:"modular-agentic-production-system",
       components,
       dataModel,
+      productModel:{platform,actors,features,entities,workflows},
       interfaces,
       dependencies,
       decisions,
