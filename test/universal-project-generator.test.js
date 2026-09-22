@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {generateUniversalProject} from "../src/core/universal-project-generator.js";
 import {executeImplementationPlan} from "../src/core/execution-engine.js";
 import {CodeGenerationEngine} from "../src/core/code-generation-engine.js";
+import {runProjectTests,testAndRepairGeneration} from "../src/core/test-repair-engine.js";
 
 const cases=[
   ["Build a restaurant booking system", "web", "bookings"],
@@ -141,4 +142,19 @@ test("Phase 1.5 compiles planner tasks into traceable code artifacts",()=>{
 test("Phase 1.5 engine rejects missing blueprint or plan",()=>{
   const engine=new CodeGenerationEngine();
   assert.throws(()=>engine.generate({}),/blueprint and plan are required/);
+});
+
+test("Phase 1.6 verifies generated artifacts and reports failures",()=>{
+  const project=generateUniversalProject("Build a REST API for inventory management");
+  const result=runProjectTests(project.files);
+  assert.equal(result.passed,true);
+  assert.equal(result.failures.length,0);
+});
+test("Phase 1.6 repairs a deliberately broken generated artifact",()=>{
+  const project=generateUniversalProject("Build a customer dashboard");
+  const broken={...project.generation,files:project.generation.files.map(file=>file.path==="src/index.js"?{...file,content:file.content.replace(/\\/health/g,"\\/broken-health")}:file)};
+  const result=testAndRepairGeneration(broken,{maxAttempts:2});
+  assert.equal(result.status,"REPAIRED");
+  assert.equal(result.final.passed,true);
+  assert.ok(result.attempts>=1);
 });
