@@ -145,3 +145,14 @@ export { createResourceSchedulerState, loadResourceScheduler, loadResourceSchedu
 export { createGovernanceState, loadGovernanceState, loadGovernanceHistory, saveGovernanceState, evaluateAutonomyAction, recordGovernanceDecision, authorizeAutonomyAction } from "./core/autonomy-governance-engine.js";
 export { createProjectIntelligenceState, loadProjectIntelligence, loadProjectIntelligenceHistory, saveProjectIntelligence, analyzeProjectSignals, buildProjectIntelligence, recordProjectIntelligence } from "./core/project-intelligence-engine.js";
 export { buildAutonomousCommandCenter } from "./core/autonomous-command-center-engine.js";
+
+export { createAgentWorkforce, loadAgentWorkforce, saveAgentWorkforce, registerAgent, selectAgents, assignAgentWork } from "./core/agent-workforce-engine.js";
+export { createExperienceMemory, loadExperienceMemory, saveExperienceMemory, learnFromOutcome, rankStrategies, recordLearning } from "./core/experience-learning-engine.js";
+export { evaluateStrategies, buildAdaptivePlan, validateAdaptivePlan } from "./core/adaptive-strategy-engine.js";
+export { assessAutonomousRisk, buildRiskGate } from "./core/autonomous-risk-engine.js";
+export { measureSelfImprovement, buildSelfImprovementCycle, validateSelfImprovementCycle } from "./core/self-improvement-engine.js";
+export { normalizeIntegration, buildIntegrationPlan, validateIntegrationPlan } from "./core/integration-fabric-engine.js";
+export { createSimulationScenario, runSimulation, gateSimulation } from "./core/autonomous-simulation-engine.js";
+export { collectConsensus, requireEvidenceConsensus } from "./core/consensus-engine.js";
+export { buildAutonomousRoadmap, updateRoadmap } from "./core/autonomous-roadmap-engine.js";
+export { buildAutonomousEnterpriseState } from "./core/autonomous-enterprise-engine.js";
