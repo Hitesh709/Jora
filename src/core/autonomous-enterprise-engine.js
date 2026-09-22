@@ -1,0 +1,7 @@
+import {buildAutonomousCommandCenter} from "./autonomous-command-center-engine.js";
+import {buildAutonomousRoadmap} from "./autonomous-roadmap-engine.js";
+import {buildRiskGate} from "./autonomous-risk-engine.js";
+import {buildSelfImprovementCycle} from "./self-improvement-engine.js";
+import {requireEvidenceConsensus} from "./consensus-engine.js";
+export async function buildAutonomousEnterpriseState(root,input={}){const center=await buildAutonomousCommandCenter(root);const roadmap=buildAutonomousRoadmap({objective:input.objective||"operate and improve projects",signals:center.intelligence,backlog:input.backlog||[],capacity:center.resources.workers||1});const risk=buildRiskGate(input.risk||{verificationPassed:false,rollbackAvailable:false});const consensus=requireEvidenceConsensus(input.consensus||{votes:[],evidence:[]});const improvement=buildSelfImprovementCycle({objective:input.objective||"improve",evidence:input.evidence||{},candidates:input.candidates||[],before:input.before||{},after:input.after||{}});return{version:"6.0",status:"AUTONOMOUS_ENTERPRISE_READY",commandCenter:center,roadmap,risk,consensus,improvement}}
+export default{buildAutonomousEnterpriseState};
