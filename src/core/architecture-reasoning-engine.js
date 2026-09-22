@@ -166,6 +166,8 @@ export async function applyArchitectureTransaction(root, plan, {runTests} = {}) 
     if (!applied.length) throw new Error("no architecture patch preconditions were satisfied");
 
     if (typeof runTests === "function") {
+
+    if (typeof runTests === "function") {
     }
 
     if (!applied.length) throw new Error("no architecture patch preconditions were satisfied");\n\n    if (typeof runTests === "function") {
