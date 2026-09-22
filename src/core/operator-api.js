@@ -7,6 +7,7 @@ import {fork} from "node:child_process";
 import {AccessController} from "./access-controller.js";
 import {WebSearchProvider} from "./web-search-provider.js";
 import {withModelSelection} from "./multi-model-gateway.js";
+import {IntentUnderstandingEngine} from "./intent-understanding-engine.js";
 
 function json(res,status,payload,headers={}) {
   const body=JSON.stringify(payload);
@@ -72,7 +73,8 @@ export class OperatorApi {
     autonomousSoftwareFactory=null,
     executionPlatform=null,
     searchProvider=null,
-    modelGateway=null
+    modelGateway=null,
+    intentUnderstanding=null
   }={}) {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
@@ -104,6 +106,7 @@ export class OperatorApi {
     this.executionPlatform=executionPlatform;
     this.searchProvider=searchProvider||new WebSearchProvider();
     this.modelGateway=modelGateway;
+    this.intentUnderstanding=intentUnderstanding||new IntentUnderstandingEngine();
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -342,11 +345,19 @@ export class OperatorApi {
               .slice(-24)
               .map(item=>({role:item.role,content:item.content.slice(0,12000)}))
           : [];
+        const understanding=this.intentUnderstanding?.understand({
+          input:body.message.trim(),
+          messages:conversation,
+          context:body.context||{}
+        })||null;
+        const languageName=understanding?.language?.name||"English";
+        const normalizedIntent=understanding?.normalizedText||body.message.trim();
         const complete=()=>this.modelGateway.complete({
           messages:[
             {
               role:"system",
-              content:"You are Jora. Behave like a high-quality conversational AI assistant: understand the user's intent and context before acting, answer ordinary questions directly and clearly, ask a focused clarification only when it is genuinely necessary, and do not turn every conversation into a software build. For software requests, explain the plan briefly and then perform the requested engineering work. If web research is used, synthesize the answer into a clean response; never dump search-result lists, raw URLs, snippets, or source metadata unless the user explicitly asks for sources."
+              content:"You are Jora, a high-quality conversational AI assistant and autonomous software engineer. Understand the user's intent, language, and conversation context before acting. You support multilingual conversations and mixed-language input, including Gujarati written with English/Latin letters (Roman Gujarati), Hindi written with English letters, and native scripts. Respond in the user's language/style when practical; preserve technical terms in English when that improves clarity. Answer ordinary questions directly and clearly. Ask one focused clarification only when genuinely necessary. Do not turn every conversation into a software build. For software requests, understand the requested product, behavior, constraints, and previous-turn references before engineering. If web research is used, synthesize the answer; never dump search-result lists, raw URLs, snippets, or source metadata unless the user explicitly asks for sources.\\n\\nJora intent analysis:\\n- detected language: "+languageName+"\\n- action: "+String(understanding?.action||"answer")+"\\n- domain: "+String(understanding?.domain||"general")+"\\n- confidence: "+String(understanding?.confidence??0)+"\\n- normalized request: "+normalizedIntent+"\\n- conversation references: "+JSON.stringify(understanding?.context?.references||[])+
+              "\\nUse this as routing/context evidence, not as a replacement for the user's actual words."
             },
             ...conversation,
             ...(conversation.some(item=>item.role==="user"&&item.content.trim()===body.message.trim())
@@ -378,7 +389,8 @@ export class OperatorApi {
           status:"CHAT_COMPLETED",
           message,
           model:response?.model??(requestedProvider||null),
-          provider:useDefault ? (response?.model??gatewayStatus.defaultModel??null) : selectedProvider
+          provider:useDefault ? (response?.model??gatewayStatus.defaultModel??null) : selectedProvider,
+          understanding
         });
       } catch(error) {
         return json(res,502,{accepted:false,status:"CHAT_FAILED",error:error.message,provider:selectedProvider||null});
@@ -387,6 +399,17 @@ export class OperatorApi {
 
 
     if(method==="POST" && path==="/v1/understand") {
+      const body=await readBody(req,this.maxBodyBytes);
+      if(typeof body.input!=="string" || !body.input.trim()) return json(res,400,{error:"input is required"});
+      const understanding=this.intentUnderstanding?.understand({
+        input:body.input.trim(),
+        messages:Array.isArray(body.messages)?body.messages:[],
+        context:body.context||{}
+      });
+      return json(res,200,{accepted:true,status:"UNDERSTOOD",understanding});
+    }
+
+    if(method==="POST" && path==="/v1/product-understand") {
       if(!this.productUnderstanding) return json(res,503,{error:"product_understanding_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
       if(typeof body.input!=="string" || !body.input.trim()) return json(res,400,{error:"input is required"});
