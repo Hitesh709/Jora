@@ -2,6 +2,7 @@ import {generateUniversalProject} from "./universal-project-generator.js";
 import {executeImplementationPlan} from "./execution-engine.js";
 import {testAndRepairGeneration} from "./test-repair-engine.js";
 import {previewAndPromote} from "./preview-promotion-engine.js";
+import {materializeGeneration,runWorkspaceTests} from "./workspace-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"2.0",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -28,6 +29,12 @@ export function runAutonomousProject(command,{maxRepairAttempts=2}={}){
     if(execution.status!=="COMPLETED") throw new Error(execution.error||"execution failed");
     stage(state,"execution","COMPLETED",{completedSteps:execution.completedSteps.length});
 
+    stage(state,"workspace","RUNNING");
+    const workspace=await materializeGeneration(project.generation);
+    const workspaceTests=await runWorkspaceTests(workspace.root);
+    stage(state,"workspace",workspaceTests.passed?"COMPLETED":"FAILED",{root:workspace.root});
+    if(!workspaceTests.passed) throw new Error("workspace tests failed: "+workspaceTests.stderr);
+
     stage(state,"test-repair","RUNNING");
     const verification=testAndRepairGeneration(project.generation,{maxAttempts:maxRepairAttempts});
     stage(state,"test-repair",verification.status,{attempts:verification.attempts});
@@ -37,6 +44,7 @@ export function runAutonomousProject(command,{maxRepairAttempts=2}={}){
     stage(state,"preview-promotion",delivery.promotion.status,{preview:delivery.preview.status});
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
+    state.workspace=workspace;
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
