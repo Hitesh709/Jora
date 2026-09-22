@@ -62,3 +62,19 @@ test("Universal Builder extracts Phase 1 requirements from natural-language requ
   assert.ok(r.integrations.includes("email delivery"));
   assert.ok(r.acceptanceCriteria.length>=2);
 });
+
+test("Universal Builder emits a complete structured Phase 1 project blueprint",()=>{
+  const project=generateUniversalProject("Build a mobile booking app with login, admin dashboard, REST API, Razorpay and email notifications");
+  const b=project.blueprint.projectBlueprint;
+  assert.equal(b.version,"1.0");
+  assert.equal(b.product.kind,"web");
+  assert.ok(b.product.title.includes("mobile booking app"));
+  assert.ok(b.flows.includes("book/reserve"));
+  assert.ok(b.screens.includes("dashboard"));
+  assert.ok(b.entities.some(x=>x.name==="bookings"));
+  assert.ok(b.api.includes("REST API"));
+  assert.ok(b.authentication.includes("Users can sign in"));
+  assert.ok(b.integrations.includes("Razorpay"));
+  assert.ok(b.platform.includes("mobile"));
+  assert.ok(b.acceptanceCriteria.length>=2);
+});
