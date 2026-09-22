@@ -285,7 +285,7 @@ function evaluateArithmetic(input){
 function simpleAnswer(question){
   const q=clean(question),l=q.toLowerCase();
   try{
-    const arithmetic=evaluateArithmetic(q.replace(/^(what is|calculate|solve|compute)\s+/i,""));
+    const arithmetic=evaluateArithmetic(q.replace(/^(what is|calculate|solve|compute)\s+/i,"").replace(/[?]+$/,"").trim());
     if(arithmetic!==null)return "The answer is "+String(Number(arithmetic.toPrecision(12)))+".";
   }catch{}
   if(/^(who|what)\s+(are|is)\s+you\\??$/i.test(q)) return "I’m Jora, an autonomous software factory. I can answer questions, research information, and build, test and repair software.";
