@@ -55,6 +55,19 @@ export class WorkspaceRepository {
     this.candidateBase=await this.git.currentCommit();
     return {branch,base:this.candidateBase};
   }
+  async prepareFreshCandidate(id=Date.now(),base=this.baseBranch||"HEAD") {
+    const candidate=await this.prepareCandidate(id,base);
+    // A new product must not inherit the previous promoted application's files.
+    // Keep Git history/branch isolation, but start the candidate filesystem empty.
+    const tracked=await this.git.runner.run("git",["ls-files"],{cwd:this.root});
+    if(tracked.ok) {
+      const files=String(tracked.stdout||"").split("\n").map(x=>x.trim()).filter(Boolean);
+      if(files.length) await this.git.runner.run("git",["rm","-r","--ignore-unmatch","--",...files],{cwd:this.root});
+    }
+    await this.git.runner.run("git",["clean","-fd"],{cwd:this.root});
+    return {...candidate,fresh:true};
+  }
+
   async write(relativePath,content) {
     await this.ensureReady();
     const target=this.safePath(relativePath);
