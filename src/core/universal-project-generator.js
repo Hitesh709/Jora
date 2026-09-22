@@ -70,7 +70,7 @@ function inferBlueprint(command){
   const requirements=inferRequirements(text);
   const game=/\b(game|arcade|racing|racer|platformer|shooter|pong|snake|snack|snak|tetris|chess|card game|memory game|puzzle game)\b/.test(lower);
   const rawGameType=/\b(card game|memory game|chess|snake|snack|snak|tetris|pong|racing|racer|platformer|shooter|shooting game|space shooter|runner|dodge|puzzle game)\b/.exec(lower)?.[1]?.replace(/\s+/g,"-")||"arcade";
-  const gameAliases={snack:"snake",snak:"snake",snakes:"snake",racer:"racing","shooting-game":"shooter","space-shooter":"shooter"};
+  const gameAliases={snack:"snake",snak:"snake",snakes:"snake",racer:"racing"};
   const gameType=gameAliases[rawGameType]||rawGameType;
   const api=/\b(api|backend|server|service|rest|graphql|webhook|endpoint)\b/.test(lower);
   const data=/\b(crud|database|data|admin|dashboard|crm|inventory|loan|customer|employee|booking|reservation|order|product|user|task|todo|project|invoice|expense|finance|school|hospital)\b/.test(lower);
