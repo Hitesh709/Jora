@@ -39,7 +39,8 @@ function titleOf(command){
 }
 
 function inferRequirements(command){
-  const text=clean(command), lower=text.toLowerCase();
+  const normalized=normalizeGameIntent(command);
+  const text=clean(normalized.normalized), lower=text.toLowerCase();
   const has=(re)=>re.test(lower);
   const pick=(patterns)=>patterns.filter(([re])=>has(re)).map(([,value])=>value);
   const r={userFlows:[],ui:[],data:[],api:[],auth:[],integrations:[],platform:[],constraints:[],acceptanceCriteria:[]};
@@ -64,7 +65,8 @@ function inferRequirements(command){
 }
 
 function inferBlueprint(command){
-  const text=clean(command), lower=text.toLowerCase();
+  const normalized=normalizeGameIntent(command);
+  const text=clean(normalized.normalized), lower=text.toLowerCase();
   const requirements=inferRequirements(text);
   const game=/\b(game|arcade|racing|racer|platformer|shooter|pong|snake|tetris|chess|card game|memory game|puzzle game)\b/.test(lower);
   const gameType=/\b(card game|memory game|chess|snake|tetris|pong|racing|racer|platformer|shooter|shooting game|space shooter|runner|dodge|puzzle game)\b/.exec(lower)?.[1]?.replace(/\s+/g,"-")||"arcade";
@@ -109,6 +111,8 @@ function inferBlueprint(command){
       acceptanceCriteria:requirements.acceptanceCriteria
     },
     plan:buildPlan({version:"1.0",product:{name:slug(titleOf(text)),title:titleOf(text),kind:game?"game":api?"api":"web",description:text.slice(0,240)},roles:[...(requirements.auth.some(x=>x.includes("Admin"))?["admin"]:[]),...(requirements.auth.some(x=>x.includes("sign in"))?["user"]:[])],flows:requirements.userFlows,features:[...new Set([...Object.entries({chat,commerce,search}).filter(([,v])=>v).map(([k])=>k),...requirements.ui])],screens:requirements.ui.length?requirements.ui:game?["game"]:["main"],entities,api:requirements.api,authentication:requirements.auth,integrations:requirements.integrations,platform:requirements.platform,constraints:requirements.constraints,acceptanceCriteria:requirements.acceptanceCriteria}),
+    corrections:normalized.corrections,
+    originalRequest:normalized.original,
     assumptions:["Dependency-light by default","Runnable local project with health and capability endpoints","Local persistence unless a server database is explicitly required"]
   };
 }
