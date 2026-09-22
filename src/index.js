@@ -137,3 +137,5 @@ export { runAutonomousProjectWorker } from "./core/autonomous-orchestrator.js";
 export { loadWorkerState, loadWorkerHistory, saveWorkerState, createWorkerState, runAutonomousWorker, validateWorkerState } from "./core/autonomous-project-worker.js";
 
 export { createDeploymentState, loadDeploymentState, loadDeploymentHistory, saveDeploymentState, validateDeploymentCandidate, buildDeploymentPlan, runAutonomousDeployment, rollbackAutonomousDeployment, shouldRollback } from "./core/autonomous-deployment-engine.js";
+
+export { createProductionMonitorState, loadProductionMonitorState, loadProductionMonitorHistory, saveProductionMonitorState, validateMonitorConfig, httpProbe, buildProductionAlert, runProductionMonitorCycle, runProductionMonitoringLoop, createProductionIncidentManager } from "./core/production-monitoring-engine.js";
