@@ -31,3 +31,21 @@ test("Universal Builder creates a playable game artifact without game-name-speci
   assert.match(html,/pointermove/);
   assert.match(project.files.find(file=>file.path==="src/index.js").content,/jora-universal-builder/);
 });
+
+
+test("Universal Builder selects game-specific mechanics instead of one generic game for different requests",()=>{
+  const cases=[
+    ["Build a snake game","snake",/function tick\(\)/],
+    ["Build a racing game","racing",/Distance:/],
+    ["Build a space shooter game","space-shooter",/shots/],
+    ["Build a platformer game","platformer",/vy=-12/]
+  ];
+  for(const [command,type,marker] of cases){
+    const project=generateUniversalProject(command);
+    assert.equal(project.blueprint.kind,"game",command);
+    assert.equal(project.blueprint.gameType,type,command);
+    const html=project.files.find(file=>file.path==="src/index.html").content;
+    assert.match(html,marker,command);
+    assert.match(html,/canvas id="game"/,command);
+  }
+});
