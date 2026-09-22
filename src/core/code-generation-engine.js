@@ -19,6 +19,7 @@ export function generateTaskArtifacts(blueprint,plan,baseFiles=[]){
 }
 
 export function compilePlanToCode(blueprint,plan,baseFiles=[]){
+  const steps=Array.isArray(plan.steps)?plan.steps:[{id:"PLAN",title:"Implement task",type:"implementation"}];
   const files=generateTaskArtifacts(blueprint,plan,baseFiles);
   return {strategy:"task-to-code",version:"1.0",files,taskMap:steps.map(step=>({taskId:step.id,title:step.title,type:step.type,outputs:files.filter(f=>f.taskId===step.id).map(f=>f.path),status:"generated"}))};
 }
