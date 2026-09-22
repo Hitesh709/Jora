@@ -1,7 +1,7 @@
 export function createProjectRuntimeVerifier({sandbox,port=4173,startArgs=["run","start","--","--host","0.0.0.0","--port",String(port)],timeoutMs=15000}={}) {
   if(!sandbox) throw new Error("sandbox is required");
 
-  const fetchImpl=globalThis.fetch;
+  const configuredFetch=arguments[0]?.fetchImpl ?? null;
 
   return async ({cwd}={})=>{
     if(!cwd) return {ok:false,status:null,error:"Project workspace is required"};
