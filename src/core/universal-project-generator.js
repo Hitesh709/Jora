@@ -34,7 +34,8 @@ function inferRequirements(command){
 function inferBlueprint(command){
   const text=clean(command), lower=text.toLowerCase();
   const requirements=inferRequirements(text);
-  const game=/\b(game|arcade|racing|racer|platformer|shooter|pong|snake|tetris|chess|card game|memory game|puzzle game)\b/.test(lower);\n  const gameType=/\b(card game|memory game|chess|snake|tetris|pong|racing|racer|platformer|shooter|shooting game|space shooter|runner|dodge|puzzle game)\b/.exec(lower)?.[1]?.replace(/\s+/g,"-")||"arcade";
+  const game=/\b(game|arcade|racing|racer|platformer|shooter|pong|snake|tetris|chess|card game|memory game|puzzle game)\b/.test(lower);
+  const gameType=/\b(card game|memory game|chess|snake|tetris|pong|racing|racer|platformer|shooter|shooting game|space shooter|runner|dodge|puzzle game)\b/.exec(lower)?.[1]?.replace(/\s+/g,"-")||"arcade";
   const api=/\b(api|backend|server|service|rest|graphql|webhook|endpoint)\b/.test(lower);
   const data=/\b(crud|database|data|admin|dashboard|crm|inventory|loan|customer|employee|booking|reservation|order|product|user|task|todo|project|invoice|expense|finance|school|hospital)\b/.test(lower);
   const chat=/\b(chat|messag|conversation|support desk|inbox)\b/.test(lower);
