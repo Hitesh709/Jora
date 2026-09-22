@@ -15,6 +15,7 @@ import {runArchitectureReasoningLoop} from "./architecture-reasoning-engine.js";
 import {runArchitectureGenerationLoop,persistArchitectureGenerationReport} from "./architecture-generation-engine.js";
 import {runFeatureEvolutionLoop,persistFeatureEvolutionReport} from "./feature-evolution-engine.js";
 import {runFeatureImplementationLoop,persistFeatureImplementationReport} from "./feature-implementation-engine.js";
+import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./feature-integration-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"3.6",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -105,6 +106,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     let architectureGeneration=null;
     let featureEvolution=null;
     let featureImplementation=null;
+    let featureIntegration=null;
 
     codeUnderstanding=await collectMultiFileCodeUnderstanding(workspace.root,{
       workspaceTests,
@@ -225,6 +227,34 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       if(preview.status!=="PREVIEW_RUNNING")throw new Error("preview restart after feature analysis failed");
     }
 
+    stage(state,"feature-integration","RUNNING");
+    await stopWorkspacePreview(preview);
+    featureIntegration=await runFeatureIntegrationLoop(workspace.root,{
+      command,
+      blueprint:project.blueprint.projectBlueprint,
+      desiredFeatures:project.blueprint.projectBlueprint.features||[],
+      runTests:runWorkspaceTests
+    });
+    await persistFeatureIntegrationReport(workspace.root,featureIntegration);
+    stage(state,"feature-integration",featureIntegration.status,{
+      integrated:featureIntegration.integrated,
+      features:featureIntegration.inspection?.features||[],
+      patched:featureIntegration.result?.patched?.length||0,
+      created:featureIntegration.result?.created?.length||0
+    });
+    if(featureIntegration.status==="ROLLED_BACK"||featureIntegration.status==="REJECTED"){
+      throw new Error("feature integration failed: "+(featureIntegration.result?.error||"integration was rejected"));
+    }
+    if(featureIntegration.integrated){
+      workspaceTests=await runWorkspaceTests(workspace.root);
+      if(!workspaceTests.passed)throw new Error("workspace tests failed after feature integration: "+workspaceTests.stderr);
+    }
+    preview=await startWorkspacePreview(workspace.root);
+    if(preview.status!=="PREVIEW_RUNNING")throw new Error("preview restart after feature integration failed");
+    browser=await verifyWorkspacePreview(preview.url);
+    if(browser.status!=="BROWSER_VERIFIED")throw new Error("browser verification failed after feature integration: "+(browser.reason||browser.error||"verification failed"));
+    interactions=await runInteractionTests(preview.url,{tests:scenarioPlan.scenarios});
+
     stage(state,"architecture-generation","RUNNING");
     architectureGeneration=await runArchitectureGenerationLoop(workspace.root,{
       blueprint:project.blueprint.projectBlueprint,
@@ -308,7 +338,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     });
 
     stage(state,"preview-promotion","RUNNING");
-    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation},{});
+    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,featureIntegration},{});
 
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
@@ -318,7 +348,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,engineeringIntelligence};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,featureIntegration,engineeringIntelligence};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
