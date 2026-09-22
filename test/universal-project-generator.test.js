@@ -268,3 +268,45 @@ test("Phase 2.8 creates targeted browser repair patches from failed selectors",a
   assert.ok(repair.patches.some(p=>p.path==="src/index.html"));
   assert.ok(repair.patches.some(p=>/type="search"/.test(p.content)));
 });
+
+
+test("Phase 2.9 learns successful repair strategies and ranks them first",async()=>{
+  const {
+    createRepairMemory,
+    learnFromRepairCycle,
+    rankRepairStrategies
+  }=await import("../src/core/repair-learning-engine.js");
+
+  let memory=createRepairMemory();
+  memory=learnFromRepairCycle(memory,{
+    patches:[{reason:"Restore the search control required by the generated search scenario."}],
+    applied:[{applied:true}],
+    repaired:true,
+    failedChecks:0
+  });
+  memory=learnFromRepairCycle(memory,{
+    patches:[{reason:"Restore the search control required by the generated search scenario."}],
+    applied:[{applied:true}],
+    repaired:true,
+    failedChecks:0
+  });
+
+  const patches=rankRepairStrategies(memory,[
+    {reason:"Unknown repair"},
+    {reason:"Restore the search control required by the generated search scenario."}
+  ]);
+  assert.equal(memory.cycles,2);
+  assert.equal(memory.strategies["restore-the-search-control-required-by-the-generated-search-scenario"]?.successes,2);
+  assert.match(patches[0].reason,/search control/i);
+});
+
+test("Phase 2.9 repair memory can be persisted and reloaded",async()=>{
+  const {createRepairMemory,saveRepairMemory,loadRepairMemory}=await import("../src/core/repair-learning-engine.js");
+  const {createWorkspace}=await import("../src/core/workspace-engine.js");
+  const ws=await createWorkspace("jora-learning-test");
+  const memory=createRepairMemory({cycles:4,outcomes:[{cycle:4,repaired:true}],strategies:{}});
+  await saveRepairMemory(ws.root,memory);
+  const loaded=await loadRepairMemory(ws.root);
+  assert.equal(loaded.cycles,4);
+  assert.equal(loaded.outcomes.length,1);
+});
