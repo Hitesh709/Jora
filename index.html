@@ -124,15 +124,15 @@ let mode="agent";
 function base(){return apiInput.value.replace(/\/$/,"")}
 function headers(){return {"Content-Type":"application/json"}}
 async function get(p){const r=await fetch(base()+p,{headers:headers(),cache:"no-store"});if(!r.ok){const e=new Error(r.status+" "+(await r.text()));e.status=r.status;throw e}return r.json()}
-function isEngineeringRequest(text){
+function isEngineeringRequest(text,understanding=null){
   const lower=String(text||"").toLowerCase().trim();
   if(!lower)return false;
-  // Agent mode should converse by default. Only enter the autonomous build
-  // pipeline when the user clearly asks Jora to perform an engineering action.
-  const questionLike=/^(what|why|how|when|where|who|which|can you explain|tell me|could you explain|should i|is it|are there|do you know|what's|whats)\b/i.test(lower);
-  if(questionLike && !/^(can you|could you|please)\s+(build|create|make|develop|implement|fix|debug|test|deploy|ship|launch)\b/i.test(lower)) return false;
-  const imperative=/^(build|create|make|develop|implement|code|fix|debug|test|deploy|ship|launch|modify|update|refactor|add|remove|change|write|generate)\b/i.test(lower);
-  const directAction=/\b(build|create|make|develop|implement|code|fix|debug|test|deploy|ship|launch|modify|update|refactor|add|remove|change|generate)\b[\s\S]*(app|application|website|web app|api|backend|frontend|database|software|project|code|feature|game)/i.test(lower);
+  if(understanding?.action && ["build","modify","debug","test","deploy"].includes(understanding.action)) return true;
+  // Local fallback keeps chat conversational when the understanding endpoint is unavailable.
+  const questionLike=/^(what|why|how|when|where|who|which|can you explain|tell me|could you explain|should i|is it|are there|do you know|what's|whats|shu|kem|kyare|kya|kon|kai)\b/i.test(lower);
+  if(questionLike && !/^(can you|could you|please|shu tame|tame)\s+(build|create|make|develop|implement|fix|debug|test|deploy|ship|launch|banavo|banavvu|karo)\b/i.test(lower)) return false;
+  const imperative=/^(build|create|make|develop|implement|code|fix|debug|test|deploy|ship|launch|modify|update|refactor|add|remove|change|write|generate|banavo|banavvu|karo)\b/i.test(lower);
+  const directAction=/\b(build|create|make|develop|implement|code|fix|debug|test|deploy|ship|launch|modify|update|refactor|add|remove|change|generate|banavvu|banavo|karo)\b[\s\S]*(app|application|website|web app|api|backend|frontend|database|software|project|code|feature|game|applic|game)/i.test(lower);
   return imperative || directAction;
 }
 function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",coding:"Describe the coding task you want Jora to implement…",build:"Describe the product you want built…"}[mode]}
@@ -150,11 +150,24 @@ function removeLastMessage(who){
 function restoreChat(){try{chatHistory=JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY)||"[]");if(!Array.isArray(chatHistory))chatHistory=[]}catch{chatHistory=[]}const box=document.getElementById("messages");box.innerHTML="";if(!chatHistory.length){renderMessage("Jora is ready. Ask me anything, or tell me what you want built.","system",false);return}chatHistory.slice(-200).forEach(x=>renderMessage(x.text,x.who,false))}
 function keySend(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendPrompt()}}
 async function sendPrompt(){
-  const command=promptInput.value.trim();if(!command)return;
+  let command=promptInput.value.trim();if(!command)return;
   addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage("Working…","system");
   try{
+    let understanding=null;
+    try{
+      const u=await fetch(base()+"/v1/understand",{method:"POST",headers:headers(),body:JSON.stringify({
+        input:command,
+        messages:chatHistory.slice(-24).map(x=>({role:x.who==="user"?"user":"assistant",content:x.text})),
+        context:{mode}
+      })});
+      const ud=await u.json().catch(()=>({}));
+      if(u.ok) understanding=ud.understanding||null;
+    }catch{}
     const modifyingExisting=workspaceFiles.length>0 && isExistingProjectChange(command);
-    const engineeringBuild=(mode==="coding"||mode==="build"||(mode==="agent"&&isEngineeringRequest(command))||modifyingExisting);
+    const engineeringBuild=(mode==="coding"||mode==="build"||(mode==="agent"&&isEngineeringRequest(command,understanding))||modifyingExisting);
+    const executionCommand=understanding?.normalizedText && ["build","modify","debug","test","deploy"].includes(understanding.action)
+      ? understanding.normalizedText
+      : command;
 
     if(engineeringBuild){
       const folderReady=await chooseDeviceFolderBeforeBuild();
