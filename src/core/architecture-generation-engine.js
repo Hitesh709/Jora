@@ -44,22 +44,22 @@ function moduleSpec(kind) {
     api: {
       path: "src/modules/api-contract.js",
       role: "api-contract",
-      content: "export const apiContract = {\\n  version: \\"1.0\\",\\n  health: \\"/health\\",\\n  capabilities: \\"/api/capabilities\\"\\n};\\n"
+      content: "export const apiContract = {\n  version: \"1.0\",\n  health: \"/health\",\n  capabilities: \"/api/capabilities\"\n};\n"
     },
     data: {
       path: "src/modules/data-contract.js",
       role: "data-contract",
-      content: "export const dataContract = {\\n  version: \\"1.0\\",\\n  entities: []\\n};\\n"
+      content: "export const dataContract = {\n  version: \"1.0\",\n  entities: []\n};\n"
     },
     integrations: {
       path: "src/modules/integrations.js",
       role: "integration-contract",
-      content: "export const integrationContract = {\\n  version: \\"1.0\\",\\n  providers: []\\n};\\n"
+      content: "export const integrationContract = {\n  version: \"1.0\",\n  providers: []\n};\n"
     },
     game: {
       path: "src/modules/gameplay.js",
       role: "gameplay-module",
-      content: "export const gameplayContract = {\\n  version: \\"1.0\\",\\n  mechanics: []\\n};\\n"
+      content: "export const gameplayContract = {\n  version: \"1.0\",\n  mechanics: []\n};\n"
     }
   };
   return specs[kind];
@@ -88,7 +88,7 @@ export async function inspectArchitecture(root, blueprint = {}) {
   for (const file of source.slice(0,80)) {
     try {
       const content = await fs.readFile(path.join(root,file),"utf8");
-      if (content.split("\\n").length > 180) oversized.push({file,lines:content.split("\\n").length});
+      if (content.split("\n").length > 180) oversized.push({file,lines:content.split("\n").length});
     } catch {}
   }
   return {version:VERSION,signals,files,missing,oversized};
