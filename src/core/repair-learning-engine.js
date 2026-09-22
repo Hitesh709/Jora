@@ -62,6 +62,7 @@ export async function loadRepairMemory(root){
     local=createRepairMemory(JSON.parse(raw));
   }catch{}
   if(!globalMemory) globalMemory=createRepairMemory();
+  if(globalMemory.cycles===local.cycles && JSON.stringify(globalMemory.outcomes)===JSON.stringify(local.outcomes) && JSON.stringify(globalMemory.strategies)===JSON.stringify(local.strategies)) return local;
   const merged=createRepairMemory({
     cycles:globalMemory.cycles+local.cycles,
     outcomes:[...globalMemory.outcomes,...local.outcomes].slice(-50),
