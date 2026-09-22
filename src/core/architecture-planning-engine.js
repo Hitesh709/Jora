@@ -63,7 +63,7 @@ export class ArchitecturePlanningEngine {
       objective:spec.intent?.summary||goals[0]||"Product build",
       architectureStyle:"modular-agentic-production-system",
       components,
-      dataModel,\n      productModel:{platform,actors,features,entities,workflows},
+      dataModel,
       interfaces,
       dependencies,
       decisions,
