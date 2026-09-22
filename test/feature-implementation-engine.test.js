@@ -4,7 +4,7 @@ import {readFile} from "node:fs/promises";
 import {createWorkspace} from "../src/core/workspace-engine.js";
 import {runFeatureImplementationLoop,buildFeatureImplementationPlan,validateFeatureImplementationPlan,applyFeatureImplementation} from "../src/core/feature-implementation-engine.js";
 
-async function seed(root,html){await fsWrite(root+"/src/index.html",html)}
+async function seed(root,html){const fs=await import("node:fs/promises");await fs.mkdir(root+"/src",{recursive:true});await fsWrite(root+"/src/index.html",html)}
 async function fsWrite(p,c){const fs=await import("node:fs/promises");await fs.writeFile(p,c,"utf8")}
 
 test("Phase 3.6 implements requested UI behavior",async()=>{
