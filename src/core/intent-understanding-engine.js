@@ -29,6 +29,25 @@ const gujaratiRoman = [
   ["to", "then"],["j", ""],["ma", "in"],["par", "on"],["mate", "for"]
 ];
 
+const gujaratiNative = [
+  ["મારે", "I want"],["મને", "I need"],["મારી", "my"],["મારું", "my"],["મારો", "my"],
+  ["એક", "a"],["બનાવવું", "build"],["બનાવવો", "build"],["બનાવો", "build"],["બનાવી", "build"],
+  ["કરો", "do"],["કરવું", "do"],["સમજાવો", "explain"],["સમજાવું", "explain"],
+  ["જોઈએ", "need"],["જોઈએ છે", "need"],["શું તમે", "can you"],["શું", "what"],
+  ["કેમ", "why"],["કેવી રીતે", "how"],["ક્યારે", "when"],["ક્યાં", "where"],["કોણ", "who"],
+  ["આમાં", "in this"],["આ", "this"],["એમાં", "in it"],["એ", "that"],["પછી", "then"],
+  ["પહેલા", "first"],["હવે", "now"],["અને", "and"],["પણ", "also"],["નથી", "not"],
+  ["છે", ""],["છું", ""],["છો", ""],["ચૂ", ""]
+];
+
+const hindiNative = [
+  ["मुझे", "I need"],["मेरा", "my"],["मेरी", "my"],["मेरे", "my"],["एक", "a"],
+  ["बनाना है", "I want to build"],["बनाओ", "build"],["करो", "do"],["समझाओ", "explain"],
+  ["क्या", "what"],["क्यों", "why"],["कैसे", "how"],["कब", "when"],["कहाँ", "where"],
+  ["कौन", "who"],["यह", "this"],["इसमें", "in this"],["फिर", "then"],["अभी", "now"],
+  ["और", "and"],["भी", "also"],["नहीं", "not"],["चाहिए", "need"],["है", ""]
+];
+
 const hindiRoman = [
   ["mujhe", "I need"],["mujhko", "I need"],["mera", "my"],["meri", "my"],["mere", "my"],
   ["banana hai", "I want to build"],["banao", "build"],["banado", "build"],["karo", "do"],
@@ -84,7 +103,9 @@ function detectLanguage(text) {
 function normalizeUserText(input, language) {
   let value = normalizePunctuation(input);
   if (language.code === "gu-Latn") value = phraseReplace(value, gujaratiRoman);
+  else if (language.code === "gu") value = phraseReplace(value, gujaratiNative);
   else if (language.code === "hi-Latn") value = phraseReplace(value, hindiRoman);
+  else if (language.code === "hi") value = phraseReplace(value, hindiNative);
   return clean(value);
 }
 
