@@ -19,7 +19,7 @@ import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./featu
 import {runExistingProjectModificationLoop} from "./existing-project-modification-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"3.8",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"3.9",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
