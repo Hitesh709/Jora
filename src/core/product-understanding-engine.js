@@ -15,7 +15,7 @@ export class ProductUnderstandingEngine {
     const aliases={snack:"snake",sanke:"snake",snaek:"snake",pion:"pong",tetriz:"tetris",tetirs:"tetris"};
     for(const [from,to] of Object.entries(aliases)){
       const pattern=new RegExp("\\b"+from+"\\b","ig");
-      if(pattern.test(normalized) && /\\bgame\\b/i.test(normalized)){
+      if(pattern.test(normalized) && /\bgame\b/i.test(normalized)){
         normalized=normalized.replace(pattern,to);
         corrections.push({from,to,reason:"likely typo in game name"});
         break;
