@@ -1119,6 +1119,12 @@ export class OperatorApi {
         return json(res,400,{error:"command is required"});
       }
       const requestId=randomUUID();
+      const requestUnderstanding=this.intentUnderstanding?.understand({
+        input:body.command.trim(),
+        messages:Array.isArray(body.messages)?body.messages:[],
+        context:body.context||{}
+      })||null;
+      const normalizedCommand=requestUnderstanding?.normalizedText||body.command.trim();
       const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "jora";
       if(selectedProvider && selectedProvider!=="jora") {
         return json(res,400,{requestId,accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Jora is the only supported AI interface",provider:selectedProvider});
@@ -1153,7 +1159,9 @@ export class OperatorApi {
         child.stderr?.on("data",chunk=>process.stderr.write("[jora-worker] "+String(chunk)));
         record.child=child;
         child.send({
-          command:body.command.trim(),
+          command:normalizedCommand,
+          originalCommand:body.command.trim(),
+          intentUnderstanding:requestUnderstanding,
           constraints:body.constraints??{},
           context:{...(body.context??{}),apiRequestId:requestId,tenantId}
         });
