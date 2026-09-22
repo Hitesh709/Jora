@@ -56,14 +56,14 @@ function inferBlueprint(command){
   if(!entities.length)add("items","Items");
   return {
     name:slug(titleOf(text)),title:titleOf(text),description:text.slice(0,240),
-    kind:game?"game":api?"api":"web",
+    kind:game?"game":(api && !/\b(app|application|platform|website|web app|dashboard|system|store|site)\b/.test(lower))?"api":"web",
     features:{game,api,data:data||entities.length>0,chat,commerce,auth,search,mobile},
     gameType,
     entities,
     requirements,
     projectBlueprint:{
       version:"1.0",
-      product:{name:slug(titleOf(text)),title:titleOf(text),kind:game?"game":api?"api":"web",description:text.slice(0,240)},
+      product:{name:slug(titleOf(text)),title:titleOf(text),kind:game?"game":(api && !/\b(app|application|platform|website|web app|dashboard|system|store|site)\b/.test(lower))?"api":"web",description:text.slice(0,240)},
       roles:[...(requirements.auth.some(x=>x.includes("Admin"))?["admin"]:[]),...(requirements.auth.some(x=>x.includes("sign in"))?["user"]:[])],
       flows:requirements.userFlows,
       features:[...new Set([...Object.entries({chat,commerce,search}).filter(([,v])=>v).map(([k])=>k),...requirements.ui])],
