@@ -65,6 +65,70 @@ export class ProductUnderstandingEngine {
     }));
   }
 
+  _extractActors(input) {
+    const text=this._clean(input);
+    const actors=new Set();
+    const patterns=[
+      /\b(?:for|targeting|used by)\s+([^,.!?]+?)(?:\s+users?|\s+customers?|\s+people)\b/ig,
+      /\b(customer|customers|user|users|admin|administrator|manager|operator|driver|player|student|teacher|doctor|patient|seller|buyer|developer|visitor|guest)\b/ig
+    ];
+    for(const pattern of patterns) for(const match of text.matchAll(pattern)){
+      const value=this._clean(match[1]);
+      if(value&&value.length<60) actors.add(value.toLowerCase());
+    }
+    return [...actors].slice(0,12);
+  }
+
+  _extractFeatures(input) {
+    const text=this._clean(input).toLowerCase();
+    const dictionary={
+      authentication:/\b(login|sign[ -]?in|signup|sign[ -]?up|register|authentication|auth)\b/,
+      search:/\b(search|filter|sort|lookup|find)\b/,
+      payments:/\b(payment|payments|stripe|checkout|billing|subscription)\b/,
+      notifications:/\b(notification|notifications|email|sms|push)\b/,
+      realtime:/\b(real[ -]?time|live|websocket|socket)\b/,
+      persistence:/\b(database|persist|storage|save|records|crud)\b/,
+      analytics:/\b(analytics|metrics|report|reports|dashboard|kpi)\b/,
+      file_uploads:/\b(upload|file|document|image|photo|attachment)\b/,
+      messaging:/\b(chat|message|messaging|conversation|inbox)\b/,
+      maps:/\b(map|maps|location|gps|tracking|route)\b,
+      multiplayer:/\b(multiplayer|two player|2 player|online players)\b/,
+      mobile:/\b(mobile|android|ios|touch|responsive)\b/,
+      api:/\b(api|backend|server|rest|graphql|webhook|endpoint)\b/
+    };
+    return Object.entries(dictionary).filter(([,pattern])=>pattern.test(text)).map(([name])=>name);
+  }
+
+  _extractEntities(input) {
+    const text=this._clean(input).toLowerCase();
+    const dictionary=["users","customers","products","orders","bookings","appointments","tasks","projects","invoices","payments","messages","players","enemies","scores","cards","vehicles","restaurants","drivers","patients","students","employees"];
+    return dictionary.filter(name=>new RegExp("\\b"+name+"\\b").test(text)).slice(0,20);
+  }
+
+  _extractWorkflows(input) {
+    const text=this._clean(input);
+    const workflows=[];
+    const patterns=[
+      /\b(?:user|customer|admin|player|driver|manager)\s+(?:can|should|needs to)\s+([^.!?]+)/ig,
+      /\b(?:allow|lets?|enable)\s+([^.!?]+)/ig,
+      /\b(?:create|add|edit|update|delete|remove|search|filter|book|buy|pay|login|register|start|restart|score|match|track)\s+([^.!?]+)/ig
+    ];
+    for(const pattern of patterns) for(const match of text.matchAll(pattern)){
+      const value=this._clean(match[0]);
+      if(value.length>=8&&value.length<=180) workflows.push(value);
+    }
+    return [...new Set(workflows)].slice(0,15);
+  }
+
+  _extractPlatform(input) {
+    const text=this._clean(input).toLowerCase();
+    if(/\b(android|ios|mobile app)\b/.test(text)) return "mobile";
+    if(/\bdesktop|windows|macos|linux\b/.test(text)) return "desktop";
+    if(/\b(game|arcade|racing|snake|chess|pong|tetris)\b/.test(text)) return "game";
+    if(/\bweb|website|browser|saas\b/.test(text)) return "web";
+    return "web";
+  }
+
   _acceptance(goals,constraints) {
     const criteria=["Requirements are explicit and traceable to the user's request","All high-severity ambiguities are resolved before execution","Architecture and implementation tasks can be generated from this specification"];
     if(goals.length) criteria.push("Primary goal is represented as an executable product objective");
@@ -78,6 +142,11 @@ export class ProductUnderstandingEngine {
     const constraints=this._extractConstraints(request);
     const goals=this._goals(request);
     const ambiguities=this._ambiguities(request,goals);
+    const actors=this._extractActors(request);
+    const features=this._extractFeatures(request);
+    const entities=this._extractEntities(request);
+    const workflows=this._extractWorkflows(request);
+    const platform=this._extractPlatform(request);
     const requirements={
       functional:goals.map((goal,index)=>({id:"FR-"+String(index+1).padStart(3,"0"),statement:goal,priority:index===0?"high":"medium"})),
       nonFunctional:["Observable execution status","Verifiable acceptance criteria","Safe failure and recovery behavior"],
@@ -90,7 +159,7 @@ export class ProductUnderstandingEngine {
     return {
       version:this.version,
       request,
-      intent:{type:"product_build",summary:goals[0]||request,confidence:goals.length?0.82:0.55},
+      intent:{type:"product_build",summary:goals[0]||request,confidence:goals.length?0.90:0.55},
       goals,
       requirements,
       ambiguities,
@@ -99,7 +168,7 @@ export class ProductUnderstandingEngine {
       // with sensible engineering defaults; clarification remains available
       // as metadata but no longer prevents file generation.
       executionReadiness:goals.length ? "READY_FOR_ARCHITECTURE" : "NEEDS_CLARIFICATION",
-      contextKeys:Object.keys(context??{}),
+      assumptions:[\n        "Unspecified implementation details should use practical dependency-light defaults",\n        "The requested workflows take precedence over generic starter behavior",\n        "Existing project behavior is preserved only when the request is explicitly a modification"\n      ],\n      contextKeys:Object.keys(context??{}),
       generatedAt:new Date().toISOString()
     };
   }
