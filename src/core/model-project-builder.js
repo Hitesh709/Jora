@@ -80,7 +80,7 @@ export class ModelProjectBuilder {
           history:context.repairHistory
         })
       : "";
-    const existing=context.existingProject?.files?.length
+    const existing=context.preserveExistingProject!==false && !context.freshProject && context.existingProject?.files?.length
       ? "\n\nExisting project JSON (preserve all working behavior and modify these files for the new request): "+JSON.stringify({project:context.existingProject.project||{},files:context.existingProject.files.map(file=>({path:file.path,content:String(file.content||"").slice(0,30000)}))})
       : "";
     const prompt="Build the requested product as a real implementation. Return ONLY JSON with a files array. Each item must contain path and content. The result must implement the user's actual workflows, not a generic placeholder. Use the specification, architecture and task information below to decide the screens, components, data model, interactions, APIs and tests. If a requirement is ambiguous, make a sensible explicit assumption and implement it. If an existing project is supplied, edit that project in place: preserve working behavior, make the requested changes, and return the complete updated files needed for the project. Command: "+command+" Specification: "+JSON.stringify(specification)+" Planning: "+JSON.stringify(context.planning||{})+repair+existing;
