@@ -406,11 +406,17 @@ export class OperatorApi {
         messages:Array.isArray(body.messages)?body.messages:[],
         context:body.context||{}
       });
-      return json(res,200,{accepted:true,status:"UNDERSTOOD",understanding});
+      let specification=null;
+      if(this.productUnderstanding?.understand){
+        try {
+          specification=await this.productUnderstanding.understand({
+            input:(understanding?.normalizedText||body.input.trim()),
+            context:{...(body.context??{}),tenantId}
+          });
+        } catch {}
+      }
+      return json(res,200,{accepted:true,status:"UNDERSTOOD",understanding,specification});
     }
-
-    if(method==="POST" && path==="/v1/product-understand") {
-      if(!this.productUnderstanding) return json(res,503,{error:"product_understanding_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
       if(typeof body.input!=="string" || !body.input.trim()) return json(res,400,{error:"input is required"});
       try {
