@@ -11,9 +11,10 @@ import {runBrowserRepairLoop} from "./browser-repair-engine.js";
 import {runEngineeringIntelligence,persistEngineeringReport} from "./engineering-intelligence-engine.js";
 import {runCodeReasoningRepairLoop} from "./code-reasoning-engine.js";
 import {collectMultiFileCodeUnderstanding,persistCodeUnderstandingReport} from "./code-understanding-engine.js";
+import {runArchitectureReasoningLoop} from "./architecture-reasoning-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"3.2",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"3.3",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
@@ -97,6 +98,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     let codeReasoning=null;
     let codeUnderstanding=null;
     let browserRepair=null;
+    let architectureReasoning=null;
 
     codeUnderstanding=await collectMultiFileCodeUnderstanding(workspace.root,{
       workspaceTests,
@@ -171,6 +173,38 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       }
     }
 
+    if(interactions.status==="INTERACTION_FAILED" && engineeringIntelligence.diagnosis.repairMode==="source-targeted" && codeUnderstanding.report.reasoning.scope==="multi-file"){
+      stage(state,"architecture-reasoning","RUNNING");
+      await stopWorkspacePreview(preview);
+      architectureReasoning=await runArchitectureReasoningLoop(workspace.root,{
+        command,
+        blueprint:project.blueprint.projectBlueprint,
+        generation:project.generation,
+        workspaceTests,
+        browserVerification:browser,
+        interactions,
+        engineeringIntelligence,
+        codeUnderstanding,
+        runTests:runWorkspaceTests
+      });
+      stage(state,"architecture-reasoning",architectureReasoning.status,{
+        repaired:architectureReasoning.repaired,
+        attempts:architectureReasoning.attempts,
+        scope:architectureReasoning.scope,
+        patches:architectureReasoning.plan?.patches?.length||0,
+        rollback:architectureReasoning.transaction?.rollback?.length||0
+      });
+      preview=await startWorkspacePreview(workspace.root);
+      if(preview.status!=="PREVIEW_RUNNING") throw new Error("preview restart after architecture reasoning failed");
+      browser=await verifyWorkspacePreview(preview.url);
+      if(browser.status==="BROWSER_VERIFIED"){
+        interactions=await runInteractionTests(preview.url,{tests:scenarioPlan.scenarios});
+      }else{
+        interactions={status:"INTERACTION_FAILED",verified:false,error:"browser verification failed after architecture reasoning",checks:[]};
+      }
+      workspaceTests=await runWorkspaceTests(workspace.root);
+    }
+
     if(interactions.status==="INTERACTION_FAILED"){
       stage(state,"browser-repair","RUNNING");
       browserRepair=await runBrowserRepairLoop(workspace.root,scenarioPlan,{
@@ -220,7 +254,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,engineeringIntelligence};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,engineeringIntelligence};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
