@@ -12,9 +12,10 @@ import {runEngineeringIntelligence,persistEngineeringReport} from "./engineering
 import {runCodeReasoningRepairLoop} from "./code-reasoning-engine.js";
 import {collectMultiFileCodeUnderstanding,persistCodeUnderstandingReport} from "./code-understanding-engine.js";
 import {runArchitectureReasoningLoop} from "./architecture-reasoning-engine.js";
+import {runArchitectureGenerationLoop,persistArchitectureGenerationReport} from "./architecture-generation-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"3.3",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"3.4",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
@@ -99,6 +100,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     let codeUnderstanding=null;
     let browserRepair=null;
     let architectureReasoning=null;
+    let architectureGeneration=null;
 
     codeUnderstanding=await collectMultiFileCodeUnderstanding(workspace.root,{
       workspaceTests,
@@ -173,6 +175,18 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       }
     }
 
+    stage(state,"architecture-generation","RUNNING");
+    architectureGeneration=await runArchitectureGenerationLoop(workspace.root,{
+      blueprint:project.blueprint.projectBlueprint,
+      runTests:runWorkspaceTests
+    });
+    await persistArchitectureGenerationReport(workspace.root,architectureGeneration);
+    stage(state,"architecture-generation",architectureGeneration.status,{
+      generated:architectureGeneration.generated,
+      created:architectureGeneration.result?.created?.length||0,
+      refactorCandidates:architectureGeneration.plan?.refactors?.length||0
+    });
+
     if(interactions.status==="INTERACTION_FAILED" && engineeringIntelligence.diagnosis.repairMode==="source-targeted" && codeUnderstanding.report.reasoning.scope==="multi-file"){
       stage(state,"architecture-reasoning","RUNNING");
       await stopWorkspacePreview(preview);
@@ -244,7 +258,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     });
 
     stage(state,"preview-promotion","RUNNING");
-    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning},{});
+    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration},{});
 
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
@@ -254,7 +268,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,engineeringIntelligence};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,engineeringIntelligence};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
