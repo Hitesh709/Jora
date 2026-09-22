@@ -106,7 +106,7 @@ export function rankDependencyNeighborhood(graph, targets = []) {
 export function traceFailureAcrossFiles(graph, failure, targets = []) {
   const text = String(failure || "").toLowerCase();
   const hints = [];
-  if (/module not found|cannot find module|import|export|referenceerror/.test(text)) hints.push("module");
+  if (/module not found|cannot find module|module\\s+reference|import|export|referenceerror/.test(text)) hints.push("module");
   if (/api|fetch|route|endpoint|404|500/.test(text)) hints.push("api");
   if (/search|button|input|selector|click|fill|dom/.test(text)) hints.push("ui");
   if (/health|listen|server|eaddr/.test(text)) hints.push("runtime");
