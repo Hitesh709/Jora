@@ -58,6 +58,21 @@ function inferBlueprint(command){
     features:{game,api,data:data||entities.length>0,chat,commerce,auth,search,mobile},\n    gameType,
     entities,
     requirements,
+    projectBlueprint:{
+      version:"1.0",
+      product:{name:slug(titleOf(text)),title:titleOf(text),kind:game?"game":api?"api":"web",description:text.slice(0,240)},
+      roles:[...(requirements.auth.some(x=>x.includes("Admin"))?["admin"]:[]),...(requirements.auth.some(x=>x.includes("sign in"))?["user"]:[])],
+      flows:requirements.userFlows,
+      features:[...new Set([...Object.entries({chat,commerce,search}).filter(([,v])=>v).map(([k])=>k),...requirements.ui])],
+      screens:requirements.ui.length?requirements.ui:game?["game"]:["main"],
+      entities,
+      api:requirements.api,
+      authentication:requirements.auth,
+      integrations:requirements.integrations,
+      platform:requirements.platform,
+      constraints:requirements.constraints,
+      acceptanceCriteria:requirements.acceptanceCriteria
+    },
     assumptions:["Dependency-light by default","Runnable local project with health and capability endpoints","Local persistence unless a server database is explicitly required"]
   };
 }
