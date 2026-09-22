@@ -51,6 +51,11 @@ export async function runFailureDrivenRepair(root,generation,{runTests,maxAttemp
     const failure=analyzeWorkspaceFailure(last,generation);
     const workspaceFiles=[];
     for(const file of failure.files){try{workspaceFiles.push({path:file,content:await readFiles(root,file)});}catch{}}
+    if(!workspaceFiles.length){
+      for(const file of generation?.files||[]) if(/\/broken-health\b/.test(String(file.content||""))){
+        try{workspaceFiles.push({path:file.path,content:await readFiles(root,file.path)});}catch{}
+      }
+    }
     const plan=createRepairPatch(failure,{workspaceFiles,generation});
     const applied=[];
     for(const patch of plan.patches) applied.push(await applyRepairPatch(root,patch));
