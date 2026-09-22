@@ -156,3 +156,14 @@ export { createSimulationScenario, runSimulation, gateSimulation } from "./core/
 export { collectConsensus, requireEvidenceConsensus } from "./core/consensus-engine.js";
 export { buildAutonomousRoadmap, updateRoadmap } from "./core/autonomous-roadmap-engine.js";
 export { buildAutonomousEnterpriseState } from "./core/autonomous-enterprise-engine.js";
+
+export { compileAutonomousGoal } from "./core/autonomous-goal-engine.js";
+export { planCapabilities } from "./core/autonomous-capability-engine.js";
+export { runAutonomousLoop } from "./core/autonomous-loop-engine.js";
+export { evaluateAutonomousQuality } from "./core/autonomous-quality-engine.js";
+export { buildReleasePlan } from "./core/autonomous-release-engine.js";
+export { learnFromIncident } from "./core/autonomous-incident-learning-engine.js";
+export { enforceAutonomousBudget } from "./core/autonomous-cost-engine.js";
+export { createProjectTemplate } from "./core/autonomous-project-template-engine.js";
+export { buildFactoryState } from "./core/autonomous-factory-engine.js";
+export { buildUniversalAutonomousPlan } from "./core/universal-autonomous-builder.js";
