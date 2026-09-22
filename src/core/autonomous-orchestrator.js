@@ -4,6 +4,7 @@ import {testAndRepairGeneration} from "./test-repair-engine.js";
 import {previewAndPromote} from "./preview-promotion-engine.js";
 import {materializeGeneration,runWorkspaceTests,readWorkspaceFile,startWorkspacePreview,stopWorkspacePreview} from "./workspace-engine.js";
 import {runFailureDrivenRepair} from "./failure-repair-engine.js";
+import {verifyWorkspacePreview} from "./browser-verification-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"2.1",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -51,8 +52,16 @@ export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
     }
     stage(state,"preview","COMPLETED",{url:preview.url,port:preview.port,healthStatus:preview.health.status});
 
+    stage(state,"browser-verification","RUNNING");
+    const browser=await verifyWorkspacePreview(preview.url);
+    stage(state,"browser-verification",browser.status,{verified:browser.verified,consoleErrors:browser.consoleErrors?.length||0,pageErrors:browser.pageErrors?.length||0});
+    if(browser.status==="BROWSER_FAILED"||browser.status==="BROWSER_UNAVAILABLE"){
+      await stopWorkspacePreview(preview);
+      throw new Error("browser verification failed: "+(browser.reason||browser.error||"browser checks did not pass"));
+    }
+
     stage(state,"preview-promotion","RUNNING");
-    const delivery=previewAndPromote(verification.generation,verification,{});
+    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser},{});
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
     delivery.preview.health=preview.health;
@@ -62,7 +71,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
