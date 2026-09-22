@@ -18,6 +18,7 @@ import {runFeatureImplementationLoop,persistFeatureImplementationReport} from ".
 import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./feature-integration-engine.js";
 import {runExistingProjectModificationLoop} from "./existing-project-modification-engine.js";
 import {initializeProjectLifecycle,transitionProjectLifecycle} from "./project-lifecycle-engine.js";
+import {initializeMissionManager,startNextMission,completeMission,failMission,loadMissionState} from "./mission-manager-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"3.9",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -51,8 +52,13 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     lifecycleRoot=workspace.root;
     lifecycleContract={...project.blueprint.projectBlueprint,entrypoints:["src/index.js","src/index.html"]};
     await initializeProjectLifecycle(workspace.root,{contract:lifecycleContract,command,projectName:project.blueprint.name||project.blueprint.projectBlueprint?.product?.name||"jora-project"});
+    await initializeMissionManager(workspace.root,{command,contract:lifecycleContract,features:project.blueprint.projectBlueprint.features||[]});
     await transitionProjectLifecycle(workspace.root,"active",{command,contract:lifecycleContract,phase:"generation",status:"ACTIVE",summary:"Generated project workspace is active."});
     let workspaceTests=await runWorkspaceTests(workspace.root);
+    await startNextMission(workspace.root);
+    await completeMission(workspace.root,"M001",{summary:"Requirements and initial project workspace are ready."});
+    await startNextMission(workspace.root);
+    await completeMission(workspace.root,"M002",{summary:"Initial project architecture and contracts are established."});
     stage(state,"workspace",workspaceTests.passed?"COMPLETED":"FAILED",{root:workspace.root});
     if(!workspaceTests.passed) throw new Error("workspace tests failed: "+workspaceTests.stderr);
 
@@ -269,6 +275,9 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       runTests:runWorkspaceTests
     });
     await persistArchitectureGenerationReport(workspace.root,architectureGeneration);
+    const missionStateAfterArchitecture=await loadMissionState(workspace.root);
+    const coreMission=missionStateAfterArchitecture?.missions?.find(m=>m.kind==="implementation"&&m.id==="M003");
+    if(coreMission&&coreMission.status!=="completed") await completeMission(workspace.root,coreMission.id,{summary:"Core product implementation completed."});
     stage(state,"architecture-generation",architectureGeneration.status,{
       generated:architectureGeneration.generated,
       created:architectureGeneration.result?.created?.length||0,
@@ -344,8 +353,16 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       checks:interactions.checks?.length||0,
       repaired:Boolean(browserRepair?.repaired||codeReasoning?.repaired)
     });
+    const missionStateAfterFeatures=await loadMissionState(workspace.root);
+    for(const mission of (missionStateAfterFeatures?.missions||[]).filter(m=>m.kind==="feature"&&m.status!=="completed")) await completeMission(workspace.root,mission.id,{summary:"Feature implementation and integration completed."});
 
     stage(state,"preview-promotion","RUNNING");
+    const missionStateBeforeVerification=await loadMissionState(workspace.root);
+    const verificationMission=missionStateBeforeVerification?.missions?.find(m=>m.kind==="verification"&&m.status!=="completed");
+    if(verificationMission){
+      await startNextMission(workspace.root,{missionId:verificationMission.id});
+      await completeMission(workspace.root,verificationMission.id,{summary:"Workspace, browser, interaction, and repair verification completed."});
+    }
     await transitionProjectLifecycle(workspace.root,"verifying",{command,contract:lifecycleContract,phase:"promotion",status:"VERIFYING",summary:"All engineering stages completed; promotion gates are being evaluated."});
     const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,featureIntegration},{});
 
@@ -356,6 +373,12 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     stage(state,"preview-promotion",delivery.promotion.status,{preview:delivery.preview.status,url:preview.url});
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
+    const missionStateBeforeDelivery=await loadMissionState(workspace.root);
+    const deliveryMission=missionStateBeforeDelivery?.missions?.find(m=>m.kind==="delivery"&&m.status!=="completed");
+    if(deliveryMission&&delivery.result.status==="PROMOTED"){
+      await startNextMission(workspace.root,{missionId:deliveryMission.id});
+      await completeMission(workspace.root,deliveryMission.id,{summary:"Promotion gate completed successfully."});
+    }
     await transitionProjectLifecycle(workspace.root,delivery.result.status==="PROMOTED"?"promoted":"failed",{command,contract:lifecycleContract,phase:"delivery",status:delivery.result.status,summary:delivery.result.status==="PROMOTED"?"Project passed promotion and was promoted.":"Project did not pass promotion gates.",changes:[delivery.result.status]});
     state.workspace=workspace;
     state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,featureIntegration,engineeringIntelligence};
@@ -365,6 +388,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     state.status="FAILED";state.error=error.message;
     if(lifecycleRoot){
       try{await transitionProjectLifecycle(lifecycleRoot,"failed",{command,contract:lifecycleContract,phase:state.stage||"failure",status:"FAILED",summary:error.message,changes:[state.stage||"unknown"]});}catch{}
+      try{const ms=await loadMissionState(lifecycleRoot);if(ms?.currentMissionId)await failMission(lifecycleRoot,ms.currentMissionId,{error:error.message,retryable:true});}catch{}
     }
     state.finishedAt=new Date().toISOString();
     return {state};
