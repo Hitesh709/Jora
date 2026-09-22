@@ -72,7 +72,7 @@ export class CustomerOptimizationEngine {
 
 export class CustomerAutonomousOperationsControlPlane {
   constructor({monitor=null,incidents=null,recovery=null,learning=null,productionUrls=null,executionPlatform=null,monitorIntervalMs=60000}={}) {
-    this.version="3.91.0";
+    this.version="3.90.0";
     this.productionUrls=productionUrls;this.executionPlatform=executionPlatform;this.monitorIntervalMs=Math.max(10000,Number(monitorIntervalMs)||60000);this.timer=null;this.running=false;
     this.monitor=monitor??new CustomerProductionMonitor();
     this.incidents=incidents??new CustomerIncidentDetector();
