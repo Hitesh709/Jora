@@ -244,7 +244,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     });
 
     stage(state,"preview-promotion","RUNNING");
-    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding},{});
+    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning},{});
 
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
