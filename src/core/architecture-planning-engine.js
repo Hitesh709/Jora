@@ -75,7 +75,8 @@ export class ArchitecturePlanningEngine {
         "Instantiate architecture components and contracts",
         "Generate executable task DAG",
         "Assign specialist agents",
-        "Implement requested workflows and product-specific behavior",\n        "Implement and verify",
+        "Implement requested workflows and product-specific behavior",
+        "Implement and verify",
         "Deploy and observe"
       ],
       readiness:risks.some(x=>x.severity==="high")?"BLOCKED_BY_REQUIREMENTS":"READY_FOR_TASK_DAG",
