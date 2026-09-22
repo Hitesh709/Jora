@@ -154,7 +154,7 @@ test("Phase 1.6 verifies generated artifacts and reports failures",()=>{
 });
 test("Phase 1.6 repairs a deliberately broken generated artifact",()=>{
   const project=generateUniversalProject("Build a customer dashboard");
-  const broken={...project.generation,files:project.generation.files.map(file=>file.path==="src/index.js"?{...file,content:file.content.replace(/\\/health/g,"\\/broken-health")}:file)};
+  const broken={...project.generation,files:project.generation.files.map(file=>file.path==="src/index.js"?{...file,content:file.content.replace(/\/health/g,"\/broken-health")}:file)};
   const result=testAndRepairGeneration(broken,{maxAttempts:2});
   assert.equal(result.status,"REPAIRED");
   assert.equal(result.final.passed,true);
