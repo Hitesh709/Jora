@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import {runInteractionTests} from "./interaction-testing-engine.js";
 import {verifyWorkspacePreview} from "./browser-verification-engine.js";
+import {createRepairMemory,loadRepairMemory,saveRepairMemory,learnFromRepairCycle,rankRepairStrategies} from "./repair-learning-engine.js";
 
 function failedChecks(interactions){
   return (interactions?.checks||[]).filter(check=>!check.passed);
@@ -103,7 +104,7 @@ async function applyBrowserRepairPatch(root,patch){
 
 export async function runBrowserRepairLoop(root,scenarioPlan,{
   preview,
-  maxAttempts=2,
+  maxAttempts=3,
   runTests,
   readFile,
   startPreview,
@@ -118,6 +119,7 @@ export async function runBrowserRepairLoop(root,scenarioPlan,{
   let browser=await verifyWorkspacePreview(currentPreview.url);
   let attempts=0;
   const history=[];
+  let memory=await loadRepairMemory(root);
 
   while(
     (interactions.status==="INTERACTION_FAILED"||browser.status!=="BROWSER_VERIFIED") &&
@@ -129,6 +131,7 @@ export async function runBrowserRepairLoop(root,scenarioPlan,{
     const failure=analyzeInteractionFailure(interactions,scenarioPlan);
     const html=await readFile(root,"src/index.html");
     const plan=createBrowserRepairPatch(failure,{workspaceFiles:[{path:"src/index.html",content:html}]});
+    plan.patches=rankRepairStrategies(memory,plan.patches);
     const applied=[];
     for(const patch of plan.patches) applied.push(await applyBrowserRepairPatch(root,patch));
 
@@ -138,7 +141,14 @@ export async function runBrowserRepairLoop(root,scenarioPlan,{
     const tests=await runTests(root);
     if(!tests.passed){
       history[history.length-1].postRepairTests=tests;
-      break;
+      memory=learnFromRepairCycle(memory,{
+        patches:plan.patches,
+        applied,
+        repaired:false,
+        failedChecks:failure.failures?.length||0
+      });
+      await saveRepairMemory(root,memory);
+      continue;
     }
 
     await stopPreview(currentPreview);
@@ -148,6 +158,14 @@ export async function runBrowserRepairLoop(root,scenarioPlan,{
     browser=await verifyWorkspacePreview(currentPreview.url);
     if(browser.status==="BROWSER_UNAVAILABLE") break;
     interactions=await runInteractionTests(currentPreview.url,{tests:scenarioPlan.scenarios});
+    const cycleRepaired=interactions.status==="INTERACTION_VERIFIED"&&browser.status==="BROWSER_VERIFIED";
+    memory=learnFromRepairCycle(memory,{
+      patches:plan.patches,
+      applied,
+      repaired:cycleRepaired,
+      failedChecks:interactions.checks?.filter(x=>!x.passed).length||0
+    });
+    await saveRepairMemory(root,memory);
   }
 
   const repaired=interactions.status==="INTERACTION_VERIFIED"&&browser.status==="BROWSER_VERIFIED";
@@ -161,6 +179,7 @@ export async function runBrowserRepairLoop(root,scenarioPlan,{
     preview:currentPreview,
     browser,
     interactions,
-    history
+    history,
+    learning:memory
   };
 }
