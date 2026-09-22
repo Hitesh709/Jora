@@ -1,4 +1,5 @@
 import {generateUniversalProject} from "./universal-project-generator.js";
+import {IntentUnderstandingEngine} from "./intent-understanding-engine.js";
 function clean(value=""){return String(value??"").replace(/\s+/g," ").trim();}
 function slug(value="jora-project"){return clean(value).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48)||"jora-project";}
 function json(value){return JSON.stringify(value,null,2);}
@@ -308,7 +309,7 @@ function taskList(prompt){
 }
 
 export class JoraNativeProvider{
-  constructor({version="2.1.0"}={}){this.model="jora";this.version=version;this.kind="native";}
+  constructor({version="2.1.0"}={}){this.model="jora";this.version=version;this.kind="native";this.intentUnderstanding=new IntentUnderstandingEngine();}
   async complete({messages=[]}={}){
     const user=clean(messages.filter(x=>x.role==="user").map(x=>x.content).join("\n"));
     if(/Return ONLY JSON with a files array/i.test(user)){
@@ -321,7 +322,10 @@ export class JoraNativeProvider{
       return {text:json(taskList(user)),model:"jora",engine:this.kind};
     }
     const lower=user.toLowerCase();
-    const directAnswer=simpleAnswer(user);
+    const latestUser=[...messages].reverse().find(x=>x.role==="user")?.content||user;
+    const latestUnderstanding=this.intentUnderstanding.understand({input:latestUser,messages});
+    const normalizedUser=latestUnderstanding.normalizedText||latestUser;
+    const directAnswer=simpleAnswer(normalizedUser);
     if(directAnswer) return {text:directAnswer,model:"jora",engine:this.kind};
     if(/\b(what(?:'s| is)?|tell me|give me)?\s*(the\s*)?(date|day)\s*(today|now)?\b|\btoday(?:'s| is)?\s*(date|day)\b/.test(lower)){
       const now=new Date();
@@ -333,10 +337,10 @@ export class JoraNativeProvider{
       const time=new Intl.DateTimeFormat("en-IN",{timeZone:"Asia/Kolkata",hour:"numeric",minute:"2-digit",second:"2-digit",hour12:true}).format(now);
       return {text:"The current time in India (IST) is "+time+".",model:"jora",engine:this.kind};
     }
-    if(/research|search|latest|news|look up/.test(lower)){
+    if(/research|search|latest|news|look up/.test(normalizedUser.toLowerCase())){
       return {text:"Jora is running in native mode. Web research is available through Jora's search tool; I can search, extract evidence, compare sources, and turn the findings into an implementation plan.",model:"jora",engine:this.kind};
     }
-    if(/build|create|make|develop|implement|code|fix|deploy|ship/.test(lower)){
+    if(/build|create|make|develop|implement|code|fix|deploy|ship/.test(normalizedUser.toLowerCase())){
       return {text:"Jora Native Engine accepted the engineering request. I will structure it as requirements → architecture → task DAG → implementation → verification → recovery. No external AI API key is required for this native execution path.",model:"jora",engine:this.kind};
     }
     return {text:"I am Jora, the autonomous engineering system. I can understand requirements, plan architecture, decompose work into verified tasks, research the web, generate runnable project artifacts, test them, diagnose failures, and keep an execution trace.",model:"jora",engine:this.kind};
