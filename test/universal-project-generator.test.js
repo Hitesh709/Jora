@@ -78,3 +78,25 @@ test("Universal Builder emits a complete structured Phase 1 project blueprint",(
   assert.ok(b.platform.includes("mobile"));
   assert.ok(b.acceptanceCriteria.length>=2);
 });
+
+test("Universal Builder creates a dependency-aware Phase 1.3 implementation plan",()=>{
+  const project=generateUniversalProject("Build a mobile booking app with login, admin dashboard, REST API, Razorpay and email notifications");
+  const plan=project.blueprint.plan;
+  assert.equal(plan.version,"1.0");
+  assert.equal(plan.strategy,"dependency-aware");
+  assert.equal(plan.entryStep,"01-analyze");
+  assert.equal(plan.finalStep,"12-preview");
+  const ids=plan.steps.map(step=>step.id);
+  assert.ok(ids.includes("03-data"));
+  assert.ok(ids.includes("05-screens"));
+  assert.ok(ids.includes("06-flows"));
+  assert.ok(ids.includes("07-api"));
+  assert.ok(ids.includes("08-integrations"));
+  assert.ok(ids.includes("10-verify"));
+  assert.ok(ids.includes("11-repair"));
+  assert.ok(ids.includes("12-preview"));
+  const verify=plan.steps.find(step=>step.id==="10-verify");
+  assert.ok(verify.dependsOn.includes("08-integrations"));
+  const preview=plan.steps.find(step=>step.id==="12-preview");
+  assert.deepEqual(preview.dependsOn,["11-repair"]);
+});
