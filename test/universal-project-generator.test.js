@@ -206,3 +206,15 @@ test("Phase 2.2 materializes generated files into an isolated workspace and runs
   const result=await runWorkspaceTests(ws.root);
   assert.equal(result.passed,true);
 });
+
+test("Phase 2.3 diagnoses real workspace failures and applies targeted repairs",async()=>{
+  const {materializeGeneration,runWorkspaceTests,readWorkspaceFile}=await import("../src/core/workspace-engine.js");
+  const {runFailureDrivenRepair}=await import("../src/core/failure-repair-engine.js");
+  const project=generateUniversalProject("Build a customer dashboard");
+  const broken={...project.generation,files:project.generation.files.map(file=>file.path==="src/index.js"?{...file,content:file.content.replace("/health","/broken-health")}:file)};
+  const ws=await materializeGeneration(broken);
+  const result=await runFailureDrivenRepair(ws.root,broken,{maxAttempts:2,runTests:runWorkspaceTests,readFiles:readWorkspaceFile});
+  assert.equal(result.status,"REPAIRED");
+  assert.equal(result.result.passed,true);
+  assert.ok(result.history.length>=1);
+});
