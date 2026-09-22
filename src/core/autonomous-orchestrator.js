@@ -48,7 +48,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
     stage(state,"test-repair",verification.status,{attempts:verification.attempts,workspaceAttempts:failureRepair.attempts});
 
     stage(state,"preview","RUNNING");
-    const preview=await startWorkspacePreview(workspace.root);
+    let preview=await startWorkspacePreview(workspace.root);
     if(preview.status!=="PREVIEW_RUNNING"){
       stage(state,"preview","FAILED",{url:preview.url,health:preview.health});
       throw new Error("live preview failed: "+(preview.health?.error||preview.health?.body||"server did not become healthy"));
