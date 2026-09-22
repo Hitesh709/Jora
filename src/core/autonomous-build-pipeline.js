@@ -14,8 +14,9 @@ export class AutonomousBuildPipeline {
   }
 
   async evaluateProject({request,specification,result,progress=null}) {
-    const workspace=request.context?.workspace ?? this.projectBuilder.repository?.root;
-    if(!workspace) throw new Error("Generated project workspace is not available");
+    const workspace=request.context?.workspace
+      ?? this.projectBuilder.repository?.root
+      ?? process.cwd();
 
     let current=result;
     let tests=null;
