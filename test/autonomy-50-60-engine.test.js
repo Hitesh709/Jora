@@ -40,3 +40,4 @@ test("5.9 roadmap prioritizes urgent work",()=>{
  const r=buildAutonomousRoadmap({objective:"ship",capacity:1,backlog:[{id:"urgent",priority:90},{id:"normal",priority:10}]});
  assert.equal(r.now[0].id,"urgent");
 });
+test("simulation ignores object key order",async()=>{const {createSimulationScenario,runSimulation}=await import("../src/index.js");const s=createSimulationScenario({expected:{a:1,b:2}});const r=await runSimulation(s,{executor:async()=>({b:2,a:1})});assert.equal(r.matched,true)});test("consensus blocks ties",async()=>{const {requireEvidenceConsensus}=await import("../src/index.js");assert.equal(requireEvidenceConsensus({votes:[{decision:"a"},{decision:"b"}],evidence:["x"],minimumConfidence:.5}).status,"CONSENSUS_BLOCKED")});
