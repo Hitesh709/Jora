@@ -163,6 +163,16 @@ export async function applyArchitectureGeneration(root, plan, {runTests} = {}) {
   }
 }
 
+export async function persistArchitectureGenerationReport(root, report) {
+  await fs.mkdir(path.join(root, ".jora"), {recursive:true});
+  await fs.writeFile(
+    path.join(root, ".jora", "architecture-generation.json"),
+    JSON.stringify(report, null, 2),
+    "utf8"
+  );
+  return report;
+}
+
 export async function runArchitectureGenerationLoop(root, {blueprint={},runTests} = {}) {
   const inspection = await inspectArchitecture(root,blueprint);
   const plan = buildArchitectureGenerationPlan(inspection);
