@@ -85,10 +85,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
       <div class="workspaceHead">
         <div><div class="workspaceTitle">Build complete</div><div id="workspaceMeta" class="muted">Your project is saved to the selected folder.</div></div>
         <div class="workspaceActions">
-          <button class="workspaceBtn" id="stopRun" onclick="cancelActiveRun()" style="display:none">■ Stop</button><button class="workspaceBtn previewBtn" id="previewBtn" onclick="toggleWorkspacePreview()">▶ Preview</button><button class="workspaceBtn" onclick="saveWorkspace()">💾 Save</button><button class="workspaceBtn" onclick="saveToDevice()">📁 Save folder</button>
-          <button class="workspaceBtn" onclick="exportWorkspace()">⬇ Export</button>
-          <button class="workspaceBtn" onclick="importWorkspace()">⬆ Import</button>
-          <button class="workspaceBtn" onclick="pushWorkspaceToGitHub()">↗ GitHub</button>
+          <button class="workspaceBtn" id="stopRun" onclick="cancelActiveRun()" style="display:none">■ Stop</button><button class="workspaceBtn previewBtn" id="previewBtn" onclick="toggleWorkspacePreview()">▶ Preview</button><button class="workspaceBtn" onclick="pushWorkspaceToGitHub()">↗ GitHub</button>
           <input id="workspaceImport" type="file" accept=".json,.jora.json,application/json" style="display:none" onchange="handleWorkspaceImport(event)">
         </div>
       </div>
@@ -462,16 +459,8 @@ function renderWorkspace(){
   const panel=document.getElementById("workspacePanel");panel.style.display="block";
   const preview=previewFile();panel.classList.toggle("previewAvailable",Boolean(preview));
   if(!preview){panel.classList.remove("previewOpen");workspacePreviewOpen=false}
-  document.getElementById("workspaceMeta").textContent=(workspaceProject.name||"Project")+" · "+workspaceFiles.length+" completed files";
+  document.getElementById("workspaceMeta").textContent=(workspaceProject.name||"Project")+" · "+(deviceDirectoryName?"Saved to "+deviceDirectoryName:"Saved locally; choose a folder to export the build.");
   const tree=document.getElementById("fileTree");tree.innerHTML="";
-  workspaceFiles.forEach((file)=>{
-    const item=document.createElement("div");item.className="fileItem";
-    const name=document.createElement("span");name.textContent="📄 "+file.path;
-    const status=document.createElement("span");status.className="fileStatus";
-    const bytes=new Blob([String(file.content||"")]).size;
-    status.textContent="Completed · "+(bytes<1024?(bytes+" B"):(bytes/1024).toFixed(1)+" KB");
-    item.appendChild(name);item.appendChild(status);tree.appendChild(item);
-  });
 }
 async function pushWorkspaceToGitHub(){
   if(!workspaceFiles.length){addMessage("Generate a project first.","system");return}
