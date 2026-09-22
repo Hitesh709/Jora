@@ -107,11 +107,11 @@ export async function runAutonomousWorker(root,{
       try{
         const result=missionExecutorFn
           ? await missionExecutorFn({root,command,state,mission:activeMission,cycle:state.cycle,checkpoint:active?.checkpoint||null})
-          : {status:"CHECKPOINT_ONLY",summary:"No mission executor supplied; checkpoint preserved."};
+          : {status:"CHECKPOINT_ONLY",complete:false,summary:"No mission executor supplied; checkpoint preserved."};
 
         await checkpointMission(root,{
           missionId:candidate.id,
-          status:"completed",
+          status:result?.complete===false?"running":"completed",
           summary:result?.summary||"Mission cycle checkpoint completed.",
           details:{cycle:state.cycle,result:result||null},
           result
