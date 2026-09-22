@@ -1,0 +1,3 @@
+export function buildAutonomousRoadmap({objective,signals={},backlog=[],capacity=1}={}){const urgent=backlog.filter(x=>x.priority>=80||x.risk==="high");const normal=backlog.filter(x=>!urgent.includes(x));return{version:"1.0",objective,now:urgent.slice(0,capacity),next:normal.slice(0,Math.max(0,capacity)),signals,policy:"evidence-driven-priority"}}
+export function updateRoadmap(roadmap,{completedIds=[],newItems=[]}={}){const done=new Set(completedIds);const all=[...(roadmap.now||[]),...(roadmap.next||[]),...newItems].filter(x=>!done.has(x.id));return{...roadmap,now:all.slice(0,roadmap.now?.length||1),next:all.slice(roadmap.now?.length||1),updatedAt:new Date().toISOString()}}
+export default{buildAutonomousRoadmap,updateRoadmap};
