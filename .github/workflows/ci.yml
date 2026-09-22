@@ -16,7 +16,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -35,4 +35,4 @@ jobs:
         run: npm run check
 
       - name: Unit tests
-        run: npm test
+        run: npm run test:ci
