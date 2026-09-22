@@ -2,6 +2,38 @@ import {compilePlanToCode} from "./code-generation-engine.js";
 function clean(value=""){return String(value??"").replace(/\s+/g," ").trim();}
 function slug(value="jora-project"){return clean(value).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48)||"jora-project";}
 
+function normalizeGameIntent(command){
+  const original=clean(command);
+  let normalized=original;
+  const corrections=[];
+  const gameVocabulary=["snake","pong","tetris","racing","racer","platformer","shooter","runner","dodge","chess","puzzle","arcade"];
+  const words=normalized.toLowerCase().split(/\\s+/);
+  const hasGame=words.includes("game")||words.includes("games");
+  if(hasGame){
+    for(const word of words){
+      const token=word.replace(/[^a-z0-9-]/g,"");
+      if(token.length<4) continue;
+      let best=null,bestDistance=3;
+      for(const candidate of gameVocabulary){
+        if(Math.abs(token.length-candidate.length)>2) continue;
+        const matrix=Array.from({length:token.length+1},()=>Array(candidate.length+1).fill(0));
+        for(let i=0;i<=token.length;i++) matrix[i][0]=i;
+        for(let j=0;j<=candidate.length;j++) matrix[0][j]=j;
+        for(let i=1;i<=token.length;i++) for(let j=1;j<=candidate.length;j++)
+          matrix[i][j]=Math.min(matrix[i-1][j]+1,matrix[i][j-1]+1,matrix[i-1][j-1]+(token[i-1]===candidate[j-1]?0:1));
+        const distance=matrix[token.length][candidate.length];
+        if(distance<bestDistance){bestDistance=distance;best=candidate;}
+      }
+      if(best && best!==token && bestDistance<=2){
+        normalized=normalized.replace(new RegExp("\\b"+token+"\\b","ig"),best);
+        corrections.push({from:token,to:best,distance:bestDistance,reason:"near-match game vocabulary"});
+        break;
+      }
+    }
+  }
+  return {original,normalized,corrections};
+}
+
 function titleOf(command){
   return clean(command).replace(/^(build|create|make|develop|design|generate|implement)\s+/i,"").slice(0,100)||"Jora Application";
 }
