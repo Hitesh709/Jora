@@ -5,7 +5,7 @@ const VERSION="1.0";
 const MARKERS={
  search:'data-jora-feature="search"',authentication:'data-jora-feature="authentication"',chat:'data-jora-feature="chat"',
  commerce:'data-jora-feature="commerce"',leaderboard:'data-jora-feature="leaderboard"',multiplayer:'data-jora-feature="multiplayer"',
- booking:'data-jora-feature="booking"',notifications:'data-jora-feature="notifications"',gameplay:'data-jora-feature="gameplay"
+ booking:'data-jora-feature="booking"',notifications:'data-jora-feature="notifications"',gameplay:'data-jora-feature="gameplay"'
 };
 const blocked=p=>{p=String(p||"").replace(/\\\\/g,"/");return !p||p.startsWith("/")||p.split("/").includes("..")||p.startsWith(".git/")||p.startsWith("node_modules/")||p===".jora/acceptance.json"||p===".jora/requirements.json"};
 const featureRules=[
