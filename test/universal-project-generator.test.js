@@ -225,3 +225,10 @@ test("Phase 2.5 browser verification exposes an explicit browser-availability re
   assert.ok(["BROWSER_UNAVAILABLE","BROWSER_FAILED"].includes(result.status));
   assert.equal(result.verified,false);
 });
+
+test("Phase 2.6 interaction engine returns an explicit unavailable result when no browser exists",async()=>{
+  const {runInteractionTests}=await import("../src/core/interaction-testing-engine.js");
+  const result=await runInteractionTests("http://127.0.0.1:9",{timeout:1000});
+  assert.ok(["BROWSER_UNAVAILABLE","INTERACTION_FAILED"].includes(result.status));
+  assert.equal(result.verified,false);
+});
