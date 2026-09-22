@@ -1,0 +1,1 @@
+export function learnFromIncident({incident={},repair={},outcome="unknown"}={}){return{version:"6.6",pattern:incident.type||"unknown",symptoms:incident.symptoms||[],repairStrategy:repair.strategy||"manual",outcome,preventiveRule:outcome==="resolved"?`detect:${incident.type||"unknown"} -> apply:${repair.strategy||"manual"}`:"collect more evidence"}}
