@@ -15,16 +15,16 @@ async function temp(){return fs.mkdtemp(path.join(os.tmpdir(),"jora-45-"));}
 
 test("portfolio registers and prioritizes projects",()=>{
   let state=createPortfolioState({root:"/tmp/jora"});
-  state=registerPortfolioProject(state,{id:"p1",name:"Alpha",priority:20}).state;
-  state=registerPortfolioProject(state,{id:"p2",name:"Beta",priority:90}).state;
+  state=registerPortfolioProject(state,{id:"p1",name:"Alpha",priority:20});
+  state=registerPortfolioProject(state,{id:"p2",name:"Beta",priority:90});
   assert.equal(rankPortfolioProjects(state)[0].id,"p2");
   assert.equal(buildPortfolioPlan({...state,capacity:{workers:1}}).assignments[0].projectId,"p2");
 });
 
 test("resource scheduler allocates bounded worker capacity",()=>{
   let state=createResourceSchedulerState({root:"/tmp/jora",workers:1});
-  state=enqueueResourceTask(state,{id:"t1",projectId:"p1",priority:10}).state;
-  state=enqueueResourceTask(state,{id:"t2",projectId:"p2",priority:90}).state;
+  state=enqueueResourceTask(state,{id:"t1",projectId:"p1",priority:10});
+  state=enqueueResourceTask(state,{id:"t2",projectId:"p2",priority:90});
   const next=allocateResourceTasks(state);
   assert.equal(next.leases.length,1);
   assert.equal(next.leases[0].taskId,"t2");
