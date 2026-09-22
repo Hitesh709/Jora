@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {generateUniversalProject} from "../src/core/universal-project-generator.js";
+import {executeImplementationPlan} from "../src/core/execution-engine.js";
 
 const cases=[
   ["Build a restaurant booking system", "web", "bookings"],
@@ -99,4 +100,25 @@ test("Universal Builder creates a dependency-aware Phase 1.3 implementation plan
   assert.ok(verify.dependsOn.includes("08-integrations"));
   const preview=plan.steps.find(step=>step.id==="12-preview");
   assert.deepEqual(preview.dependsOn,["11-repair"]);
+});
+
+test("Phase 1.4 execution engine runs planner steps in dependency order",()=>{
+  const project=generateUniversalProject("Build a snake game for mobile");
+  const result=executeImplementationPlan(project.blueprint.plan);
+  assert.equal(result.status,"COMPLETED");
+  assert.equal(result.completedSteps.length,project.blueprint.plan.steps.length);
+  assert.equal(result.completedSteps[0],"01-analyze");
+  assert.equal(result.completedSteps.at(-1),"12-preview");
+  assert.equal(result.context.gameplay,true);
+  assert.equal(result.context.previewReady,true);
+  assert.ok(result.events.some(event=>event.type==="step_started"&&event.stepId==="09-gameplay"));
+});
+test("Phase 1.4 execution engine detects dependency deadlocks",()=>{
+  const plan={steps:[
+    {id:"a",dependsOn:["missing"],type:"foundation",title:"A"},
+    {id:"b",dependsOn:["a"],type:"delivery",title:"B"}
+  ]};
+  const result=executeImplementationPlan(plan);
+  assert.equal(result.status,"FAILED");
+  assert.match(result.error,/deadlock/i);
 });
