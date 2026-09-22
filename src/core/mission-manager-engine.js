@@ -124,6 +124,61 @@ export async function completeMission(root,missionId,input={}){
   return recordMissionEvent(root,{...input,missions,currentMissionId:next?.id||null,checkpoint,missionId,event:"completed",status:"COMPLETED",summary:input.summary||"Mission completed."});
 }
 
+
+
+export function buildResumePlan(state={}){
+  const missions=state.missions||[];
+  const recoverable=missions.filter(m=>m.status==="running"||m.status==="failed");
+  const recovered=recoverable.filter(m=>m.status==="running"||m.retryable!==false);
+  const blocked=recoverable.filter(m=>m.status==="failed"&&m.retryable===false);
+  const nextMissions=missions.map(m=>{
+    if(m.status==="running")return {...m,status:"ready",resumeCount:(m.resumeCount||0)+1,lastResumedAt:new Date().toISOString()};
+    if(m.status==="failed"&&m.retryable!==false)return {...m,status:"ready",resumeCount:(m.resumeCount||0)+1,lastResumedAt:new Date().toISOString()};
+    return m;
+  });
+  const resumedState=buildMissionState({...state,missions:nextMissions,currentMissionId:null});
+  const next=selectNextMission(resumedState);
+  return {
+    status:recovered.length?"RESUME_AVAILABLE":"NO_RESUME_REQUIRED",
+    state:resumedState,
+    recovered:recovered.map(m=>m.id),
+    blocked:blocked.map(m=>m.id),
+    nextMission:next
+  };
+}
+
+export async function resumeMissionManager(root,{reason="process-restart"}={}){
+  const state=await loadMissionState(root);
+  if(!state)return {status:"NO_MISSION_STATE"};
+  const plan=buildResumePlan(state);
+  if(plan.status==="NO_RESUME_REQUIRED")return {status:plan.status,state,nextMission:selectNextMission(state)};
+  const checkpoint=createMissionCheckpoint(plan.state,{
+    missionId:plan.nextMission?.id||null,
+    status:"resumed",
+    summary:"Recovered persisted mission state after interruption.",
+    details:{reason,recovered:plan.recovered,blocked:plan.blocked}
+  });
+  return recordMissionEvent(root,{
+    ...plan,
+    missions:plan.state.missions,
+    currentMissionId:plan.nextMission?.id||null,
+    checkpoint,
+    event:"resumed",
+    status:"RESUMED",
+    summary:"Mission execution resumed from persistent checkpoint.",
+    missionId:plan.nextMission?.id||null
+  });
+}
+
+export async function checkpointMission(root,{missionId=null,status="checkpoint",summary=null,details={},result=null}={}){
+  const state=await loadMissionState(root);
+  if(!state)return {status:"NO_MISSION_STATE"};
+  const id=missionId||state.currentMissionId||selectNextMission(state)?.id||null;
+  const missions=state.missions.map(m=>m.id===id?{...m,lastCheckpointAt:new Date().toISOString(),checkpointStatus:status,result:result??m.result}:m);
+  const checkpoint=createMissionCheckpoint({...state,currentMissionId:id},{missionId:id,status,summary,details});
+  return recordMissionEvent(root,{missions,currentMissionId:id,checkpoint,event:"checkpoint",status:"CHECKPOINT",summary:summary||"Mission checkpoint saved.",missionId:id});
+}
+
 export async function failMission(root,missionId,input={}){
   const state=await loadMissionState(root);
   if(!state)throw new Error("mission state not found");
@@ -141,4 +196,4 @@ export function validateMissionState(state={}){
   return {valid:!reasons.length,reasons};
 }
 
-export default {decomposeMission,buildMissionState,getReadyMissions,selectNextMission,createMissionCheckpoint,loadMissionState,loadMissionHistory,saveMissionState,recordMissionEvent,initializeMissionManager,startNextMission,completeMission,failMission,validateMissionState};
+export default {decomposeMission,buildMissionState,getReadyMissions,selectNextMission,createMissionCheckpoint,loadMissionState,loadMissionHistory,saveMissionState,recordMissionEvent,initializeMissionManager,startNextMission,completeMission,failMission,buildResumePlan,resumeMissionManager,checkpointMission,validateMissionState};
