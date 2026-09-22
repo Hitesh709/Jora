@@ -192,8 +192,8 @@ test("Phase 2 orchestrator runs the autonomous factory pipeline end to end",asyn
   assert.ok(summary.stages.some(stage=>stage.stage==="test-repair"));
   assert.ok(summary.stages.some(stage=>stage.stage==="preview-promotion"));
 });
-test("Phase 2 orchestrator rejects an empty request",()=>{
-  assert.throws(()=>runAutonomousProject(""),/command is required/);
+test("Phase 2 orchestrator rejects an empty request",async()=>{
+  await assert.rejects(()=>runAutonomousProject(""),/command is required/);
 });
 
 test("Phase 2.2 materializes generated files into an isolated workspace and runs real npm tests",async()=>{
