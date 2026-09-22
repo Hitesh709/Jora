@@ -417,19 +417,6 @@ export class OperatorApi {
       }
       return json(res,200,{accepted:true,status:"UNDERSTOOD",understanding,specification});
     }
-      const body=await readBody(req,this.maxBodyBytes);
-      if(typeof body.input!=="string" || !body.input.trim()) return json(res,400,{error:"input is required"});
-      try {
-        const specification=await this.productUnderstanding.understand({
-          input:body.input.trim(),
-          context:{...(body.context??{}),tenantId}
-        });
-        return json(res,200,{accepted:true,status:"UNDERSTOOD",specification});
-      } catch(error) {
-        return json(res,400,{accepted:false,status:"FAILED",error:error.message});
-      }
-    }
-
     if(method==="POST" && path==="/v1/architecture/plan") {
       if(!this.architecturePlanner) return json(res,503,{error:"architecture_planner_not_configured"});
       const body=await readBody(req,this.maxBodyBytes);
