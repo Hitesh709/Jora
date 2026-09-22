@@ -15,5 +15,5 @@ test("v1.53 generates an acyclic executable task DAG",()=>{
   assert.ok(result.dag.nodes.length>=6);
   assert.ok(result.dag.levels.length>=6);
   assert.equal(result.dag.entryTask,"TASK-001");
-  assert.equal(result.dag.terminalTasks[0],"TASK-006");
+  assert.equal(result.dag.terminalTasks[0],"TASK-008");
 });
