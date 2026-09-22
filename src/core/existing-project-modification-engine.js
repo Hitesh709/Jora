@@ -4,6 +4,7 @@ import {collectMultiFileCodeUnderstanding} from "./code-understanding-engine.js"
 import {runFeatureEvolutionLoop,persistFeatureEvolutionReport} from "./feature-evolution-engine.js";
 import {runFeatureImplementationLoop,persistFeatureImplementationReport} from "./feature-implementation-engine.js";
 import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./feature-integration-engine.js";
+import {buildContinuationContext,recordProjectMemory} from "./project-memory-engine.js";
 
 const VERSION="1.0";
 const PROTECTED=[".git","node_modules",".jora/acceptance.json",".jora/requirements.json"];
@@ -75,8 +76,8 @@ export async function applyExistingProjectModifications(root,plan,{input={},runT
 export async function persistExistingProjectModificationReport(root,report){await fs.mkdir(path.join(root,".jora"),{recursive:true});await fs.writeFile(path.join(root,".jora","existing-project-modification.json"),JSON.stringify(report,null,2),"utf8");return report}
 export async function runExistingProjectModificationLoop(root,input={}){
   if(!root)throw new Error("root is required");
-  const inspection=await inspectExistingProject(root),existingContract=extractExistingProjectContract(inspection),diff=diffRequirementsAgainstProject({...input,existingContract}),impact=await buildModificationImpactGraph(root,{...input,diff}),plan=buildExistingProjectModificationPlan({diff,impact});
-  if(!diff.added.length&&!diff.missingRoutes.length){const report={version:VERSION,status:"NO_MODIFICATION_NEEDED",modified:false,inspection,existingContract,diff,impact,plan};await persistExistingProjectModificationReport(root,report);return report}
+  const inspection=await inspectExistingProject(root),existingContract=extractExistingProjectContract(inspection),memory=await buildContinuationContext(root,existingContract),diff=diffRequirementsAgainstProject({...input,existingContract}),impact=await buildModificationImpactGraph(root,{...input,diff}),plan=buildExistingProjectModificationPlan({diff,impact});
+  if(!diff.added.length&&!diff.missingRoutes.length){const report={version:VERSION,status:"NO_MODIFICATION_NEEDED",modified:false,inspection,existingContract,memory,diff,impact,plan};await persistExistingProjectModificationReport(root,report);await recordProjectMemory(root,{contract:existingContract,command:input.command||null,status:report.status,summary:"Continuation check completed with no requested modification."});return report}
   const result=await applyExistingProjectModifications(root,plan,{input:{...input,existingContract,diff},runTests:input.runTests}),report={version:VERSION,status:result.status,modified:result.modified,inspection,existingContract,diff,impact,plan,result};
   await persistExistingProjectModificationReport(root,report);return report;
 }
