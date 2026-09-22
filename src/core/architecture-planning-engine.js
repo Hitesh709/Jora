@@ -18,6 +18,11 @@ export class ArchitecturePlanningEngine {
     const goals=spec.goals??[];
     const functional=spec.requirements?.functional??[];
     const constraints=spec.requirements?.constraints??[];
+    const actors=spec.requirements?.actors??[];
+    const features=spec.requirements?.features??[];
+    const entities=spec.requirements?.entities??[];
+    const workflows=spec.requirements?.workflows??[];
+    const platform=spec.requirements?.platform??"web";
     const components=[];
     const add=(name,responsibility)=>components.push({id:"COMP-"+String(components.length+1).padStart(3,"0"),name,responsibility});
     add("Product Interface","Capture user requests, show status and present results");
@@ -42,6 +47,12 @@ export class ArchitecturePlanningEngine {
       {id:"ADR-002",decision:"Keep verification and observability as first-class layers",reason:"Supports controlled autonomous execution"},
       {id:"ADR-003",decision:"Preserve requirements traceability",reason:"Every implementation task must map back to a product requirement"}
     ];
+    if(features.includes("payments")) add("Payment Integration","Process and verify payment or billing workflows");
+    if(features.includes("authentication")) add("Identity and Access","Handle authentication and protected user workflows");
+    if(features.includes("realtime")) add("Realtime Transport","Support live state synchronization and events");
+    if(features.includes("messaging")) add("Messaging","Handle conversations and message delivery");
+    if(features.includes("maps")) add("Location Services","Handle maps, routes, location and tracking workflows");
+    if(features.includes("multiplayer")) add("Multiplayer Session","Coordinate player state and game sessions");
     const risks=[];
     if((spec.ambiguities??[]).some(x=>x.severity==="high")) risks.push({severity:"high",risk:"High-severity product ambiguity remains",mitigation:"Resolve ambiguity before autonomous execution"});
     if(!constraints.length) risks.push({severity:"medium",risk:"No explicit technical constraints supplied",mitigation:"Allow architecture defaults but record assumptions"});
@@ -52,7 +63,7 @@ export class ArchitecturePlanningEngine {
       objective:spec.intent?.summary||goals[0]||"Product build",
       architectureStyle:"modular-agentic-production-system",
       components,
-      dataModel,
+      dataModel,\n      productModel:{platform,actors,features,entities,workflows},
       interfaces,
       dependencies,
       decisions,
@@ -64,7 +75,7 @@ export class ArchitecturePlanningEngine {
         "Instantiate architecture components and contracts",
         "Generate executable task DAG",
         "Assign specialist agents",
-        "Implement and verify",
+        "Implement requested workflows and product-specific behavior",\n        "Implement and verify",
         "Deploy and observe"
       ],
       readiness:risks.some(x=>x.severity==="high")?"BLOCKED_BY_REQUIREMENTS":"READY_FOR_TASK_DAG",
