@@ -8,9 +8,10 @@ import {verifyWorkspacePreview} from "./browser-verification-engine.js";
 import {runInteractionTests} from "./interaction-testing-engine.js";
 import {compileScenarioPlan} from "./ai-test-generation-engine.js";
 import {runBrowserRepairLoop} from "./browser-repair-engine.js";
+import {runEngineeringIntelligence,persistEngineeringReport} from "./engineering-intelligence-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"2.9",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"3.0",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
@@ -76,6 +77,22 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     }
 
     let browserRepair=null;
+    let engineeringIntelligence=runEngineeringIntelligence({
+      command,
+      blueprint:project.blueprint.projectBlueprint,
+      generation:project.generation,
+      workspaceTests,
+      browserVerification:browser,
+      interactions
+    });
+    await persistEngineeringReport(workspace.root,engineeringIntelligence);
+    stage(state,"engineering-intelligence",engineeringIntelligence.status,{
+      rootCause:engineeringIntelligence.diagnosis.rootCause,
+      confidence:engineeringIntelligence.diagnosis.confidence,
+      repairMode:engineeringIntelligence.diagnosis.repairMode,
+      candidateTasks:engineeringIntelligence.diagnosis.candidateTasks?.length||0
+    });
+
     if(interactions.status==="INTERACTION_FAILED"){
       stage(state,"browser-repair","RUNNING");
       browserRepair=await runBrowserRepairLoop(workspace.root,scenarioPlan,{
@@ -85,7 +102,8 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
         readFile:readWorkspaceFile,
         startPreview:startWorkspacePreview,
         stopPreview:stopWorkspacePreview,
-        initialInteractions:interactions
+        initialInteractions:interactions,
+        engineeringIntelligence
       });
       interactions=browserRepair.interactions;
       browser=browserRepair.browser;
@@ -124,7 +142,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,engineeringIntelligence};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
