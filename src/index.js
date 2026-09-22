@@ -132,3 +132,6 @@ export { runExistingProjectModificationLoop, inspectExistingProject, extractExis
 export { buildProjectMemory, compareProjectMemory, loadProjectMemory, loadProjectHistory, initializeProjectMemory, buildContinuationContext, recordProjectMemory } from "./core/project-memory-engine.js";
 export { buildProjectLifecycle, loadProjectLifecycle, loadProjectLifecycleHistory, saveProjectLifecycle, buildLifecycleChange, buildProjectRoadmap, buildVersionRecord, recordProjectLifecycle, initializeProjectLifecycle, buildProjectLifecycleContext, transitionProjectLifecycle, validateProjectLifecycle } from "./core/project-lifecycle-engine.js";
 export { decomposeMission, buildMissionState, getReadyMissions, selectNextMission, createMissionCheckpoint, loadMissionState, loadMissionHistory, saveMissionState, recordMissionEvent, initializeMissionManager, startNextMission, completeMission, failMission, buildResumePlan, resumeMissionManager, checkpointMission, validateMissionState } from "./core/mission-manager-engine.js";
+
+export { runAutonomousProjectWorker } from "./core/autonomous-orchestrator.js";
+export { loadWorkerState, loadWorkerHistory, saveWorkerState, createWorkerState, runAutonomousWorker, validateWorkerState } from "./core/autonomous-project-worker.js";
