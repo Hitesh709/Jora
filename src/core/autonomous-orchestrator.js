@@ -2,7 +2,8 @@ import {generateUniversalProject} from "./universal-project-generator.js";
 import {executeImplementationPlan} from "./execution-engine.js";
 import {testAndRepairGeneration} from "./test-repair-engine.js";
 import {previewAndPromote} from "./preview-promotion-engine.js";
-import {materializeGeneration,runWorkspaceTests} from "./workspace-engine.js";
+import {materializeGeneration,runWorkspaceTests,readWorkspaceFile} from "./workspace-engine.js";
+import {runFailureDrivenRepair} from "./failure-repair-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"2.0",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -36,8 +37,11 @@ export function runAutonomousProject(command,{maxRepairAttempts=2}={}){
     if(!workspaceTests.passed) throw new Error("workspace tests failed: "+workspaceTests.stderr);
 
     stage(state,"test-repair","RUNNING");
-    const verification=testAndRepairGeneration(project.generation,{maxAttempts:maxRepairAttempts});
-    stage(state,"test-repair",verification.status,{attempts:verification.attempts});
+    const failureRepair=await runFailureDrivenRepair(workspace.root,project.generation,{maxAttempts:maxRepairAttempts,runTests:runWorkspaceTests,readFiles:readWorkspaceFile});
+    const verification=failureRepair.status==="REPAIRED"||failureRepair.result.passed
+      ? {status:"REPAIRED",attempts:failureRepair.attempts,final:{passed:true},generation:project.generation}
+      : testAndRepairGeneration(project.generation,{maxAttempts:maxRepairAttempts});
+    stage(state,"test-repair",verification.status,{attempts:verification.attempts,workspaceAttempts:failureRepair.attempts});
 
     stage(state,"preview-promotion","RUNNING");
     const delivery=previewAndPromote(verification.generation,verification,{});
