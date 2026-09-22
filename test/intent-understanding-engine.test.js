@@ -51,3 +51,14 @@ test("preserves technical English inside Roman Gujarati",()=>{
   assert.match(normalized,/REST API/i);
   assert.match(normalized,/build/i);
 });
+
+
+test("understands direct Roman Gujarati product build requests",()=>{
+  const result=engine.understand({input:"Calculator app banavo"});
+  assert.equal(result.language.code,"gu-Latn");
+  assert.equal(result.action,"build");
+  assert.equal(result.domain,"software");
+  assert.equal(result.entities.product,"calculator");
+  assert.match(result.normalizedText,/calculator app build/i);
+  assert.equal(result.clarificationNeeded,false);
+});
