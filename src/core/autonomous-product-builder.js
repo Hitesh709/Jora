@@ -9,7 +9,7 @@ import {LearningEngine} from "./learning-engine.js";
 import {EvolutionEngine} from "./evolution-engine.js";
 
 export class AutonomousProductBuilder {
-  constructor({runtime=null,modelGateway=null}={}){
+  constructor({runtime=null,modelGateway=null}={}) {
     this.understanding=new ProductUnderstandingEngine({modelGateway});
     this.architecture=new ArchitecturePlanningEngine({modelGateway,productUnderstanding:this.understanding});
     this.dag=new TaskDAGGenerationEngine({modelGateway});
@@ -21,16 +21,69 @@ export class AutonomousProductBuilder {
     this.evolution=new EvolutionEngine();
     this.version="1.60.0";
   }
-  async build({input,context={}}={}){
-    const specification=this.understanding.understand({input,context});
-    const architecture=this.architecture.plan({specification,input,context});
-    const dag=this.dag.generate({specification,architecture});
-    const selection=this.specialists.select({dag:dag.dag});
-    const execution=await this.execution.execute({assignments:selection.assignments,context});
-    const verification=this.verification.verify({executionResults:execution.results,dag:dag.dag});
-    const correction=this.correction.correct({verification,assignments:selection.assignments});
-    const learning=this.learning.learn({tasks:execution.results,verification,corrections:correction.corrections});
-    const evolution=this.evolution.evolve({learning,architecture:architecture.plan});
-    return {accepted:true,status:"AUTONOMOUS_BUILD_COMPLETED",version:this.version,specification,architecture:architecture.plan,dag:dag.dag,specialists:selection,execution,verification,correction,learning,evolution};
+
+  async build({input,context={}}={}) {
+    if(!String(input??"").trim()) throw new Error("input is required");
+
+    const specification=await this.understanding.understand({input,context});
+    if(specification.executionReadiness==="NEEDS_CLARIFICATION") {
+      return {
+        accepted:false,
+        status:"NEEDS_CLARIFICATION",
+        version:this.version,
+        specification
+      };
+    }
+
+    const architectureResult=await this.architecture.plan({specification,input,context});
+    if(architectureResult.status!=="ARCHITECTURE_PLANNED" || architectureResult.plan?.readiness==="BLOCKED_BY_REQUIREMENTS") {
+      return {
+        accepted:false,
+        status:"ARCHITECTURE_BLOCKED",
+        version:this.version,
+        specification,
+        architecture:architectureResult.plan??null
+      };
+    }
+
+    const dagResult=this.dag.generate({specification,architecture:architectureResult.plan});
+    const selection=this.specialists.select({dag:dagResult.dag});
+
+    const execution=await this.execution.execute({
+      assignments:selection.assignments,
+      context:{...context,specification,architecture:architectureResult.plan,dag:dagResult.dag}
+    });
+    const verification=this.verification.verify({
+      executionResults:execution.results,
+      dag:dagResult.dag
+    });
+    const correction=this.correction.correct({
+      verification,
+      assignments:selection.assignments
+    });
+    const learning=this.learning.learn({
+      tasks:execution.results,
+      verification,
+      corrections:correction.corrections
+    });
+    const evolution=this.evolution.evolve({
+      learning,
+      architecture:architectureResult.plan
+    });
+
+    return {
+      accepted:true,
+      status:"AUTONOMOUS_BUILD_COMPLETED",
+      version:this.version,
+      specification,
+      architecture:architectureResult.plan,
+      dag:dagResult.dag,
+      specialists:selection,
+      execution,
+      verification,
+      correction,
+      learning,
+      evolution
+    };
   }
 }
