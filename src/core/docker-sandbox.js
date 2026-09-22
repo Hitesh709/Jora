@@ -2,38 +2,70 @@ import {CommandRunner} from "./command-runner.js";
 
 export class DockerSandbox {
   constructor({runner=new CommandRunner(),image="node:20-bookworm-slim",memory="1g",cpus="2",pidsLimit=256,network="none"}={}) {
-    this.runner=runner; this.image=image; this.memory=memory; this.cpus=cpus; this.pidsLimit=pidsLimit; this.network=network;
+    this.runner=runner;
+    this.image=image;
+    this.memory=memory;
+    this.cpus=cpus;
+    this.pidsLimit=pidsLimit;
+    this.network=network;
   }
-  buildArgs({cwd,command="npm",commandArgs=[],detach=false,ports=[]}={}) {
-    return ["run","--rm",...(detach?["-d"]:[]),"--network",this.network,
-      "--memory",this.memory,"--cpus",this.cpus,"--pids-limit",String(this.pidsLimit),
-      "--read-only","--tmpfs","/tmp:rw,noexec,nosuid,size=256m",
-      "--cap-drop","ALL","--security-opt","no-new-privileges","--user","1000:1000",
+
+  buildArgs({cwd,command="npm",commandArgs=[],detach=false,ports=[],network=this.network}={}) {
+    return [
+      "run","--rm",
+      ...(detach?["-d"]:[]),
+      "--network",network,
+      "--memory",this.memory,
+      "--cpus",this.cpus,
+      "--pids-limit",String(this.pidsLimit),
+      "--read-only",
+      "--tmpfs","/tmp:rw,noexec,nosuid,size=256m",
+      "--cap-drop","ALL",
+      "--security-opt","no-new-privileges",
+      "--user","1000:1000",
       ...ports.flatMap(port=>["-p",`${port}:${port}`]),
-      "-v",cwd+":/workspace:rw","-w","/workspace",this.image,command,...commandArgs];
+      "-v",cwd+":/workspace:rw",
+      "-w","/workspace",
+      this.image,
+      command,
+      ...commandArgs
+    ];
   }
+
   async run({cwd,command="npm",commandArgs=[]}={}) {
-    if (!cwd) throw new Error("cwd is required");
+    if(!cwd) throw new Error("cwd is required");
     const dockerArgs=this.buildArgs({cwd,command,commandArgs});
     const dockerResult=await this.runner.run("docker",dockerArgs,{cwd,env:{}});
-    if(dockerResult.ok || process.env.JORA_LOCAL_TEST_FALLBACK==="false") return dockerResult;
-    const unavailable=Number(dockerResult.code)===-2 || /(?:ENOENT|not found|No such file or directory)/i.test(String(dockerResult.stderr||""));
-    if(!unavailable) return dockerResult;
-    return this.runner.run("npm",commandArgs,{cwd,env:{}});
+    if(dockerResult.ok) return dockerResult;
+
+    const unavailable=Number(dockerResult.code)===-2 ||
+      /(?:ENOENT|not found|No such file or directory)/i.test(String(dockerResult.stderr||""));
+    const allowFallback=
+      process.env.JORA_ALLOW_UNSANDBOXED_FALLBACK==="true" ||
+      process.env.JORA_LOCAL_TEST_FALLBACK==="true";
+
+    // Never silently downgrade a production execution to the host process.
+    // An explicit opt-in is required because generated code is untrusted.
+    if(unavailable && allowFallback) {
+      return this.runner.run("npm",commandArgs,{cwd,env:{}});
+    }
+    return dockerResult;
   }
-  async start({cwd,command="npm",commandArgs=[],ports=[],timeoutMs=15000,network="bridge"}={}) {
+
+  async start({cwd,command="npm",commandArgs=[],ports=[],timeoutMs=15000,network=this.network}={}) {
     if(!cwd) throw new Error("cwd is required");
     const args=this.buildArgs({cwd,command,commandArgs,detach:true,ports,network});
     const started=await this.runner.run("docker",args,{cwd,env:{}});
     if(!started.ok) return started;
 
-    const containerId=String(started.stdout||"").trim().split(/\\s+/)[0];
+    const containerId=String(started.stdout||"").trim().split(/\s+/)[0];
     let stopped=false;
     const stop=async()=>{
       if(stopped||!containerId) return;
       stopped=true;
       await this.runner.run("docker",["stop","-t","2",containerId],{cwd,env:{}}).catch(()=>{});
     };
+
     const deadline=Date.now()+Math.min(timeoutMs,30000);
     while(Date.now()<deadline) {
       const probe=await this.runner.run("docker",["inspect","-f","{{.State.Running}}",containerId],{cwd,env:{}});
