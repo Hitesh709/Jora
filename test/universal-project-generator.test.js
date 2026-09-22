@@ -358,3 +358,13 @@ test("Phase 3.0 persists a machine-readable engineering report",async()=>{
   assert.equal(stored.version,"1.0");
   assert.equal(stored.status,"HEALTHY");
 });
+
+test("Universal Builder corrects a likely game-name typo instead of falling back to generic arcade",()=>{
+  const project=generateUniversalProject("Build snack game");
+  assert.equal(project.blueprint.kind,"game");
+  assert.equal(project.blueprint.gameType,"snake");
+  assert.deepEqual(project.blueprint.corrections[0],{from:"snack",to:"snake",distance:2,reason:"near-match game vocabulary"});
+  const html=project.files.find(file=>file.path==="src/index.html").content;
+  assert.match(html,/function tick\(\)/);
+  assert.match(html,/eat food, grow/i);
+});
