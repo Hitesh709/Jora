@@ -52,20 +52,24 @@ export async function runInteractionTests(url,{timeout=15000,tests=[]}={}){
         return {count};
       });
 
-      for(const spec of tests){
-        await run(spec.name||"custom-interaction",async()=>{
-          const action=spec.action||"click";
-          const locator=page.locator(spec.selector).first();
-          if(action==="click"){await locator.click({timeout});}
-          else if(action==="fill"){await locator.fill(String(spec.value??""),{timeout});}
-          else if(action==="press"){await locator.press(String(spec.value||"Enter"),{timeout});}
-          else if(action==="select"){await locator.selectOption(String(spec.value),{timeout});}
-          else if(action==="expect-text"){
-            const text=await page.locator(spec.selector).first().innerText({timeout});
-            if(!text.includes(String(spec.value)))throw new Error("Expected text not found: "+spec.value);
-          }else if(action==="navigate"){await page.goto(String(spec.value),{waitUntil:"networkidle",timeout});}
-          else throw new Error("Unsupported interaction action: "+action);
-        });
+      for(const scenario of tests){
+        const actions=Array.isArray(scenario.actions)?scenario.actions:[scenario];
+        for(let index=0;index<actions.length;index++){
+          const spec=actions[index];
+          await run((scenario.name||"custom-interaction")+"#"+(index+1),async()=>{
+            const action=spec.action||"click";
+            const locator=page.locator(spec.selector||"button").first();
+            if(action==="click"){await locator.click({timeout});}
+            else if(action==="fill"){await locator.fill(String(spec.value??""),{timeout});}
+            else if(action==="press"){await locator.press(String(spec.value||"Enter"),{timeout});}
+            else if(action==="select"){await locator.selectOption(String(spec.value),{timeout});}
+            else if(action==="expect-text"){
+              const text=await locator.innerText({timeout});
+              if(!text.includes(String(spec.value)))throw new Error("Expected text not found: "+spec.value);
+            }else if(action==="navigate"){await page.goto(String(spec.value),{waitUntil:"networkidle",timeout});}
+            else throw new Error("Unsupported interaction action: "+action);
+          });
+        }
       }
 
       const final=await inspectPage(page);
