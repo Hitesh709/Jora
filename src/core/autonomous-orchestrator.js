@@ -68,15 +68,53 @@ export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
     stage(state,"ai-test-generation","COMPLETED",{scenarios:scenarioPlan.scenarios.length});
     
     stage(state,"interaction-testing","RUNNING");
-    const interactions=await runInteractionTests(preview.url,{tests:scenarioPlan.scenarios});
+    let interactions=await runInteractionTests(preview.url,{tests:scenarioPlan.scenarios});
     stage(state,"interaction-testing",interactions.status,{verified:interactions.verified,checks:interactions.checks?.length||0});
-    if(interactions.status==="INTERACTION_FAILED"||interactions.status==="BROWSER_UNAVAILABLE"){
+    if(interactions.status==="BROWSER_UNAVAILABLE"){
       await stopWorkspacePreview(preview);
-      throw new Error("interaction testing failed: "+(interactions.error||interactions.checks?.find(x=>!x.passed)?.error||"functional UI checks did not pass"));
+      throw new Error("interaction testing failed: "+(interactions.error||"browser is unavailable"));
     }
 
+    let browserRepair=null;
+    if(interactions.status==="INTERACTION_FAILED"){
+      stage(state,"browser-repair","RUNNING");
+      browserRepair=await runBrowserRepairLoop(workspace.root,scenarioPlan,{
+        preview,
+        maxAttempts:maxRepairAttempts,
+        runTests:runWorkspaceTests,
+        readFile:readWorkspaceFile,
+        startPreview:startWorkspacePreview,
+        stopPreview:stopWorkspacePreview,
+        initialInteractions:interactions
+      });
+      interactions=browserRepair.interactions;
+      browser=browserRepair.browser;
+      stage(state,"browser-repair",browserRepair.status,{
+        repaired:browserRepair.repaired,
+        attempts:browserRepair.attempts,
+        patches:browserRepair.history?.reduce((n,item)=>n+(item.applied?.filter(x=>x.applied).length||0),0)||0
+      });
+      if(browserRepair.status!=="BROWSER_REPAIRED"){
+        await stopWorkspacePreview(browserRepair.preview||preview);
+        throw new Error("browser self-healing failed: "+(
+          interactions.error||
+          interactions.checks?.find(x=>!x.passed)?.error||
+          browserRepair.history?.at(-1)?.plan?.diagnosis?.failures?.[0]?.error||
+          "functional UI checks did not pass"
+        ));
+      }
+      preview=browserRepair.preview;
+    }
+
+    stage(state,"interaction-testing","COMPLETED",{
+      verified:interactions.verified,
+      checks:interactions.checks?.length||0,
+      repaired:Boolean(browserRepair?.repaired)
+    });
+
     stage(state,"preview-promotion","RUNNING");
-    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions},{});
+    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair},{});
+
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
     delivery.preview.health=preview.health;
