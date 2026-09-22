@@ -16,9 +16,10 @@ import {runArchitectureGenerationLoop,persistArchitectureGenerationReport} from 
 import {runFeatureEvolutionLoop,persistFeatureEvolutionReport} from "./feature-evolution-engine.js";
 import {runFeatureImplementationLoop,persistFeatureImplementationReport} from "./feature-implementation-engine.js";
 import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./feature-integration-engine.js";
+import {runExistingProjectModificationLoop} from "./existing-project-modification-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"3.6",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"3.8",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
@@ -360,4 +361,11 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 export function summarizeOrchestration(result){
   const s=result?.state;
   return {status:s?.status||"UNKNOWN",stage:s?.stage||"unknown",stages:s?.history?.map(x=>({stage:x.stage,status:x.status}))||[],projectName:result?.project?.name||null,previewUrl:s?.preview?.url||null};
+}
+
+
+export async function runAutonomousExistingProject(root,command,{runTests=runWorkspaceTests}={}) {
+  if(!String(root||"").trim()) throw new Error("root is required");
+  if(!String(command||"").trim()) throw new Error("command is required");
+  return runExistingProjectModificationLoop(root,{command,runTests});
 }
