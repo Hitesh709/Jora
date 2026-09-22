@@ -134,6 +134,12 @@ let chatHistory=[];
 function persistChat(){try{localStorage.setItem(CHAT_STORAGE_KEY,JSON.stringify(chatHistory.slice(-200)))}catch{}}
 function renderMessage(text,who,save=true){const d=document.createElement("div");d.className="msg "+who;d.textContent=text;document.getElementById("messages").appendChild(d);d.scrollIntoView({behavior:"smooth",block:"end"});if(save){chatHistory.push({text:String(text),who,at:Date.now()});persistChat()}}
 function addMessage(text,who){renderMessage(text,who,true)}
+function removeLastMessage(who){
+  const index=chatHistory.map(x=>x.who).lastIndexOf(who);
+  if(index>=0){chatHistory.splice(index,1);persistChat()}
+  const nodes=document.querySelectorAll("#messages .msg."+who);
+  nodes[nodes.length-1]?.remove();
+}
 function restoreChat(){try{chatHistory=JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY)||"[]");if(!Array.isArray(chatHistory))chatHistory=[]}catch{chatHistory=[]}const box=document.getElementById("messages");box.innerHTML="";if(!chatHistory.length){renderMessage("Jora is ready. Ask me anything, or tell me what you want built.","system",false);return}chatHistory.slice(-200).forEach(x=>renderMessage(x.text,x.who,false))}
 function keySend(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendPrompt()}}
 async function sendPrompt(){
@@ -161,11 +167,11 @@ async function sendPrompt(){
           messages:chatHistory.filter(x=>x.who==="user"||x.who==="assistant").slice(-24).map(x=>({role:x.who==="assistant"?"assistant":"user",content:x.text}))
         })});
         const data=await r.json().catch(()=>({error:"Invalid backend response"}));
-        document.querySelector("#messages .msg.system:last-child")?.remove();
+        removeLastMessage("system");
         if(!r.ok) addMessage("Jora could not answer this request: "+(data.error||r.statusText),"system");
         else addMessage(data.message||"Jora did not return an answer.","assistant");
       }catch(e){
-        document.querySelector("#messages .msg.system:last-child")?.remove();
+        removeLastMessage("system");
         addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system");
       }finally{sendBtn.disabled=false}
       return;
@@ -179,12 +185,12 @@ async function sendPrompt(){
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       if(r.status===401) {
-        document.querySelector("#messages .msg.system:last-child")?.remove();
+        removeLastMessage("system");
         addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
         return;
       }
       if(!r.ok) {
-        document.querySelector("#messages .msg.system:last-child")?.remove();
+        removeLastMessage("system");
         addMessage("Jora could not start this autonomous task: "+(data.error||r.statusText),"system");
         return;
       }
@@ -204,7 +210,7 @@ async function sendPrompt(){
           if(progress) renderProgress(progress);
           continue;
         }
-        document.querySelector("#messages .msg.system:last-child")?.remove();
+        removeLastMessage("system");
         if(state.status==="FAILED"||state.status==="CANCELLED"||state.status==="TIMEOUT") addMessage("Jora task "+state.status.toLowerCase()+": "+(state.error||"No further execution was performed."),"system");
         else {
           const result=state.result||{};
@@ -228,17 +234,17 @@ async function sendPrompt(){
       }
       activeRequestId=null;
       document.getElementById("stopRun").style.display="none";
-      document.querySelector("#messages .msg.system:last-child")?.remove();
+      removeLastMessage("system");
       addMessage("Jora is still working in the backend. Open Runs & jobs to monitor the execution.","system");
       return;
     }
     const r=await fetch(base()+"/v1/execute",{method:"POST",headers:headers(),body:JSON.stringify({command,context:{mode,provider:"jora"}})});
     const data=await r.json().catch(()=>({error:"Invalid backend response"}));
-    document.querySelector("#messages .msg.system:last-child")?.remove();
+    removeLastMessage("system");
     if(r.status===401) addMessage("Jora backend rejected the request. Open ⚙ and check the backend connection.","system");
     else if(!r.ok) addMessage("Jora could not execute this request: "+(data.error||r.statusText),"system");
     else addMessage(formatResult(data),"assistant");
-  }catch(e){document.querySelector("#messages .msg.system:last-child")?.remove();addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system")}
+  }catch(e){removeLastMessage("system");addMessage("Jora backend is not available: "+e.message+"\n\nOpen ⚙ to check the API URL.","system")}
   finally{
     sendBtn.disabled=false;
     if(!activeRequestId) document.getElementById("stopRun").style.display="none";
@@ -254,7 +260,7 @@ async function cancelActiveRun(){
     if(!r.ok) throw new Error(data.error||r.statusText);
     activeRequestId=null;
     document.getElementById("stopRun").style.display="none";
-    document.querySelector("#messages .msg.system:last-child")?.remove();
+    removeLastMessage("system");
     addMessage("Jora task stopped safely. The backend worker was terminated.","system");
   }catch(e){addMessage("Could not stop the Jora task: "+e.message,"system")}
 }
@@ -393,7 +399,7 @@ async function chooseDeviceFolderBeforeBuild(){
     return true;
   }catch(e){
     if(e.name==="AbortError"){
-      document.querySelector("#messages .msg.system:last-child")?.remove();
+      removeLastMessage("system");
       addMessage("Build cancelled. Select a folder first so Jora can save the completed project.","system");
       return false;
     }
