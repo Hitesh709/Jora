@@ -84,7 +84,7 @@ export class ProductUnderstandingEngine {
     const dictionary={
       authentication:/\b(login|sign[ -]?in|signup|sign[ -]?up|register|authentication|auth)\b/,
       search:/\b(search|filter|sort|lookup|find)\b/,
-      payments:/\b(payment|payments|stripe|checkout|billing|subscription)\b/,
+      payments:/\b(payment|payments|pay|stripe|checkout|billing|subscription)\b/,
       notifications:/\b(notification|notifications|email|sms|push)\b/,
       realtime:/\b(real[ -]?time|live|websocket|socket)\b/,
       persistence:/\b(database|persist|storage|save|records|crud)\b/,
