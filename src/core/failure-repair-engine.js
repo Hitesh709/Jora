@@ -14,9 +14,13 @@ export function analyzeWorkspaceFailure(result,generation){
   return {type:"workspace-test-failure",summary:parsed.summary,files:parsed.files,tasks:taskMatches};
 }
 
-export function createRepairPatch(failure,{workspaceFiles=[]}={}){
+export function createRepairPatch(failure,{workspaceFiles=[],generation=null}={}){
   const patches=[];
-  for(const file of failure.files||[]){
+  const candidates=[...(failure.files||[])];
+  if(!candidates.length){
+    for(const file of generation?.files||[]) if(/\/broken-health\b/.test(String(file.content||""))) candidates.push(file.path);
+  }
+  for(const file of candidates){
     const source=workspaceFiles.find(item=>item.path===file);
     if(source&&/\/broken-health\b/.test(String(source.content))) patches.push({path:file,operation:"replace",search:"/broken-health",replace:"/health",reason:"Restore health endpoint route."});
   }
@@ -46,7 +50,7 @@ export async function runFailureDrivenRepair(root,generation,{runTests,maxAttemp
     const failure=analyzeWorkspaceFailure(last,generation);
     const workspaceFiles=[];
     for(const file of failure.files){try{workspaceFiles.push({path:file,content:await readFiles(root,file)});}catch{}}
-    const plan=createRepairPatch(failure,{workspaceFiles});
+    const plan=createRepairPatch(failure,{workspaceFiles,generation});
     const applied=[];
     for(const patch of plan.patches) applied.push(await applyRepairPatch(root,patch));
     history.push({attempt:attempts,failure,plan,applied});
