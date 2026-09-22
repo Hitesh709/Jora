@@ -14,9 +14,10 @@ import {collectMultiFileCodeUnderstanding,persistCodeUnderstandingReport} from "
 import {runArchitectureReasoningLoop} from "./architecture-reasoning-engine.js";
 import {runArchitectureGenerationLoop,persistArchitectureGenerationReport} from "./architecture-generation-engine.js";
 import {runFeatureEvolutionLoop,persistFeatureEvolutionReport} from "./feature-evolution-engine.js";
+import {runFeatureImplementationLoop,persistFeatureImplementationReport} from "./feature-implementation-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"3.5",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"3.6",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
@@ -103,6 +104,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     let architectureReasoning=null;
     let architectureGeneration=null;
     let featureEvolution=null;
+    let featureImplementation=null;
 
     codeUnderstanding=await collectMultiFileCodeUnderstanding(workspace.root,{
       workspaceTests,
@@ -192,6 +194,37 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       created:featureEvolution.result?.created?.length||0
     });
 
+    stage(state,"feature-implementation","RUNNING");
+    await stopWorkspacePreview(preview);
+    featureImplementation=await runFeatureImplementationLoop(workspace.root,{
+      command,
+      blueprint:project.blueprint.projectBlueprint,
+      desiredFeatures:project.blueprint.projectBlueprint.features||[],
+      runTests:runWorkspaceTests
+    });
+    await persistFeatureImplementationReport(workspace.root,featureImplementation);
+    stage(state,"feature-implementation",featureImplementation.status,{
+      implemented:featureImplementation.implemented,
+      features:featureImplementation.result?.features||featureImplementation.plan?.tests||[],
+      patched:featureImplementation.result?.patched||false
+    });
+    if(featureImplementation.status==="ROLLED_BACK"||featureImplementation.status==="REJECTED"){
+      throw new Error("feature implementation failed: "+(featureImplementation.result?.error||"implementation was rejected"));
+    }
+    if(featureImplementation.implemented){
+      workspaceTests=await runWorkspaceTests(workspace.root);
+      if(!workspaceTests.passed)throw new Error("workspace tests failed after feature implementation: "+workspaceTests.stderr);
+      preview=await startWorkspacePreview(workspace.root);
+      if(preview.status!=="PREVIEW_RUNNING")throw new Error("preview restart after feature implementation failed");
+      browser=await verifyWorkspacePreview(preview.url);
+      if(browser.status!=="BROWSER_VERIFIED")throw new Error("browser verification failed after feature implementation: "+(browser.reason||browser.error||"verification failed"));
+      interactions=await runInteractionTests(preview.url,{tests:scenarioPlan.scenarios});
+      if(interactions.status==="BROWSER_UNAVAILABLE")throw new Error("interaction testing unavailable after feature implementation");
+    }else{
+      preview=await startWorkspacePreview(workspace.root);
+      if(preview.status!=="PREVIEW_RUNNING")throw new Error("preview restart after feature analysis failed");
+    }
+
     stage(state,"architecture-generation","RUNNING");
     architectureGeneration=await runArchitectureGenerationLoop(workspace.root,{
       blueprint:project.blueprint.projectBlueprint,
@@ -275,7 +308,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     });
 
     stage(state,"preview-promotion","RUNNING");
-    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution},{});
+    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation},{});
 
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
@@ -285,7 +318,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,engineeringIntelligence};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,engineeringIntelligence};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
