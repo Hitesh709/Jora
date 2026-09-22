@@ -10,7 +10,7 @@ import {compileScenarioPlan} from "./ai-test-generation-engine.js";
 import {runBrowserRepairLoop} from "./browser-repair-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"2.8",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"2.9",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
@@ -18,7 +18,7 @@ function stage(state,name,status,details={}){
   state.history.push({stage:name,status,at:new Date().toISOString(),...details});
 }
 
-export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
+export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
   if(!String(command||"").trim()) throw new Error("command is required");
   const state=createOrchestrationState(command);
   state.status="RUNNING";state.startedAt=new Date().toISOString();
@@ -124,7 +124,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
