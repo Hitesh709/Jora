@@ -1,0 +1,8 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {createWorkspace} from "../src/core/workspace-engine.js";
+import {readFile,writeFile} from "node:fs/promises";
+import {mapFeatureToImplementation,inspectFeatureIntegration,buildFeatureIntegrationPlan,applyFeatureIntegration} from "../src/core/feature-integration-engine.js";
+test("Phase 3.7 maps feature across UI data and API",()=>{const m=mapFeatureToImplementation("booking",{});assert.deepEqual(m.layers,["ui","data","api"]);assert.equal(m.api.path,"/api/bookings")});
+test("Phase 3.7 integrates API and contracts",async()=>{const ws=await createWorkspace("jora-37");await writeFile(ws.root+"/src/index.html",'<main data-jora-feature="booking"></main>');await writeFile(ws.root+"/src/index.js",'if(req.url==="/health"){}');const i=await inspectFeatureIntegration(ws.root,{desiredFeatures:["booking"]});const p=buildFeatureIntegrationPlan(i);assert.equal(p.apiPatches.length,1);const r=await applyFeatureIntegration(ws.root,p,{runTests:async()=>({passed:true})});assert.equal(r.status,"FEATURES_INTEGRATED");assert.match(await readFile(ws.root+"/src/index.js","utf8"),/api\/bookings/)});
+test("Phase 3.7 rolls back on regression",async()=>{const ws=await createWorkspace("jora-37-rb");await writeFile(ws.root+"/src/index.html",'<main data-jora-feature="search"></main>');await writeFile(ws.root+"/src/index.js",'if(req.url==="/health"){}');const i=await inspectFeatureIntegration(ws.root,{desiredFeatures:["search"]});const p=buildFeatureIntegrationPlan(i);const r=await applyFeatureIntegration(ws.root,p,{runTests:async()=>({passed:false})});assert.equal(r.status,"ROLLED_BACK")});
