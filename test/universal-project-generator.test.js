@@ -244,3 +244,27 @@ test("Phase 2.7 generates browser scenarios from the project blueprint",async()=
   assert.ok(plan.scenarios.some(x=>x.name==="booking-flow"));
   assert.ok(plan.scenarios.some(x=>x.name==="checkout-flow"));
 });
+
+
+test("Phase 2.8 creates targeted browser repair patches from failed selectors",async()=>{
+  const {createBrowserRepairPatch,analyzeInteractionFailure}=await import("../src/core/browser-repair-engine.js");
+  const interactions={
+    status:"INTERACTION_FAILED",
+    url:"http://127.0.0.1:3000",
+    checks:[
+      {name:"search-flow#1",passed:false,error:"locator('input[type=search],input[placeholder*="search" i]') timeout"}
+    ],
+    consoleErrors:[],
+    pageErrors:[]
+  };
+  const plan={scenarios:[{id:"FLOW-SEARCH",name:"search-flow",actions:[{action:"fill",selector:"input[type=search],input[placeholder*='search' i]",value:"test"}]}]};
+  const failure=analyzeInteractionFailure(interactions,plan);
+  assert.equal(failure.type,"browser-interaction-failure");
+  const repair=createBrowserRepairPatch(failure,{workspaceFiles:[{
+    path:"src/index.html",
+    content:"<html><body><main>App</main></body></html>"
+  }]});
+  assert.equal(repair.strategy,"browser-targeted-patch");
+  assert.ok(repair.patches.some(p=>p.path==="src/index.html"));
+  assert.ok(repair.patches.some(p=>/type="search"/.test(p.content)));
+});
