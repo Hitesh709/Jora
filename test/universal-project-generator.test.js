@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {generateUniversalProject} from "../src/core/universal-project-generator.js";
 import {executeImplementationPlan} from "../src/core/execution-engine.js";
+import {CodeGenerationEngine} from "../src/core/code-generation-engine.js";
 
 const cases=[
   ["Build a restaurant booking system", "web", "bookings"],
@@ -121,4 +122,23 @@ test("Phase 1.4 execution engine detects dependency deadlocks",()=>{
   const result=executeImplementationPlan(plan);
   assert.equal(result.status,"FAILED");
   assert.match(result.error,/deadlock/i);
+});
+
+test("Phase 1.5 compiles planner tasks into traceable code artifacts",()=>{
+  const project=generateUniversalProject("Build a mobile booking app with login, REST API, Razorpay and admin dashboard");
+  const generation=project.generation;
+  assert.equal(generation.strategy,"task-to-code");
+  assert.ok(generation.files.some(file=>file.path===".jora/plan.json"));
+  assert.ok(generation.files.some(file=>file.path===".jora/requirements.json"));
+  assert.ok(generation.files.some(file=>file.path===".jora/data-model.json"));
+  assert.ok(generation.files.some(file=>file.path===".jora/api-contract.json"));
+  assert.ok(generation.files.some(file=>file.path===".jora/integrations.json"));
+  assert.ok(generation.files.some(file=>file.path===".jora/generation-manifest.json"));
+  const apiTask=generation.taskMap.find(task=>task.taskId==="07-api");
+  assert.ok(apiTask);
+  assert.ok(apiTask.outputs.includes(".jora/api-contract.json"));
+});
+test("Phase 1.5 engine rejects missing blueprint or plan",()=>{
+  const engine=new CodeGenerationEngine();
+  assert.throws(()=>engine.generate({}),/blueprint and plan are required/);
 });
