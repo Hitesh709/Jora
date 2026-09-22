@@ -179,7 +179,7 @@ async function sendPrompt(){
       }
     }
     const health=await fetch(base()+"/health",{cache:"no-store"});if(!health.ok)throw new Error("Backend health check failed: "+health.status);
-    if(mode==="agent" && !isEngineeringRequest(command)){
+    if(mode==="agent" && !isEngineeringRequest(command,understanding)){
       try{
         const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({
           message:command,
@@ -196,11 +196,12 @@ async function sendPrompt(){
       }finally{sendBtn.disabled=false}
       return;
     }
-    if(mode==="coding" || mode==="build" || (mode==="agent" && isEngineeringRequest(command))){
+    if(mode==="coding" || mode==="build" || (mode==="agent" && isEngineeringRequest(command,understanding))){
       // Coding, Build, and engineering requests in Agent mode use the isolated
       // asynchronous engineering worker.
       const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
-        command,
+        command:executionCommand,
+        messages:chatHistory.filter(x=>x.who==="user"||x.who==="assistant").slice(-24).map(x=>({role:x.who==="assistant"?"assistant":"user",content:x.text})),
         context:{provider:"jora",mode,source:"browser",buildIntent:modifyingExisting?"modify":"new",freshProject:!modifyingExisting,preserveExistingProject:modifyingExisting,existingProject:modifyingExisting&&workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null}
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
