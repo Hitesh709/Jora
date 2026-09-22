@@ -49,3 +49,16 @@ test("Universal Builder selects game-specific mechanics instead of one generic g
     assert.match(html,/canvas id="game"/,command);
   }
 });
+
+test("Universal Builder extracts Phase 1 requirements from natural-language requests",()=>{
+  const project=generateUniversalProject("Build a mobile booking app with login, search, admin dashboard, REST API, Razorpay, and email notifications");
+  const r=project.blueprint.requirements;
+  assert.ok(r.platform.includes("mobile"));
+  assert.ok(r.auth.includes("Users can sign in"));
+  assert.ok(r.ui.includes("dashboard"));
+  assert.ok(r.userFlows.includes("search/filter"));
+  assert.ok(r.api.includes("REST API"));
+  assert.ok(r.integrations.includes("Razorpay"));
+  assert.ok(r.integrations.includes("email delivery"));
+  assert.ok(r.acceptanceCriteria.length>=2);
+});
