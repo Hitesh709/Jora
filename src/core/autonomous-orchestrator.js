@@ -10,6 +10,7 @@ import {compileScenarioPlan} from "./ai-test-generation-engine.js";
 import {runBrowserRepairLoop} from "./browser-repair-engine.js";
 import {runEngineeringIntelligence,persistEngineeringReport} from "./engineering-intelligence-engine.js";
 import {runCodeReasoningRepairLoop} from "./code-reasoning-engine.js";
+import {collectMultiFileCodeUnderstanding,persistCodeUnderstandingReport} from "./code-understanding-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"3.1",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -94,7 +95,17 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     });
 
     let codeReasoning=null;
+    let codeUnderstanding=null;
     let browserRepair=null;
+
+    codeUnderstanding=await collectMultiFileCodeUnderstanding(workspace.root,{
+      workspaceTests,
+      browserVerification:browser,
+      interactions,
+      engineeringIntelligence
+    });
+    await persistCodeUnderstandingReport(workspace.root,codeUnderstanding.report);
+    stage(state,"code-understanding",codeUnderstanding.report.status,{scope:codeUnderstanding.report.reasoning.scope,connectedFiles:codeUnderstanding.report.connectedFiles.length,edges:codeUnderstanding.report.dependencyEdges.length});
 
     if(interactions.status==="INTERACTION_FAILED" && engineeringIntelligence.diagnosis.repairMode==="source-targeted"){
       stage(state,"code-reasoning","RUNNING");
@@ -171,7 +182,8 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
         stopPreview:stopWorkspacePreview,
         initialInteractions:interactions,
         engineeringIntelligence,
-        codeReasoning
+        codeReasoning,
+        codeUnderstanding
       });
       interactions=browserRepair.interactions;
       browser=browserRepair.browser;
@@ -208,7 +220,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,engineeringIntelligence};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,engineeringIntelligence};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
