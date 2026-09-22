@@ -195,3 +195,14 @@ test("Phase 2 orchestrator runs the autonomous factory pipeline end to end",()=>
 test("Phase 2 orchestrator rejects an empty request",()=>{
   assert.throws(()=>runAutonomousProject(""),/command is required/);
 });
+
+test("Phase 2.2 materializes generated files into an isolated workspace and runs real npm tests",async()=>{
+  const {materializeGeneration,runWorkspaceTests,inspectWorkspace}=await import("../src/core/workspace-engine.js");
+  const project=generateUniversalProject("Build a customer dashboard");
+  const ws=await materializeGeneration(project.generation);
+  const files=await inspectWorkspace(ws.root);
+  assert.ok(files.includes("package.json"));
+  assert.ok(files.includes("src/index.js"));
+  const result=await runWorkspaceTests(ws.root);
+  assert.equal(result.passed,true);
+});
