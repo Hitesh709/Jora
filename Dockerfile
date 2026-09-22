@@ -1,7 +1,7 @@
 FROM node:20-bookworm-slim
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends git ca-certificates \
+  && apt-get install -y --no-install-recommends git ca-certificates chromium \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -15,7 +15,7 @@ COPY . .
 RUN npm run jora:acceptance
 
 ENV NODE_ENV=production
-ENV JORA_API_HOST=0.0.0.0\nENV JORA_BROWSER_EXECUTABLE=/usr/bin/chromium
+ENV JORA_BROWSER_EXECUTABLE=/usr/bin/chromium
 
-# Railway source-sync verification marker: 2026-09-20-v2
+# Railway source-sync verification marker: 2026-09-22-v3
 CMD ["npm","run","jora:api"]
