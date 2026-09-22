@@ -5,6 +5,7 @@ import {executeImplementationPlan} from "../src/core/execution-engine.js";
 import {CodeGenerationEngine} from "../src/core/code-generation-engine.js";
 import {runProjectTests,testAndRepairGeneration} from "../src/core/test-repair-engine.js";
 import {previewAndPromote} from "../src/core/preview-promotion-engine.js";
+import {runAutonomousProject,summarizeOrchestration} from "../src/core/autonomous-orchestrator.js";
 
 const cases=[
   ["Build a restaurant booking system", "web", "bookings"],
@@ -175,4 +176,22 @@ test("Phase 1.7 blocks promotion when verification fails",()=>{
   assert.equal(result.preview.status,"PREVIEW_BLOCKED");
   assert.equal(result.promotion.status,"PROMOTION_BLOCKED");
   assert.equal(result.result.status,"NOT_PROMOTED");
+});
+
+test("Phase 2 orchestrator runs the autonomous factory pipeline end to end",()=>{
+  const result=runAutonomousProject("Build a snake game for mobile");
+  assert.equal(result.state.status,"PROMOTED");
+  assert.equal(result.state.stage,"complete");
+  assert.equal(result.delivery.promotion.status,"PROMOTION_APPROVED");
+  assert.equal(result.delivery.result.status,"PROMOTED");
+  const summary=summarizeOrchestration(result);
+  assert.equal(summary.status,"PROMOTED");
+  assert.ok(summary.stages.some(stage=>stage.stage==="requirements"&&stage.status==="COMPLETED"));
+  assert.ok(summary.stages.some(stage=>stage.stage==="planning"&&stage.status==="COMPLETED"));
+  assert.ok(summary.stages.some(stage=>stage.stage==="execution"&&stage.status==="COMPLETED"));
+  assert.ok(summary.stages.some(stage=>stage.stage==="test-repair"));
+  assert.ok(summary.stages.some(stage=>stage.stage==="preview-promotion"));
+});
+test("Phase 2 orchestrator rejects an empty request",()=>{
+  assert.throws(()=>runAutonomousProject(""),/command is required/);
 });
