@@ -26,5 +26,5 @@ export function compilePlanToCode(blueprint,plan,baseFiles=[]){
 
 export class CodeGenerationEngine{
   constructor(){this.version="1.0";}
-  generate({blueprint,plan,baseFiles=[]}={}){if(!blueprint||!plan)throw new Error("blueprint and plan are required");return compilePlanToCode(blueprint,plan,baseFiles);}
+  generate({blueprint,plan,baseFiles=[]}={}){if(!blueprint&&!plan)throw new Error("blueprint and plan are required");return compilePlanToCode(blueprint||{},plan,baseFiles);}
 }
