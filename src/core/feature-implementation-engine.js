@@ -69,6 +69,7 @@ export async function applyFeatureImplementation(root,plan,{runTests}={}){
   if(scripts){const tag="<script>/* JORA_FEATURE_IMPLEMENTATION */"+scripts+"</script>";html=html.replace("</body>",tag+"</body>");}
   await fs.writeFile(file,html,"utf8");
   const testPath=path.join(root,"test","feature-implementation.test.js");
+  await fs.mkdir(path.dirname(testPath),{recursive:true});
   const assertions=(plan.tests||[]).map(f=>'test("'+f+' feature marker",async()=>{const html=await readFile(new URL("../src/index.html",import.meta.url),"utf8");assert.match(html,/data-jora-feature="'+f+'"/);});').join("\\n");
   if(assertions)await fs.writeFile(testPath,'import test from "node:test";\\nimport assert from "node:assert/strict";\\nimport {readFile} from "node:fs/promises";\\n'+assertions,"utf8");
   const tests=typeof runTests==="function"?await runTests(root):null;if(tests&&!tests.passed)throw new Error("regression failed after feature implementation");
