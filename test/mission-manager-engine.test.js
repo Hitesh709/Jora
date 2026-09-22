@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import {
   decomposeMission,getReadyMissions,selectNextMission,initializeMissionManager,
-  startNextMission,completeMission,failMission,loadMissionState,validateMissionState
+  startNextMission,completeMission,failMission,loadMissionState,validateMissionState,resumeMissionManager,checkpointMission
 } from "../src/core/mission-manager-engine.js";
 
 async function temp(){return fs.mkdtemp(path.join(os.tmpdir(),"jora-mission-"))}
@@ -52,5 +52,30 @@ test("records failure and supports retryable mission state",async()=>{
   assert.equal(mission.status,"failed");
   assert.equal(mission.attempts,1);
   assert.equal(validateMissionState(failed.state).valid,true);
+  await fs.rm(root,{recursive:true,force:true});
+});
+
+
+test("recovers an interrupted running mission and resumes from its checkpoint",async()=>{
+  const root=await temp();
+  await initializeMissionManager(root,{command:"Build app"});
+  await startNextMission(root);
+  await checkpointMission(root,{missionId:"M001",summary:"Halfway through analysis",details:{cursor:"requirements"}});
+  const resumed=await resumeMissionManager(root,{reason:"worker restart"});
+  assert.equal(resumed.status,"MISSION_STATE_RECORDED");
+  assert.equal(resumed.state.missions.find(m=>m.id==="M001").status,"ready");
+  assert.ok((resumed.state.missions.find(m=>m.id==="M001").resumeCount||0)>=1);
+  assert.equal(resumed.state.currentMissionId,"M001");
+  assert.equal(resumed.state.checkpoint.status,"resumed");
+  await fs.rm(root,{recursive:true,force:true});
+});
+
+test("recovers retryable failures but leaves non-retryable failures blocked",async()=>{
+  const root=await temp();
+  await initializeMissionManager(root,{command:"Build app"});
+  await startNextMission(root);
+  await failMission(root,"M001",{error:"temporary",retryable:true});
+  const resumed=await resumeMissionManager(root);
+  assert.equal(resumed.state.missions.find(m=>m.id==="M001").status,"ready");
   await fs.rm(root,{recursive:true,force:true});
 });
