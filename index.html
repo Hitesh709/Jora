@@ -172,7 +172,7 @@ async function sendPrompt(){
       // asynchronous engineering worker.
       const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
         command,
-        context:{provider:"jora",mode,source:"browser",existingProject:workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null}
+        context:{provider:"jora",mode,source:"browser",buildIntent:modifyingExisting?"modify":"new",freshProject:!modifyingExisting,preserveExistingProject:modifyingExisting,existingProject:modifyingExisting&&workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null}
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       if(r.status===401) {
