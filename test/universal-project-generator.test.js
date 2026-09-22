@@ -310,3 +310,51 @@ test("Phase 2.9 repair memory can be persisted and reloaded",async()=>{
   assert.equal(loaded.cycles,4);
   assert.equal(loaded.outcomes.length,1);
 });
+
+
+test("Phase 3.0 diagnoses engineering failures from cross-layer evidence",async()=>{
+  const {runEngineeringIntelligence}=await import("../src/core/engineering-intelligence-engine.js");
+  const project=generateUniversalProject("Build a mobile booking app with login, search and checkout");
+  const result=runEngineeringIntelligence({
+    command:"Build a mobile booking app with login, search and checkout",
+    blueprint:project.blueprint.projectBlueprint,
+    generation:project.generation,
+    workspaceTests:{passed:true},
+    browserVerification:{status:"BROWSER_VERIFIED"},
+    interactions:{
+      status:"INTERACTION_FAILED",
+      checks:[{name:"search-flow#1",passed:false,error:"locator('input[type=search]') timeout"}],
+      consoleErrors:[],
+      pageErrors:[]
+    }
+  });
+  assert.equal(result.status,"DEGRADED");
+  assert.equal(result.diagnosis.rootCause,"ui-contract-or-interaction-mismatch");
+  assert.equal(result.diagnosis.repairMode,"browser-targeted");
+  assert.ok(result.plan.steps.some(step=>step.action==="apply-minimal-ui-repair"));
+  assert.ok(result.plan.guardrails.some(x=>/never weaken/i.test(x)));
+});
+
+test("Phase 3.0 reports a healthy project without inventing repairs",async()=>{
+  const {runEngineeringIntelligence}=await import("../src/core/engineering-intelligence-engine.js");
+  const result=runEngineeringIntelligence({
+    command:"Build a customer dashboard",
+    workspaceTests:{passed:true},
+    browserVerification:{status:"BROWSER_VERIFIED"},
+    interactions:{status:"INTERACTION_VERIFIED",checks:[],consoleErrors:[],pageErrors:[]}
+  });
+  assert.equal(result.status,"HEALTHY");
+  assert.equal(result.diagnosis.repairMode,"none");
+  assert.equal(result.plan.strategy,"no-repair");
+});
+
+test("Phase 3.0 persists a machine-readable engineering report",async()=>{
+  const {runEngineeringIntelligence,persistEngineeringReport}=await import("../src/core/engineering-intelligence-engine.js");
+  const {createWorkspace,readWorkspaceFile}=await import("../src/core/workspace-engine.js");
+  const ws=await createWorkspace("jora-intelligence-test");
+  const report=runEngineeringIntelligence({workspaceTests:{passed:true},browserVerification:{status:"BROWSER_VERIFIED"},interactions:{status:"INTERACTION_VERIFIED",checks:[]}});
+  await persistEngineeringReport(ws.root,report);
+  const stored=JSON.parse(await readWorkspaceFile(ws.root,".jora/engineering-report.json"));
+  assert.equal(stored.version,"1.0");
+  assert.equal(stored.status,"HEALTHY");
+});
