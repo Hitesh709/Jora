@@ -5,6 +5,7 @@ import {runFeatureEvolutionLoop,persistFeatureEvolutionReport} from "./feature-e
 import {runFeatureImplementationLoop,persistFeatureImplementationReport} from "./feature-implementation-engine.js";
 import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./feature-integration-engine.js";
 import {buildContinuationContext,recordProjectMemory} from "./project-memory-engine.js";
+import {initializeProjectLifecycle,transitionProjectLifecycle} from "./project-lifecycle-engine.js";
 
 const VERSION="1.0";
 const PROTECTED=[".git","node_modules",".jora/acceptance.json",".jora/requirements.json"];
@@ -77,8 +78,13 @@ export async function persistExistingProjectModificationReport(root,report){awai
 export async function runExistingProjectModificationLoop(root,input={}){
   if(!root)throw new Error("root is required");
   const inspection=await inspectExistingProject(root),existingContract=extractExistingProjectContract(inspection),memory=await buildContinuationContext(root,existingContract),diff=diffRequirementsAgainstProject({...input,existingContract}),impact=await buildModificationImpactGraph(root,{...input,diff}),plan=buildExistingProjectModificationPlan({diff,impact});
-  if(!diff.added.length&&!diff.missingRoutes.length){const report={version:VERSION,status:"NO_MODIFICATION_NEEDED",modified:false,inspection,existingContract,memory,diff,impact,plan};await persistExistingProjectModificationReport(root,report);await recordProjectMemory(root,{contract:existingContract,command:input.command||null,status:report.status,summary:"Continuation check completed with no requested modification."});return report}
+  await initializeProjectLifecycle(root,{contract:existingContract,command:input.command||null,projectName:input.projectName||"existing-project"});
+  if(!diff.added.length&&!diff.missingRoutes.length){const report={version:VERSION,status:"NO_MODIFICATION_NEEDED",modified:false,inspection,existingContract,memory,diff,impact,plan};await persistExistingProjectModificationReport(root,report);await recordProjectMemory(root,{contract:existingContract,command:input.command||null,status:report.status,summary:"Continuation check completed with no requested modification."});await transitionProjectLifecycle(root,"active",{contract:existingContract,command:input.command||null,phase:"continuation",status:report.status,summary:"Existing project already satisfied the requested change."});return report}
+  await transitionProjectLifecycle(root,"modifying",{contract:existingContract,command:input.command||null,phase:"modification",status:"MODIFYING",summary:"Applying requested changes to the existing project.",changes:[...(diff.added||[]),...(diff.missingRoutes||[])]});
   const result=await applyExistingProjectModifications(root,plan,{input:{...input,existingContract,diff},runTests:input.runTests}),report={version:VERSION,status:result.status,modified:result.modified,inspection,existingContract,diff,impact,plan,result};
-  await persistExistingProjectModificationReport(root,report);return report;
+  await persistExistingProjectModificationReport(root,report);
+  const nextState=result.status==="MODIFIED"?"verifying":result.status==="ROLLED_BACK"?"rolled_back":"failed";
+  await transitionProjectLifecycle(root,nextState,{contract:existingContract,command:input.command||null,phase:"modification",status:result.status,summary:result.status==="MODIFIED"?"Existing project modification passed regression testing.":"Existing project modification did not complete successfully.",changes:[...(diff.added||[]),...(diff.missingRoutes||[])]});
+  return report;
 }
 export default {inspectExistingProject,extractExistingProjectContract,diffRequirementsAgainstProject,buildModificationImpactGraph,buildExistingProjectModificationPlan,validateExistingProjectModificationPlan,applyExistingProjectModifications,persistExistingProjectModificationReport,runExistingProjectModificationLoop};
