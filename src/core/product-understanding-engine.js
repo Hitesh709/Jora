@@ -91,7 +91,7 @@ export class ProductUnderstandingEngine {
       analytics:/\b(analytics|metrics|report|reports|dashboard|kpi)\b/,
       file_uploads:/\b(upload|file|document|image|photo|attachment)\b/,
       messaging:/\b(chat|message|messaging|conversation|inbox)\b/,
-      maps:/\b(map|maps|location|gps|tracking|route)\b,
+      maps:/\b(map|maps|location|gps|tracking|route)\b/,
       multiplayer:/\b(multiplayer|two player|2 player|online players)\b/,
       mobile:/\b(mobile|android|ios|touch|responsive)\b/,
       api:/\b(api|backend|server|rest|graphql|webhook|endpoint)\b/
