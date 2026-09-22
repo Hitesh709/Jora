@@ -1,0 +1,4 @@
+export function normalizeIntegration({id,type,provider,config={}}={}){if(!id||!type)throw new Error("integration id and type are required");return{id,type,provider:provider||"custom",config,status:"configured",version:"1.0"}}
+export function buildIntegrationPlan({integrations=[],required=[]}={}){const known=new Set(integrations.map(x=>x.id));return{version:"1.0",connect:[...required.filter(x=>!known.has(x.id)).map(x=>normalizeIntegration(x))],existing:integrations,guardrails:{secretsExternalized:true,leastPrivilege:true,healthCheckRequired:true}}}
+export function validateIntegrationPlan(plan={}){const reasons=[];if(plan.guardrails?.secretsExternalized!==true)reasons.push("externalized secrets required");if(plan.guardrails?.leastPrivilege!==true)reasons.push("least privilege required");return{valid:reasons.length===0,reasons}}
+export default{normalizeIntegration,buildIntegrationPlan,validateIntegrationPlan};
