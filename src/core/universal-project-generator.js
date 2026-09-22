@@ -5,8 +5,34 @@ function titleOf(command){
   return clean(command).replace(/^(build|create|make|develop|design|generate|implement)\s+/i,"").slice(0,100)||"Jora Application";
 }
 
+function inferRequirements(command){
+  const text=clean(command), lower=text.toLowerCase();
+  const has=(re)=>re.test(lower);
+  const pick=(patterns)=>patterns.filter(([re])=>has(re)).map(([,value])=>value);
+  const r={userFlows:[],ui:[],data:[],api:[],auth:[],integrations:[],platform:[],constraints:[],acceptanceCriteria:[]};
+  if(has(/\\b(login|sign[ -]?in|authentication|auth)\\b/))r.auth.push("Users can sign in");
+  if(has(/\\b(sign[ -]?up|signup|register|registration)\\b/))r.auth.push("Users can register");
+  if(has(/\\b(admin|administrator|admin panel|admin dashboard)\\b/))r.auth.push("Admin access is required");
+  if(has(/\\b(role|roles|permissions|permission)\\b/))r.auth.push("Role-based permissions are required");
+  r.platform.push(...pick([[/\\bmobile\\b/,"mobile"],[/\\bandroid\\b/,"android"],[/\\bios\\b/,"ios"],[/\\bweb|website|browser\\b/,"web"]]));
+  if(!r.platform.length)r.platform.push("web");
+  r.ui.push(...pick([[/\\bdashboard|admin dashboard\\b/,"dashboard"],[/\\bform|forms\\b/,"forms"],[/\\btable|tables|list\\b/,"list/table"],[/\\bsearch|filter|find|lookup\\b/,"search/filter"],[/\\bcheckout|cart\\b/,"checkout"],[/\\bchat|messag|conversation\\b/,"messaging UI"],[/\\bgame|arcade|racing|platformer|shooter|pong|snake|tetris\\b/,"interactive game UI"]]));
+  r.data.push(...pick([[/\\bdatabase|db|persistent|persistence|save|store data\\b/,"persistent data"],[/\\buser|customer|client\\b/,"user/customer records"],[/\\bproduct|catalog|inventory\\b/,"product/inventory records"],[/\\bbooking|reservation|appointment\\b/,"booking records"],[/\\border|checkout|cart|payment\\b/,"order/payment records"],[/\\btask|todo|project\\b/,"task/project records"],[/\\binvoice|expense|loan|finance\\b/,"financial records"]]));
+  r.api.push(...pick([[/\\bapi\\b/,"API endpoints"],[/\\brest\\b/,"REST API"],[/\\bgraphql\\b/,"GraphQL API"],[/\\bwebhook\\b/,"webhooks"],[/\\bendpoint|endpoints\\b/,"HTTP endpoints"]]));
+  r.integrations.push(...pick([[/\\bstripe\\b/,"Stripe"],[/\\bpaypal\\b/,"PayPal"],[/\\brazorpay\\b/,"Razorpay"],[/\\bgoogle\\b/,"Google integration"],[/\\bgithub\\b/,"GitHub integration"],[/\\bslack\\b/,"Slack integration"],[/\\bemail|mailgun|sendgrid\\b/,"email delivery"]]));
+  r.userFlows.push(...pick([[/\\b(sign[ -]?up|signup|register)\\b/,"register"],[/\\b(login|sign[ -]?in)\\b/,"sign in"],[/\\b(create|add)\\b/,"create"],[/\\b(edit|update|modify)\\b/,"edit/update"],[/\\b(delete|remove)\\b/,"delete"],[/\\b(search|filter|find|lookup)\\b/,"search/filter"],[/\\bcheckout|purchase|buy|order\\b/,"checkout/purchase"],[/\\bbook|booking|reserve|reservation\\b/,"book/reserve"]]));
+  r.constraints.push(...pick([[/\\bmobile\\b/,"mobile-friendly"],[/\\bresponsive\\b/,"responsive UI"],[/\\brealtime|real-time\\b/,"real-time behavior"],[/\\boffline\\b/,"offline support"],[/\\bfast|performance\\b/,"performance-sensitive"],[/\\bsecure|security\\b/,"security-sensitive"]]));
+  r.acceptanceCriteria.push("Matches the requested product type and named features","Generated project is runnable and exposes a health endpoint");
+  if(r.api.length)r.acceptanceCriteria.push("Requested API surface is represented");
+  if(r.auth.length)r.acceptanceCriteria.push("Requested authentication requirements are represented");
+  if(r.integrations.length)r.acceptanceCriteria.push("Requested integrations are identified");
+  for(const key of Object.keys(r))r[key]=[...new Set(r[key])];
+  return r;
+}
+
 function inferBlueprint(command){
   const text=clean(command), lower=text.toLowerCase();
+  const requirements=inferRequirements(text);
   const game=/\b(game|arcade|racing|racer|platformer|shooter|pong|snake|tetris|chess|card game|memory game|puzzle game)\b/.test(lower);\n  const gameType=/\b(card game|memory game|chess|snake|tetris|pong|racing|racer|platformer|shooter|shooting game|space shooter|runner|dodge|puzzle game)\b/.exec(lower)?.[1]?.replace(/\s+/g,"-")||"arcade";
   const api=/\b(api|backend|server|service|rest|graphql|webhook|endpoint)\b/.test(lower);
   const data=/\b(crud|database|data|admin|dashboard|crm|inventory|loan|customer|employee|booking|reservation|order|product|user|task|todo|project|invoice|expense|finance|school|hospital)\b/.test(lower);
@@ -31,6 +57,7 @@ function inferBlueprint(command){
     kind:game?"game":api?"api":"web",
     features:{game,api,data:data||entities.length>0,chat,commerce,auth,search,mobile},\n    gameType,
     entities,
+    requirements,
     assumptions:["Dependency-light by default","Runnable local project with health and capability endpoints","Local persistence unless a server database is explicitly required"]
   };
 }
@@ -108,7 +135,7 @@ test("universal project is runnable and exposes inferred capabilities",async()=>
   await new Promise(resolve=>server.close(resolve));
 });
 `;
-  const readme="# "+blueprint.title+"\\n\\nGenerated by Jora Universal Builder from one natural-language request.\\n\\n## Request\\n"+command+"\\n\\n## Inferred blueprint\\n- Kind: "+blueprint.kind+"\\n- Entities: "+blueprint.entities.map(x=>x.label).join(", ")+"\\n- Features: "+(Object.entries(blueprint.features).filter(([,v])=>v).map(([k])=>k).join(", ")||"core application")+"\\n\\n## Run\\nnpm start\\n\\n## Verify\\nnpm test\\n";
+  const readme="# "+blueprint.title+"\\n\\nGenerated by Jora Universal Builder from one natural-language request.\\n\\n## Request\\n"+command+"\\n\\n## Inferred blueprint\\n- Kind: "+blueprint.kind+"\\n- Entities: "+blueprint.entities.map(x=>x.label).join(", ")+"\\n- Platform: "+blueprint.requirements.platform.join(", ")+"\\n- User flows: "+(blueprint.requirements.userFlows.join(", ")||"core flow")+"\\n- UI: "+(blueprint.requirements.ui.join(", ")||"core UI")+"\\n- Data: "+(blueprint.requirements.data.join(", ")||"local state")+"\\n- API: "+(blueprint.requirements.api.join(", ")||"health/capabilities")+"\\n- Features: "+(Object.entries(blueprint.features).filter(([,v])=>v).map(([k])=>k).join(", ")||"core application")+"\\n\\n## Run\\nnpm start\\n\\n## Verify\\nnpm test\\n";
   return {name:blueprint.name,blueprint,files:[
     {path:"package.json",content:JSON.stringify({name:blueprint.name,version:"0.1.0",private:true,type:"module",scripts:{start:"node src/index.js",test:"node --test"},engines:{node:">=20"}},null,2)},
     {path:"src/index.js",content:server},{path:"src/index.html",content:html},{path:"test/index.test.js",content:test},{path:"README.md",content:readme}
