@@ -168,7 +168,12 @@ export class ProductUnderstandingEngine {
       // with sensible engineering defaults; clarification remains available
       // as metadata but no longer prevents file generation.
       executionReadiness:goals.length ? "READY_FOR_ARCHITECTURE" : "NEEDS_CLARIFICATION",
-      assumptions:[\n        "Unspecified implementation details should use practical dependency-light defaults",\n        "The requested workflows take precedence over generic starter behavior",\n        "Existing project behavior is preserved only when the request is explicitly a modification"\n      ],\n      contextKeys:Object.keys(context??{}),
+      assumptions:[
+        "Unspecified implementation details should use practical dependency-light defaults",
+        "The requested workflows take precedence over generic starter behavior",
+        "Existing project behavior is preserved only when the request is explicitly a modification"
+      ],
+      contextKeys:Object.keys(context??{}),
       generatedAt:new Date().toISOString()
     };
   }
