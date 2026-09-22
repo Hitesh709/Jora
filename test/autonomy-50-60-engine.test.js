@@ -9,7 +9,7 @@ import {
 test("5.1 workforce selects capable agents",()=>{
  let s=createAgentWorkforce({root:"/tmp/jora",capacity:2});
  s={...s,agents:[{id:"a",capabilities:["frontend"],score:8,status:"available"},{id:"b",capabilities:["backend"],score:5,status:"available"}]};
- assert.equal(selectAgents(s,[{capability:"frontend",task:"ui"}])[0].agent.id,"a");
+ assert.equal(selectAgents(s,[{capability:"frontend",task:"ui"}])[0].agent.id,"a");assert.equal(selectAgents(s,[{capability:"frontend"},{capability:"frontend"}])[1].agent,null);
 });
 test("5.2 learning ranks successful strategies",()=>{
  let s={strategies:{},experiences:[]};
@@ -19,7 +19,7 @@ test("5.2 learning ranks successful strategies",()=>{
 });
 test("5.3 adaptive planning preserves guardrails",()=>{
  const p=buildAdaptivePlan({objective:"ship",candidates:[{id:"safe",risk:0}],evidence:{safe:{successes:2}}});
- assert.equal(p.strategy,"safe");assert.equal(p.guardrails.preserveTests,true);
+ assert.equal(p.strategy,"safe");assert.equal(p.guardrails.preserveTests,true);assert.equal(buildAdaptivePlan({objective:"ship",candidates:[{id:"high",risk:"high"},{id:"low",risk:"low"}]}).strategy,"low");
 });
 test("5.4 risk gate blocks unverified actions",()=>{
  assert.equal(buildRiskGate({verificationPassed:false,rollbackAvailable:true}).status,"BLOCK");
