@@ -7,7 +7,7 @@ function normalizeGameIntent(command){
   let normalized=original;
   const corrections=[];
   const gameVocabulary=["snake","pong","tetris","racing","racer","platformer","shooter","runner","dodge","chess","puzzle","arcade"];
-  const words=normalized.toLowerCase().split(/\\s+/);
+  const words=normalized.toLowerCase().split(/\s+/);
   const hasGame=words.includes("game")||words.includes("games");
   if(hasGame){
     for(const word of words){
