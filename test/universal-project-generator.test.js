@@ -218,3 +218,10 @@ test("Phase 2.3 diagnoses real workspace failures and applies targeted repairs",
   assert.equal(result.result.passed,true);
   assert.ok(result.history.length>=1);
 });
+
+test("Phase 2.5 browser verification exposes an explicit browser-availability result",async()=>{
+  const {verifyWorkspacePreview}=await import("../src/core/browser-verification-engine.js");
+  const result=await verifyWorkspacePreview("http://127.0.0.1:9",{timeout:1000});
+  assert.ok(["BROWSER_UNAVAILABLE","BROWSER_FAILED"].includes(result.status));
+  assert.equal(result.verified,false);
+});
