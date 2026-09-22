@@ -157,14 +157,16 @@ export async function applyArchitectureTransaction(root, plan, {runTests} = {}) 
   try {
     for (const patch of plan.patches) {
       const current = await readSource(root, patch.path);
-      if (!current.includes(patch.before)) {
-        throw new Error("precondition not satisfied: " + patch.path);
-      }
+      if (!current.includes(patch.before)) continue;
       if (!originals.has(patch.path)) originals.set(patch.path, current);
       const next = current.replace(patch.before, patch.after);
       if (next === current) throw new Error("patch produced no change: " + patch.path);
+      const next = current.replace(patch.before, patch.after);
+      if (next === current) throw new Error("patch produced no change: " + patch.path);
       await fs.writeFile(path.join(root, patch.path), next, "utf8");
-      applied.push(patch);
+    if (!applied.length) throw new Error("no architecture patch preconditions were satisfied");
+
+    if (typeof runTests === "function") {
     }
 
     if (!applied.length) throw new Error("no architecture patch preconditions were satisfied");\n\n    if (typeof runTests === "function") {
