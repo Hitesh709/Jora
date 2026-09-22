@@ -70,10 +70,15 @@ export class JoraRuntime {
       }
       await governance.transition("ISOLATED");
       if(this.repository?.prepareCandidate) {
-        const candidate=await this.repository.prepareCandidate(
+        const candidate=(serializableContext.freshProject && this.repository.prepareFreshCandidate)
+          ? await this.repository.prepareFreshCandidate(
           execution?.id??`command-${Date.now()}`,
           this.repository.baseBranch??"main"
-        );
+        )
+          : await this.repository.prepareCandidate(
+              execution?.id??`command-${Date.now()}`,
+              this.repository.baseBranch??"main"
+            );
         candidateContext={...candidateContext,candidate};
         if(execution) await this.executionStore.append(execution.id,{
           type:"CANDIDATE_CREATED",
