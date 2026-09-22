@@ -1,0 +1,36 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+
+const DIR=".jora",FILE="project-intelligence.json",HISTORY="project-intelligence-history.json",VERSION="1.0";
+async function readJson(f,d){try{return JSON.parse(await fs.readFile(f,"utf8"))}catch{return d}}
+async function ensure(r){await fs.mkdir(path.join(r,DIR),{recursive:true})}
+export function createProjectIntelligenceState({root}={}){return {version:VERSION,root,observations:[],signals:{health:"unknown",risk:"unknown",progress:"unknown"},status:"READY",updatedAt:new Date().toISOString()}}
+export async function loadProjectIntelligence(root){return readJson(path.join(root,DIR,FILE),null)}
+export async function loadProjectIntelligenceHistory(root){return readJson(path.join(root,DIR,HISTORY),[])}
+export async function saveProjectIntelligence(root,state){await ensure(root);await fs.writeFile(path.join(root,DIR,FILE),JSON.stringify(state,null,2),"utf8");return state}
+async function record(root,event){const h=await loadProjectIntelligenceHistory(root)||[];h.push({...event,at:new Date().toISOString()});await ensure(root);await fs.writeFile(path.join(root,DIR,HISTORY),JSON.stringify(h.slice(-500),null,2),"utf8")}
+export function analyzeProjectSignals(input={}){
+  const tests=input.workspaceTests||{},browser=input.browserVerification||{},interactions=input.interactions||{},mission=input.missionState||{},deployment=input.deploymentState||{};
+  const failures=Number(tests.passed===false)+Number(browser.verified===false||browser.status==="BROWSER_FAILED")+Number(interactions.verified===false||interactions.status==="INTERACTION_FAILED");
+  const completed=(mission.missions||[]).filter(m=>m.status==="completed").length,total=(mission.missions||[]).length;
+  const health=failures===0?"healthy":failures===1?"degraded":"unhealthy";
+  const risk=deployment.state==="FAILED"||deployment.state==="ROLLED_BACK"?"high":failures>1?"high":failures===1?"medium":"low";
+  const progress=total?Math.round(completed/total*100):0;
+  return {health,risk,progress,failures,completedMissions:completed,totalMissions:total,deploymentState:deployment.state||"unknown"};
+}
+export function buildProjectIntelligence(input={}){
+  const signals=analyzeProjectSignals(input);
+  const observations=[];
+  if(signals.health!=="healthy")observations.push("verification or runtime evidence indicates project health requires attention");
+  if(signals.risk==="high")observations.push("multiple or deployment-level failure signals require guarded action");
+  if(signals.progress<100)observations.push("project has unfinished missions");
+  if(!observations.length)observations.push("available evidence is consistent with a healthy project state");
+  return {version:VERSION,status:"INTELLIGENCE_READY",signals,observations,actions:signals.health==="healthy"?["continue mission execution"]:["inspect evidence","repair or rollback if governed gates permit"]};
+}
+export async function recordProjectIntelligence(root,input={}){
+  const state=await loadProjectIntelligence(root)||createProjectIntelligenceState({root});
+  const report=buildProjectIntelligence(input);
+  const next={...state,signals:report.signals,observations:report.observations,updatedAt:new Date().toISOString()};
+  await saveProjectIntelligence(root,next);await record(root,{event:"intelligence-cycle",report});return {status:report.status,state:next,report};
+}
+export default {createProjectIntelligenceState,loadProjectIntelligence,loadProjectIntelligenceHistory,saveProjectIntelligence,analyzeProjectSignals,buildProjectIntelligence,recordProjectIntelligence};
