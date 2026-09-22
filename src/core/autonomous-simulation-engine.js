@@ -1,0 +1,4 @@
+export function createSimulationScenario({id,action,input={},expected={}}={}){return{id:id||"SIM-"+Date.now(),action,input,expected,status:"planned"}}
+export async function runSimulation(scenario,{executor=null}={}){if(typeof executor!=="function")return{status:"SIMULATION_BLOCKED",reason:"executor is required"};try{const actual=await executor(scenario);return{status:"SIMULATED",scenario,result:actual,matched:JSON.stringify(actual)===JSON.stringify(scenario.expected)}}catch(error){return{status:"SIMULATION_FAILED",scenario,error:error.message}}}
+export function gateSimulation(result,{requireMatch=true}={}){return{allowed:result?.status==="SIMULATED"&&(!requireMatch||result.matched===true),status:result?.status==="SIMULATED"&&(!requireMatch||result.matched===true)?"PASS":"BLOCK"}}
+export default{createSimulationScenario,runSimulation,gateSimulation};
