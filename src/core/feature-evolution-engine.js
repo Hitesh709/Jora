@@ -12,13 +12,14 @@ function text(input={}) {
     blueprint:input.blueprint||{},
     requirements:input.requirements||{},
     existing:input.existingFeatures||[],
-    desired:input.desiredFeatures||[]
+    desired:input.desiredFeatures||[],
+    blueprintFeatures:input.blueprint?.features||[]
   }).toLowerCase();
 }
 
 export function extractFeatureDelta(input={}) {
   const all=text(input);
-  const requested=new Set(input.desiredFeatures||[]);
+  const requested=new Set([...(input.desiredFeatures||[]),...(input.blueprint?.features||[])]);
   const inferred=[
     ["authentication",/login|sign[ -]?in|signup|register|auth/.test(all)],
     ["search",/search|filter|find/.test(all)],
