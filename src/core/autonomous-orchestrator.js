@@ -18,7 +18,7 @@ import {runFeatureImplementationLoop,persistFeatureImplementationReport} from ".
 import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./feature-integration-engine.js";
 import {runExistingProjectModificationLoop} from "./existing-project-modification-engine.js";
 import {initializeProjectLifecycle,transitionProjectLifecycle} from "./project-lifecycle-engine.js";
-import {initializeMissionManager,startNextMission,completeMission,failMission,loadMissionState} from "./mission-manager-engine.js";
+import {initializeMissionManager,startNextMission,completeMission,failMission,loadMissionState,resumeMissionManager,checkpointMission} from "./mission-manager-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"3.9",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -53,6 +53,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     lifecycleContract={...project.blueprint.projectBlueprint,entrypoints:["src/index.js","src/index.html"]};
     await initializeProjectLifecycle(workspace.root,{contract:lifecycleContract,command,projectName:project.blueprint.name||project.blueprint.projectBlueprint?.product?.name||"jora-project"});
     await initializeMissionManager(workspace.root,{command,contract:lifecycleContract,features:project.blueprint.projectBlueprint.features||[]});
+    const resume=await resumeMissionManager(workspace.root,{reason:"orchestrator-start"});
     await transitionProjectLifecycle(workspace.root,"active",{command,contract:lifecycleContract,phase:"generation",status:"ACTIVE",summary:"Generated project workspace is active."});
     let workspaceTests=await runWorkspaceTests(workspace.root);
     await startNextMission(workspace.root);
@@ -62,6 +63,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     stage(state,"workspace",workspaceTests.passed?"COMPLETED":"FAILED",{root:workspace.root});
     if(!workspaceTests.passed) throw new Error("workspace tests failed: "+workspaceTests.stderr);
 
+    await checkpointMission(workspace.root,{summary:"Workspace validation checkpoint saved.",details:{stage:"workspace"}});
     stage(state,"test-repair","RUNNING");
     const failureRepair=await runFailureDrivenRepair(workspace.root,project.generation,{maxAttempts:maxRepairAttempts,runTests:runWorkspaceTests,readFiles:readWorkspaceFile});
     let verification=failureRepair.status==="REPAIRED"||failureRepair.result.passed
@@ -69,6 +71,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       : testAndRepairGeneration(project.generation,{maxAttempts:maxRepairAttempts});
     stage(state,"test-repair",verification.status,{attempts:verification.attempts,workspaceAttempts:failureRepair.attempts});
 
+    await checkpointMission(workspace.root,{summary:"Test and repair checkpoint saved.",details:{stage:"test-repair",passed:Boolean(verification.final?.passed)}});
     stage(state,"preview","RUNNING");
     let preview=await startWorkspacePreview(workspace.root);
     if(preview.status!=="PREVIEW_RUNNING"){
@@ -195,6 +198,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       }
     }
 
+    await checkpointMission(workspace.root,{summary:"Browser verification checkpoint saved.",details:{stage:"browser-verification",verified:Boolean(browser.verified)}});
     stage(state,"feature-evolution","RUNNING");
     featureEvolution=await runFeatureEvolutionLoop(workspace.root,{
       command,
@@ -356,6 +360,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     const missionStateAfterFeatures=await loadMissionState(workspace.root);
     for(const mission of (missionStateAfterFeatures?.missions||[]).filter(m=>m.kind==="feature"&&m.status!=="completed")) await completeMission(workspace.root,mission.id,{summary:"Feature implementation and integration completed."});
 
+    await checkpointMission(workspace.root,{summary:"Feature and architecture checkpoint saved.",details:{stage:"architecture-generation"}});
     stage(state,"preview-promotion","RUNNING");
     const missionStateBeforeVerification=await loadMissionState(workspace.root);
     const verificationMission=missionStateBeforeVerification?.missions?.find(m=>m.kind==="verification"&&m.status!=="completed");
@@ -372,6 +377,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     await stopWorkspacePreview(preview);
     stage(state,"preview-promotion",delivery.promotion.status,{preview:delivery.preview.status,url:preview.url});
 
+    await checkpointMission(workspace.root,{summary:"Promotion decision checkpoint saved.",details:{status:delivery.result.status}});
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     const missionStateBeforeDelivery=await loadMissionState(workspace.root);
     const deliveryMission=missionStateBeforeDelivery?.missions?.find(m=>m.kind==="delivery"&&m.status!=="completed");
