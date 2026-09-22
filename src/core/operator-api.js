@@ -336,10 +336,22 @@ export class OperatorApi {
         return json(res,400,{accepted:false,status:"PROVIDER_NOT_AVAILABLE",error:"Selected AI provider is not available on this Jora backend",provider:selectedProvider,availableProviders:gatewayStatus.models||[]});
       }
       try {
+        const conversation=Array.isArray(body.messages)
+          ? body.messages
+              .filter(item=>item&&["system","user","assistant"].includes(item.role)&&typeof item.content==="string")
+              .slice(-24)
+              .map(item=>({role:item.role,content:item.content.slice(0,12000)}))
+          : [];
         const complete=()=>this.modelGateway.complete({
           messages:[
-            {role:"system",content:"You are Jora, an AI engineering agent. Answer the user's question directly and concisely. If the user asks to build, modify, test, or deploy software, explain that Jora can perform the engineering work and ask only for information that is genuinely required."},
-            {role:"user",content:body.message.trim()}
+            {
+              role:"system",
+              content:"You are Jora. Behave like a high-quality conversational AI assistant: understand the user's intent and context before acting, answer ordinary questions directly and clearly, ask a focused clarification only when it is genuinely necessary, and do not turn every conversation into a software build. For software requests, explain the plan briefly and then perform the requested engineering work. If web research is used, synthesize the answer into a clean response; never dump search-result lists, raw URLs, snippets, or source metadata unless the user explicitly asks for sources."
+            },
+            ...conversation,
+            ...(conversation.some(item=>item.role==="user"&&item.content.trim()===body.message.trim())
+              ? []
+              : [{role:"user",content:body.message.trim()}])
           ]
         });
         let response=useDefault ? await complete() : await withModelSelection(requestedProvider,complete);
@@ -354,7 +366,10 @@ export class OperatorApi {
             const research=await this.searchProvider.search({query:body.message.trim(),maxResults:5,topic:"general"});
             if(research?.answer) message=String(research.answer);
             else if(Array.isArray(research?.results)&&research.results.length){
-              message="I found these current sources for your question:\n\n"+research.results.slice(0,3).map((x,i)=>(i+1)+". "+(x.title||"Untitled")+"\n"+(x.snippet||"")+"\n"+(x.url||"")).join("\n\n");
+              const snippets=research.results.slice(0,5).map(x=>String(x.snippet||x.title||"")).filter(Boolean);
+              message=snippets.length
+                ? "I found current information on that topic, but I could not confidently synthesize it into a reliable answer. If you want, ask me to research it in more detail."
+                : "I could not find enough reliable information to answer that confidently."; 
             }
           }catch{}
         }
