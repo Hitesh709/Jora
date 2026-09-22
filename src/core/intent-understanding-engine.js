@@ -40,7 +40,7 @@ const hindiRoman = [
 
 const actionWords = {
   build: /\b(build|create|make|develop|design|generate|implement|code|write|scaffold|banav|banavi|banavo|banavvu|banao)\b/i,
-  modify: /\b(modify|update|change|edit|improve|add|remove|replace|refactor|fix|repair|enhance|upgrade|muko|mukvu)\b/i,
+  modify: /\b(modify|update|change|edit|improve|add|remove|replace|refactor|fix|repair|enhance|upgrade|muko|mukvu|karo)\b/i,
   debug: /\b(debug|bug|error|broken|not working|fix|repair|crash|issue|problem)\b/i,
   test: /\b(test|testing|verify|check|qa)\b/i,
   deploy: /\b(deploy|publish|ship|launch|release|production)\b/i,
