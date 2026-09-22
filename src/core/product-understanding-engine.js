@@ -122,7 +122,7 @@ export class ProductUnderstandingEngine {
 
   _extractPlatform(input) {
     const text=this._clean(input).toLowerCase();
-    if(/\b(android|ios|mobile app)\b/.test(text)) return "mobile";
+    if(/\b(android|ios|mobile)\b/.test(text)) return "mobile";
     if(/\bdesktop|windows|macos|linux\b/.test(text)) return "desktop";
     if(/\b(game|arcade|racing|snake|chess|pong|tetris)\b/.test(text)) return "game";
     if(/\bweb|website|browser|saas\b/.test(text)) return "web";
