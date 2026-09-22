@@ -167,7 +167,7 @@ export async function applyArchitectureTransaction(root, plan, {runTests} = {}) 
       applied.push(patch);
     }
 
-    if (typeof runTests === "function") {
+    if (!applied.length) throw new Error("no architecture patch preconditions were satisfied");\n\n    if (typeof runTests === "function") {
       const tests = await runTests(root);
       if (!tests?.passed) throw new Error("regression failed after architecture repair");
       return {status:"APPLIED",applied,rollback:[],validation,tests};
