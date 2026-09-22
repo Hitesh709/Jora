@@ -252,7 +252,7 @@ test("Phase 2.8 creates targeted browser repair patches from failed selectors",a
     status:"INTERACTION_FAILED",
     url:"http://127.0.0.1:3000",
     checks:[
-      {name:"search-flow#1",passed:false,error:"locator('input[type=search],input[placeholder*="search" i]') timeout"}
+      {name:"search-flow#1",passed:false,error:"locator('input[type=search],input[placeholder*='search' i]') timeout"}
     ],
     consoleErrors:[],
     pageErrors:[]
