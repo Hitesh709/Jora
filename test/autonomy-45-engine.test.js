@@ -8,7 +8,7 @@ import {
   createResourceSchedulerState,enqueueResourceTask,allocateResourceTasks,
   createGovernanceState,evaluateAutonomyAction,
   buildProjectIntelligence,
-  buildAutonomousCommandCenter
+  buildAutonomousCommandCenter,buildAutonomousEnterpriseState
 } from "../src/index.js";
 
 async function temp(){return fs.mkdtemp(path.join(os.tmpdir(),"jora-45-"));}
@@ -58,3 +58,5 @@ test("command center aggregates persisted portfolio state",async()=>{
   assert.equal(center.portfolio.projectCount,1);
   assert.equal(center.resources.queued,1);
 });
+test("project intelligence stays unknown without evidence",()=>{assert.equal(buildProjectIntelligence({}).signals.health,"unknown");assert.equal(buildProjectIntelligence({}).signals.risk,"unknown")});
+test("enterprise readiness is gate-driven",async()=>{const root=await temp();const gated=await buildAutonomousEnterpriseState(root);assert.equal(gated.status,"AUTONOMOUS_ENTERPRISE_GATED")});
