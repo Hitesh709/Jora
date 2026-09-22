@@ -18,7 +18,7 @@ const gujaratiRoman = [
   ["maro", "my"],["mari", "my"],["aapde", "we"],["aapvu", "give"],["aapo", "give"],
   ["aapjo", "give"],["aavshe", "will come"],["aavvu", "come"],["jaavu", "go"],["karvu", "do"],
   ["karo", "do"],["kare", "do"],["karyu", "did"],["banavvu", "build"],["banavani", "build"],
-  ["banavo", "build"],["banavi", "build"],["mukvu", "put"],["muko", "put"],["jovu", "see"],
+  ["banavo", "build"],["banavi", "build"],["banavvi", "build"],["banavanu", "build"],["mukvu", "put"],["muko", "put"],["jovu", "see"],
   ["jova", "see"],["samajavu", "understand"],["samjavo", "explain"],["shikhvo", "teach"],
   ["shikhavvu", "teach"],["pachi", "then"],["pehla", "first"],["have", "now"],["atyare", "now"],
   ["aama", "in this"],["ema", "in it"],["aa", "this"],["aavu", "this kind of"],["evu", "that kind of"],
