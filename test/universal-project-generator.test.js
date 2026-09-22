@@ -232,3 +232,15 @@ test("Phase 2.6 interaction engine returns an explicit unavailable result when n
   assert.ok(["BROWSER_UNAVAILABLE","INTERACTION_FAILED"].includes(result.status));
   assert.equal(result.verified,false);
 });
+
+test("Phase 2.7 generates browser scenarios from the project blueprint",async()=>{
+  const {compileScenarioPlan}=await import("../src/core/ai-test-generation-engine.js");
+  const project=generateUniversalProject("Build a mobile booking app with login, search and checkout");
+  const plan=compileScenarioPlan(project.blueprint);
+  assert.equal(plan.strategy,"blueprint-driven");
+  assert.ok(plan.scenarios.some(x=>x.name==="home-page-load"));
+  assert.ok(plan.scenarios.some(x=>x.name==="search-flow"));
+  assert.ok(plan.scenarios.some(x=>x.name==="sign-in-flow"));
+  assert.ok(plan.scenarios.some(x=>x.name==="booking-flow"));
+  assert.ok(plan.scenarios.some(x=>x.name==="checkout-flow"));
+});
