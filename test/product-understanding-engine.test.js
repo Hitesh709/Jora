@@ -21,3 +21,13 @@ test("v1.51 rejects empty input",async()=>{
   const engine=new ProductUnderstandingEngine();
   await assert.rejects(()=>engine.understand({input:""}),/input is required/);
 });
+
+test("v1.51 corrects a likely typo in a game request and preserves the original",async()=>{
+  const engine=new ProductUnderstandingEngine();
+  const result=await engine.understand({input:"Build snack game"});
+  assert.equal(result.request,"Build snack game");
+  assert.equal(result.interpretedRequest,"Build snake game");
+  assert.deepEqual(result.corrections[0],{from:"snack",to:"snake",reason:"likely typo in game name"});
+  assert.equal(result.requirements.platform,"game");
+  assert.equal(result.goals[0],"snake game");
+});
