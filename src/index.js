@@ -130,7 +130,7 @@ export { JoraNativeProvider } from "./core/jora-native-provider.js";
 export { runExistingProjectModificationLoop, inspectExistingProject, extractExistingProjectContract, diffRequirementsAgainstProject } from "./core/existing-project-modification-engine.js";
 
 export { buildProjectMemory, compareProjectMemory, loadProjectMemory, loadProjectHistory, initializeProjectMemory, buildContinuationContext, recordProjectMemory } from "./core/project-memory-engine.js";
-export { buildProjectLifecycle, loadProjectLifecycle, loadProjectLifecycleHistory, saveProjectLifecycle, buildLifecycleChange, buildProjectRoadmap, buildVersionRecord, recordProjectLifecycle, initializeProjectLifecycle, buildProjectLifecycleContext, transitionProjectLifecycle, validateProjectLifecycle } from "./core/project-lifecycle-engine.js";
+export { buildProjectLifecycle, loadProjectLifecycle, loadProjectLifecycleHistory, saveProjectLifecycle, buildLifecycleChange, buildProjectRoadmap, buildVersionRecord, recordProjectLifecycle, initializeProjectLifecycle, buildProjectLifecycleContext, recordDeploymentLifecycle, transitionProjectLifecycle, validateProjectLifecycle } from "./core/project-lifecycle-engine.js";
 export { decomposeMission, buildMissionState, getReadyMissions, selectNextMission, createMissionCheckpoint, loadMissionState, loadMissionHistory, saveMissionState, recordMissionEvent, initializeMissionManager, startNextMission, completeMission, failMission, buildResumePlan, resumeMissionManager, checkpointMission, validateMissionState } from "./core/mission-manager-engine.js";
 
 export { runAutonomousProjectWorker } from "./core/autonomous-orchestrator.js";
