@@ -4,6 +4,7 @@ import {generateUniversalProject} from "../src/core/universal-project-generator.
 import {executeImplementationPlan} from "../src/core/execution-engine.js";
 import {CodeGenerationEngine} from "../src/core/code-generation-engine.js";
 import {runProjectTests,testAndRepairGeneration} from "../src/core/test-repair-engine.js";
+import {previewAndPromote} from "../src/core/preview-promotion-engine.js";
 
 const cases=[
   ["Build a restaurant booking system", "web", "bookings"],
@@ -157,4 +158,21 @@ test("Phase 1.6 repairs a deliberately broken generated artifact",()=>{
   assert.equal(result.status,"REPAIRED");
   assert.equal(result.final.passed,true);
   assert.ok(result.attempts>=1);
+});
+
+test("Phase 1.7 approves verified generation for preview and promotion",()=>{
+  const project=generateUniversalProject("Build a snake game for mobile");
+  const tests=runProjectTests(project.generation.files);
+  const result=previewAndPromote(project.generation,{status:"PASSED",final:tests});
+  assert.equal(result.preview.status,"PREVIEW_READY");
+  assert.equal(result.promotion.status,"PROMOTION_APPROVED");
+  assert.equal(result.result.status,"PROMOTED");
+  assert.ok(result.preview.entrypoint==="src/index.html");
+});
+test("Phase 1.7 blocks promotion when verification fails",()=>{
+  const project=generateUniversalProject("Build a customer dashboard");
+  const result=previewAndPromote(project.generation,{status:"FAILED",final:{passed:false}});
+  assert.equal(result.preview.status,"PREVIEW_BLOCKED");
+  assert.equal(result.promotion.status,"PROMOTION_BLOCKED");
+  assert.equal(result.result.status,"NOT_PROMOTED");
 });
