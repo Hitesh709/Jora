@@ -82,3 +82,23 @@ test("Phase 3.4 loop returns architecture generation state",async()=>{
   assert.equal(result.status,"ARCHITECTURE_GENERATED");
   assert.equal(result.generated,true);
 });
+
+
+test("Phase 3.4 performs a safe API contract refactor",async()=>{
+  const fs=await import("node:fs/promises");
+  const ws=await createWorkspace("jora-architecture-refactor");
+  await fs.mkdir(ws.root+"/src/modules",{recursive:true});
+  await fs.writeFile(ws.root+"/src/modules/api-contract.js",'export const apiContract={health:"/health",capabilities:"/api/capabilities"};',"utf8");
+  await fs.writeFile(ws.root+"/src/index.js",'export const routes=["/health","/api/capabilities"];',"utf8");
+
+  const result=await runArchitectureGenerationLoop(ws.root,{
+    blueprint:{api:[{path:"/api/capabilities"}]},
+    runTests:async()=>({passed:true})
+  });
+
+  assert.equal(result.status,"ARCHITECTURE_GENERATED");
+  const index=await readWorkspaceFile(ws.root,"src/index.js");
+  assert.match(index,/import \{apiContract\} from ".\/modules\/api-contract\.js";/);
+  assert.match(index,/apiContract\.health/);
+  assert.match(index,/apiContract\.capabilities/);
+});
