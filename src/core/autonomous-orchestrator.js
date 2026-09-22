@@ -10,7 +10,7 @@ import {compileScenarioPlan} from "./ai-test-generation-engine.js";
 import {runBrowserRepairLoop} from "./browser-repair-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"2.1",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"2.8",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
