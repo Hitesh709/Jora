@@ -139,3 +139,9 @@ export { loadWorkerState, loadWorkerHistory, saveWorkerState, createWorkerState,
 export { createDeploymentState, loadDeploymentState, loadDeploymentHistory, saveDeploymentState, validateDeploymentCandidate, buildDeploymentPlan, runAutonomousDeployment, rollbackAutonomousDeployment, shouldRollback } from "./core/autonomous-deployment-engine.js";
 
 export { createProductionMonitorState, loadProductionMonitorState, loadProductionMonitorHistory, saveProductionMonitorState, validateMonitorConfig, httpProbe, buildProductionAlert, runProductionMonitorCycle, runProductionMonitoringLoop, createProductionIncidentManager } from "./core/production-monitoring-engine.js";
+
+export { createPortfolioState, loadPortfolio, loadPortfolioHistory, savePortfolio, validatePortfolioProject, registerPortfolioProject, updatePortfolioProject, rankPortfolioProjects, buildPortfolioPlan, registerProject, updateProject, buildPortfolioSnapshot, setPortfolioCapacity } from "./core/project-portfolio-engine.js";
+export { createResourceSchedulerState, loadResourceScheduler, loadResourceSchedulerHistory, saveResourceScheduler, enqueueResourceTask, allocateResourceTasks, releaseResourceTask, buildSchedulingDecision, scheduleResources } from "./core/resource-scheduling-engine.js";
+export { createGovernanceState, loadGovernanceState, loadGovernanceHistory, saveGovernanceState, evaluateAutonomyAction, recordGovernanceDecision, authorizeAutonomyAction } from "./core/autonomy-governance-engine.js";
+export { createProjectIntelligenceState, loadProjectIntelligence, loadProjectIntelligenceHistory, saveProjectIntelligence, analyzeProjectSignals, buildProjectIntelligence, recordProjectIntelligence } from "./core/project-intelligence-engine.js";
+export { buildAutonomousCommandCenter } from "./core/autonomous-command-center-engine.js";
