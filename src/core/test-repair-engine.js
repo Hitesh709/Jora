@@ -19,7 +19,7 @@ export function analyzeFailures(testResult,generation){
 }
 
 function repairContent(file,failure){
-  if(failure.test==="health-endpoint"&&!String(file.content).includes("/health")) return {...file,content:String(file.content)+"\n// Jora repair: health endpoint requirement retained.\n"};
+  if(failure.test==="health-endpoint"&&!String(file.content).includes("/health")) return {...file,content:String(file.content).replace(/\/broken-health/g,"/health")+"\n"};
   if(failure.test==="browser-script"&&!String(file.content).includes("<script>")) return {...file,content:String(file.content)+"\n<script>document.body.dataset.joraRepaired='true';</script>\n"};
   if(failure.test==="test-script"&&!String(file.content).includes('"test"')) return {...file,content:String(file.content).replace(/\\{\\s*$/,"{\"scripts\":{\"test\":\"node --test\"}}")};
   return file;
