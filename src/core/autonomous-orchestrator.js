@@ -13,7 +13,7 @@ import {runCodeReasoningRepairLoop} from "./code-reasoning-engine.js";
 import {collectMultiFileCodeUnderstanding,persistCodeUnderstandingReport} from "./code-understanding-engine.js";
 
 export function createOrchestrationState(command){
-  return {version:"3.1",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
+  return {version:"3.2",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
 }
 
 function stage(state,name,status,details={}){
@@ -210,7 +210,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     });
 
     stage(state,"preview-promotion","RUNNING");
-    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning},{});
+    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding},{});
 
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
