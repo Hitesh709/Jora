@@ -16,7 +16,7 @@ test("Phase 3.2 builds a dependency graph from local imports",async()=>{
   await fs.mkdir(ws.root+"/src",{recursive:true});
   await fs.writeFile(ws.root+"/src/index.js",'import {health} from "./server.js"; export {health};',"utf8");
   await fs.writeFile(ws.root+"/src/server.js",'import {config} from "./config.js"; export const health=()=>config;',"utf8");
-  await fs.writeFile(ws.root+"/src/config.js","export const config={status:"ok"};","utf8");
+  await fs.writeFile(ws.root+"/src/config.js",'export const config={status:"ok"};',"utf8");
 
   const graph=await buildCodeDependencyGraph(ws.root);
   assert.equal(graph.nodes.length,3);
