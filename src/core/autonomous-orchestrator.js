@@ -19,6 +19,7 @@ import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./featu
 import {runExistingProjectModificationLoop} from "./existing-project-modification-engine.js";
 import {initializeProjectLifecycle,transitionProjectLifecycle} from "./project-lifecycle-engine.js";
 import {initializeMissionManager,startNextMission,completeMission,failMission,loadMissionState,resumeMissionManager,checkpointMission} from "./mission-manager-engine.js";
+import {runAutonomousWorker} from "./autonomous-project-worker.js";
 
 export function createOrchestrationState(command){
   return {version:"3.9",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -411,4 +412,9 @@ export async function runAutonomousExistingProject(root,command,{runTests=runWor
   if(!String(root||"").trim()) throw new Error("root is required");
   if(!String(command||"").trim()) throw new Error("command is required");
   return runExistingProjectModificationLoop(root,{command,runTests});
+}
+
+
+export async function runAutonomousProjectWorker(root,options={}){
+  return runAutonomousWorker(root,options);
 }
