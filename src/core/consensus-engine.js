@@ -1,0 +1,3 @@
+export function collectConsensus(votes=[]){const valid=votes.filter(v=>v&&v.decision);const counts={};for(const v of valid)counts[v.decision]=(counts[v.decision]||0)+1;const winner=Object.entries(counts).sort((a,b)=>b[1]-a[1])[0];return{decision:winner?.[0]||null,votes:valid.length,confidence:valid.length?((winner?.[1]||0)/valid.length):0,counts}}
+export function requireEvidenceConsensus({votes=[],minimumConfidence=.67,evidence=[]}={}){const consensus=collectConsensus(votes);const allowed=Boolean(consensus.decision&&consensus.confidence>=minimumConfidence&&evidence.length>0);return{status:allowed?"CONSENSUS_APPROVED":"CONSENSUS_BLOCKED",consensus,evidenceCount:evidence.length}}
+export default{collectConsensus,requireEvidenceConsensus};
