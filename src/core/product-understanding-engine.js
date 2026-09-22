@@ -8,6 +8,22 @@ export class ProductUnderstandingEngine {
     return String(value??"").replace(/\s+/g," ").trim();
   }
 
+  _normalizeIntent(input) {
+    const original=this._clean(input);
+    let normalized=original;
+    const corrections=[];
+    const aliases={snack:"snake",sanke:"snake",snaek:"snake",pion:"pong",tetriz:"tetris",tetirs:"tetris"};
+    for(const [from,to] of Object.entries(aliases)){
+      const pattern=new RegExp("\\b"+from+"\\b","ig");
+      if(pattern.test(normalized) && /\\bgame\\b/i.test(normalized)){
+        normalized=normalized.replace(pattern,to);
+        corrections.push({from,to,reason:"likely typo in game name"});
+        break;
+      }
+    }
+    return {original,normalized,corrections};
+  }
+
   _extractConstraints(input) {
     const text=this._clean(input);
     const constraints=[];
@@ -137,16 +153,18 @@ export class ProductUnderstandingEngine {
   }
 
   async understand({input,context={}}={}) {
-    const request=this._clean(input);
+    const intentCorrection=this._normalizeIntent(input);
+    const request=intentCorrection.original;
+    const interpretedRequest=intentCorrection.normalized;
     if(!request) throw new Error("input is required");
-    const constraints=this._extractConstraints(request);
-    const goals=this._goals(request);
-    const ambiguities=this._ambiguities(request,goals);
-    const actors=this._extractActors(request);
-    const features=this._extractFeatures(request);
-    const entities=this._extractEntities(request);
-    const workflows=this._extractWorkflows(request);
-    const platform=this._extractPlatform(request);
+    const constraints=this._extractConstraints(interpretedRequest);
+    const goals=this._goals(interpretedRequest);
+    const ambiguities=this._ambiguities(interpretedRequest,goals);
+    const actors=this._extractActors(interpretedRequest);
+    const features=this._extractFeatures(interpretedRequest);
+    const entities=this._extractEntities(interpretedRequest);
+    const workflows=this._extractWorkflows(interpretedRequest);
+    const platform=this._extractPlatform(interpretedRequest);
     const requirements={
       functional:goals.map((goal,index)=>({id:"FR-"+String(index+1).padStart(3,"0"),statement:goal,priority:index===0?"high":"medium"})),
       nonFunctional:["Observable execution status","Verifiable acceptance criteria","Safe failure and recovery behavior"],
@@ -164,6 +182,8 @@ export class ProductUnderstandingEngine {
     return {
       version:this.version,
       request,
+      interpretedRequest,
+      corrections:intentCorrection.corrections,
       intent:{type:"product_build",summary:goals[0]||request,confidence:goals.length?0.90:0.55},
       goals,
       requirements,
