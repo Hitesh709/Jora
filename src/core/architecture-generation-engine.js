@@ -155,6 +155,7 @@ export async function applyArchitectureGeneration(root, plan, {runTests} = {}) {
   if (!validation.valid) return {status:"REJECTED",created:[],rollback:[],validation};
 
   const created = [];
+  const originals = new Map();
   try {
     for (const item of plan.creates || []) {
       if (await exists(root,item.path)) continue;
@@ -165,6 +166,7 @@ export async function applyArchitectureGeneration(root, plan, {runTests} = {}) {
     for (const item of plan.refactors || []) {
       if (item.operation !== "replace-source") continue;
       const target = await fs.readFile(path.join(root,item.path),"utf8");
+      if (!originals.has(item.path)) originals.set(item.path,target);
       let next = target;
       for (const replacement of item.replacements || []) {
         if (!next.includes(replacement.before)) throw new Error("refactor precondition not satisfied: " + item.path);
@@ -186,10 +188,22 @@ export async function applyArchitectureGeneration(root, plan, {runTests} = {}) {
     }
     return {status:"GENERATED",created,rollback:[],validation};
   } catch (error) {
+    const rollback = [];
     for (const file of created) {
-      try { await fs.rm(path.join(root,file),{force:true}); } catch {}
+      const cleanFile = file.replace(/ \(refactored\)$/,"");
+      if (originals.has(cleanFile)) {
+        try {
+          await fs.writeFile(path.join(root,cleanFile),originals.get(cleanFile),"utf8");
+          rollback.push(cleanFile);
+        } catch {}
+      } else {
+        try {
+          await fs.rm(path.join(root,cleanFile),{force:true});
+          rollback.push(cleanFile);
+        } catch {}
+      }
     }
-    return {status:"ROLLED_BACK",created:[],rollback:created,validation,error:error.message};
+    return {status:"ROLLED_BACK",created:[],rollback,validation,error:error.message};
   }
 }
 
