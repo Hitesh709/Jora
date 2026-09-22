@@ -14,7 +14,7 @@ export function generateTaskArtifacts(blueprint,plan,baseFiles=[]){
     else if(step.id==="10-verify") add(".jora/acceptance.json",step.id,"create",JSON.stringify({criteria:blueprint.acceptanceCriteria},null,2),"Acceptance criteria for verification.");
   }
   add(".jora/plan.json","PLAN","create",JSON.stringify(plan,null,2),"Executable planner output.");
-  add(".jora/generation-manifest.json","MANIFEST","create",JSON.stringify({version:"1.0",strategy:"task-to-code",tasks:plan.steps.map(s=>({id:s.id,title:s.title,type:s.type,outputs:files.filter(f=>f.taskId===s.id).map(f=>f.path)})),files:files.map(f=>f.path)},null,2),"Traceability manifest connecting plan tasks to generated files.");
+  add(".jora/generation-manifest.json","MANIFEST","create",JSON.stringify({version:"1.0",strategy:"task-to-code",tasks:steps.map(s=>({id:s.id,title:s.title,type:s.type,outputs:files.filter(f=>f.taskId===s.id).map(f=>f.path)})),files:files.map(f=>f.path)},null,2),"Traceability manifest connecting plan tasks to generated files.");
   return files;
 }
 
