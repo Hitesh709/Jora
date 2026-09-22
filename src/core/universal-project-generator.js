@@ -12,7 +12,7 @@ function normalizeGameIntent(command){
   if(hasGame){
     for(const word of words){
       const token=word.replace(/[^a-z0-9-]/g,"");
-      if(token.length<4) continue;
+      if(token.length<4 || ["space","shooting","card","memory"].includes(token)) continue;
       let best=null,bestDistance=3;
       for(const candidate of gameVocabulary){
         if(Math.abs(token.length-candidate.length)>2) continue;
