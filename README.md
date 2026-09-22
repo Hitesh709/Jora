@@ -81,3 +81,6 @@ Credentials are read from environment/configuration and are never embedded in ge
 
 
 <!-- Jora production source sync: 2026-09-21 -->
+
+
+<!-- CI verification checkpoint for JORA autonomy 4.6-7.0 -->
