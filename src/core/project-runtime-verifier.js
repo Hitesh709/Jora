@@ -9,6 +9,7 @@ export function createProjectRuntimeVerifier({sandbox,port=4173,startArgs=["run"
     // Runtime verification is deliberately opt-in at the sandbox layer. The
     // verifier starts the generated app in the isolated sandbox, then probes
     // localhost from the verifier process when the sandbox exposes the port.
+    const fetchImpl=typeof configuredFetch==="function" ? configuredFetch : globalThis.fetch;
     if(typeof fetchImpl!=="function") return {ok:false,status:null,error:"fetch is unavailable"};
 
     const started=await sandbox.start?.({
