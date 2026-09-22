@@ -220,7 +220,7 @@ export async function persistArchitectureGenerationReport(root, report) {
 export async function runArchitectureGenerationLoop(root, {blueprint={},runTests} = {}) {
   const inspection = await inspectArchitecture(root,blueprint);
   const plan = buildArchitectureGenerationPlan(inspection);
-  if (!plan.creates.length) {
+  if (!plan.creates.length && !(plan.refactors || []).some(x => x.operation === "replace-source")) {
     return {version:VERSION,status:"NO_GENERATION_NEEDED",generated:false,inspection,plan};
   }
   const result = await applyArchitectureGeneration(root,plan,{runTests});
