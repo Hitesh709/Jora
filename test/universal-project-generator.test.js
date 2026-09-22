@@ -178,8 +178,8 @@ test("Phase 1.7 blocks promotion when verification fails",()=>{
   assert.equal(result.result.status,"NOT_PROMOTED");
 });
 
-test("Phase 2 orchestrator runs the autonomous factory pipeline end to end",()=>{
-  const result=runAutonomousProject("Build a snake game for mobile");
+test("Phase 2 orchestrator runs the autonomous factory pipeline end to end",async()=>{
+  const result=await runAutonomousProject("Build a snake game for mobile");
   assert.equal(result.state.status,"PROMOTED");
   assert.equal(result.state.stage,"complete");
   assert.equal(result.delivery.promotion.status,"PROMOTION_APPROVED");
