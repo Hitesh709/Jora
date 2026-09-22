@@ -1,0 +1,10 @@
+import fs from "node:fs/promises";import path from "node:path";
+const D=".jora",F="experience-learning.json";
+async function j(f,d){try{return JSON.parse(await fs.readFile(f,"utf8"))}catch{return d}}async function e(r){await fs.mkdir(path.join(r,D),{recursive:true})}
+export function createExperienceMemory({root}={}){return{version:"1.0",root,experiences:[],strategies:{},updatedAt:new Date().toISOString()}}
+export async function loadExperienceMemory(root){return j(path.join(root,D,F),null)}
+export async function saveExperienceMemory(root,s){await e(root);await fs.writeFile(path.join(root,D,F),JSON.stringify(s,null,2));return s}
+export function learnFromOutcome(state,{taskType="unknown",strategy="default",success=false,evidence={}}={}){const key=taskType+":"+strategy;const old=state.strategies[key]||{attempts:0,successes:0};const next={...old,attempts:old.attempts+1,successes:old.successes+(success?1:0),lastEvidence:evidence};return{...state,strategies:{...state.strategies,[key]:next},experiences:[...(state.experiences||[]),{taskType,strategy,success,evidence,at:new Date().toISOString()}].slice(-500),updatedAt:new Date().toISOString()}}
+export function rankStrategies(state,taskType){return Object.entries(state.strategies||{}).filter(([k])=>k.startsWith(taskType+":")).map(([k,v])=>({strategy:k.slice(taskType.length+1),rate:v.attempts?v.successes/v.attempts:0,attempts:v.attempts})).sort((a,b)=>b.rate-a.rate||b.attempts-a.attempts)}
+export async function recordLearning(root,input){let s=await loadExperienceMemory(root)||createExperienceMemory({root});s=learnFromOutcome(s,input);await saveExperienceMemory(root,s);return{status:"LEARNED",state:s,recommended:rankStrategies(s,input.taskType||"unknown")}}
+export default{createExperienceMemory,loadExperienceMemory,saveExperienceMemory,learnFromOutcome,rankStrategies,recordLearning};
