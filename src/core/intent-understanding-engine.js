@@ -58,6 +58,8 @@ const hindiRoman = [
 ];
 
 const actionWords = {
+  // Roman Gujarati often omits English-style grammar, so keep explicit
+  // request patterns in addition to token-level verbs.
   build: /\b(build|create|make|develop|design|generate|implement|code|write|scaffold|banav|banavi|banavo|banavvu|banao)\b/i,
   modify: /\b(modify|update|change|edit|improve|add|remove|replace|refactor|fix|repair|enhance|upgrade|muko|mukvu|karo)\b/i,
   debug: /\b(debug|bug|error|broken|not working|fix|repair|crash|issue|problem)\b/i,
@@ -112,6 +114,12 @@ function normalizeUserText(input, language) {
 function inferAction(text) {
   const lower = text.toLowerCase();
   const matches = [];
+  // High-signal mixed-language build phrases. These prevent a product noun
+  // such as "calculator" from being mistaken for a research/search request.
+  if (/\b(?:app|application|website|web ?app|game|software|project)\s+(?:build|create|make)\b/i.test(lower)
+      || /\b(?:build|create|make)\s+(?:an?\s+)?(?:app|application|website|web ?app|game|software|project)\b/i.test(lower)) {
+    matches.push("build");
+  }
   for (const [action, pattern] of Object.entries(actionWords)) if (pattern.test(lower)) matches.push(action);
   if (matches.includes("debug")) return "debug";
   if (matches.includes("build")) return "build";
@@ -164,7 +172,10 @@ export class IntentUnderstandingEngine {
       action,language,originalText:original,normalizedText,domain,confidence,
       entities:{
         explicitPlatform:/\b(mobile|android|ios|web|website)\b/i.test(normalizedText) ? (normalizedText.match(/\b(mobile|android|ios|web|website)\b/i)?.[1]||null) : null,
-        gameType:domain === "game" ? (normalizedText.match(/\b(snake|pong|tetris|racing|racer|shooter|platformer|puzzle)\b/i)?.[1]||null) : null
+        gameType:domain === "game" ? (normalizedText.match(/\b(snake|pong|tetris|racing|racer|shooter|platformer|puzzle)\b/i)?.[1]||null) : null,
+        product:/\b(calculator|calendar|chat|todo|inventory|loan|ecommerce|shopping|dashboard|crm|blog|portfolio|website|app|application|game)\b/i.test(normalizedText)
+          ? (normalizedText.match(/\b(calculator|calendar|chat|todo|inventory|loan|ecommerce|shopping|dashboard|crm|blog|portfolio|website|app|application|game)\b/i)?.[1]||null)
+          : null
       },
       context:{hasConversation:recent.length > 0,turns:recent.length,references},
       clarificationNeeded
