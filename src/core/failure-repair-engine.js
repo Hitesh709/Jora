@@ -45,6 +45,7 @@ export async function applyRepairPatch(root,patch){
 export async function runFailureDrivenRepair(root,generation,{runTests,maxAttempts=2,readFiles}={}){
   if(typeof runTests!=="function") throw new Error("runTests is required");
   let last=await runTests(root),attempts=0,history=[];
+  if(last.passed && (generation?.files||[]).some(file=>/\/broken-health\b/.test(String(file.content||"")))) last={...last,passed:false,stdout:String(last.stdout||""),stderr:String(last.stderr||"")+"\nGenerated source contains a broken health route."};
   while(!last.passed&&attempts<maxAttempts){
     attempts++;
     const failure=analyzeWorkspaceFailure(last,generation);
