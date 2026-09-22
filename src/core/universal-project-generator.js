@@ -93,7 +93,7 @@ function buildPlan(projectBlueprint){
   if(b.flows?.length) add("06-flows","Implement user flows","Wire the requested user journeys and state transitions end-to-end.",["05-screens",...(b.entities?.length?["03-data"]:[])],"implementation");
   if(b.api?.length) add("07-api","Implement API surface","Implement the requested API style and endpoints, including validation and error handling.",["03-data","06-flows"],"backend");
   if(b.integrations?.length) add("08-integrations","Connect integrations","Add adapters/configuration for requested external integrations without hard-coding secrets.",["07-api"],"integration");
-  if(b.kind==="game") add("09-gameplay","Implement game mechanics","Implement the requested game type, controls, scoring/state, and restart behavior.",["04-shell"],"gameplay");
+  if(b.kind==="game"||b.product?.kind==="game") add("09-gameplay","Implement game mechanics","Implement the requested game type, controls, scoring/state, and restart behavior.",["04-shell"],"gameplay");
   add("10-verify","Run acceptance tests","Verify the generated product against the blueprint, health endpoint, and requested acceptance criteria.",[...steps.slice(1).map(s=>s.id)],"verification");
   add("11-repair","Repair failures","Analyze failed checks, make the smallest targeted fixes, and rerun affected tests.",["10-verify"],"repair");
   add("12-preview","Prepare preview","Produce a runnable preview only after verification and repair pass.",["11-repair"],"delivery");
