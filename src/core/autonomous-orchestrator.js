@@ -17,6 +17,7 @@ import {runFeatureEvolutionLoop,persistFeatureEvolutionReport} from "./feature-e
 import {runFeatureImplementationLoop,persistFeatureImplementationReport} from "./feature-implementation-engine.js";
 import {runFeatureIntegrationLoop,persistFeatureIntegrationReport} from "./feature-integration-engine.js";
 import {runExistingProjectModificationLoop} from "./existing-project-modification-engine.js";
+import {initializeProjectLifecycle,transitionProjectLifecycle} from "./project-lifecycle-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"3.9",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -31,6 +32,8 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
   if(!String(command||"").trim()) throw new Error("command is required");
   const state=createOrchestrationState(command);
   state.status="RUNNING";state.startedAt=new Date().toISOString();
+  let lifecycleRoot=null;
+  let lifecycleContract=null;
   try{
     stage(state,"requirements","RUNNING");
     const project=generateUniversalProject(command);
@@ -45,6 +48,10 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
 
     stage(state,"workspace","RUNNING");
     const workspace=await materializeGeneration(project.generation);
+    lifecycleRoot=workspace.root;
+    lifecycleContract={...project.blueprint.projectBlueprint,entrypoints:["src/index.js","src/index.html"]};
+    await initializeProjectLifecycle(workspace.root,{contract:lifecycleContract,command,projectName:project.blueprint.name||project.blueprint.projectBlueprint?.product?.name||"jora-project"});
+    await transitionProjectLifecycle(workspace.root,"active",{command,contract:lifecycleContract,phase:"generation",status:"ACTIVE",summary:"Generated project workspace is active."});
     let workspaceTests=await runWorkspaceTests(workspace.root);
     stage(state,"workspace",workspaceTests.passed?"COMPLETED":"FAILED",{root:workspace.root});
     if(!workspaceTests.passed) throw new Error("workspace tests failed: "+workspaceTests.stderr);
@@ -339,6 +346,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     });
 
     stage(state,"preview-promotion","RUNNING");
+    await transitionProjectLifecycle(workspace.root,"verifying",{command,contract:lifecycleContract,phase:"promotion",status:"VERIFYING",summary:"All engineering stages completed; promotion gates are being evaluated."});
     const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,featureIntegration},{});
 
     delivery.preview.live=true;
@@ -348,12 +356,17 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
     stage(state,"preview-promotion",delivery.promotion.status,{preview:delivery.preview.status,url:preview.url});
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
+    await transitionProjectLifecycle(workspace.root,delivery.result.status==="PROMOTED"?"promoted":"failed",{command,contract:lifecycleContract,phase:"delivery",status:delivery.result.status,summary:delivery.result.status==="PROMOTED"?"Project passed promotion and was promoted.":"Project did not pass promotion gates.",changes:[delivery.result.status]});
     state.workspace=workspace;
     state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,featureIntegration,engineeringIntelligence};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
-    state.status="FAILED";state.error=error.message;state.finishedAt=new Date().toISOString();
+    state.status="FAILED";state.error=error.message;
+    if(lifecycleRoot){
+      try{await transitionProjectLifecycle(lifecycleRoot,"failed",{command,contract:lifecycleContract,phase:state.stage||"failure",status:"FAILED",summary:error.message,changes:[state.stage||"unknown"]});}catch{}
+    }
+    state.finishedAt=new Date().toISOString();
     return {state};
   }
 }
