@@ -57,7 +57,8 @@ function inferBlueprint(command){
   return {
     name:slug(titleOf(text)),title:titleOf(text),description:text.slice(0,240),
     kind:game?"game":api?"api":"web",
-    features:{game,api,data:data||entities.length>0,chat,commerce,auth,search,mobile},\n    gameType,
+    features:{game,api,data:data||entities.length>0,chat,commerce,auth,search,mobile},
+    gameType,
     entities,
     requirements,
     projectBlueprint:{
