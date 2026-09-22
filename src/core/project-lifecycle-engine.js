@@ -163,7 +163,7 @@ export async function buildProjectLifecycleContext(root,contract={}){
   return {status:lifecycle?"LIFECYCLE_AVAILABLE":"NO_LIFECYCLE",lifecycle,continuation};
 }
 
-export async function transitionProjectLifecycle(root,state,input={}){
+export async function recordDeploymentLifecycle(root,input={}){ return transitionProjectLifecycle(root,input.status==="DEPLOYED"||input.state==="deployed"?"deployed":input.status==="ROLLED_BACK"||input.state==="rolled_back"?"rolled_back":"failed",{...input,phase:"deployment",state:input.status==="DEPLOYED"||input.state==="deployed"?"deployed":input.status==="ROLLED_BACK"||input.state==="rolled_back"?"rolled_back":"failed"}); }\n\nexport async function transitionProjectLifecycle(root,state,input={}){
   return recordProjectLifecycle(root,{
     ...input,
     state,
@@ -188,5 +188,5 @@ export function validateProjectLifecycle(lifecycle={}){
 export default {
   buildProjectLifecycle,loadProjectLifecycle,loadProjectLifecycleHistory,saveProjectLifecycle,
   buildLifecycleChange,buildProjectRoadmap,buildVersionRecord,recordProjectLifecycle,
-  initializeProjectLifecycle,buildProjectLifecycleContext,transitionProjectLifecycle,validateProjectLifecycle
+  initializeProjectLifecycle,buildProjectLifecycleContext,recordDeploymentLifecycle,transitionProjectLifecycle,validateProjectLifecycle
 };
