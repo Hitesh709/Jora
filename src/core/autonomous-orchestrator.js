@@ -6,6 +6,7 @@ import {materializeGeneration,runWorkspaceTests,readWorkspaceFile,startWorkspace
 import {runFailureDrivenRepair} from "./failure-repair-engine.js";
 import {verifyWorkspacePreview} from "./browser-verification-engine.js";
 import {runInteractionTests} from "./interaction-testing-engine.js";
+import {compileScenarioPlan} from "./ai-test-generation-engine.js";
 
 export function createOrchestrationState(command){
   return {version:"2.1",command,status:"READY",stage:"idle",history:[],startedAt:null,finishedAt:null};
@@ -61,8 +62,12 @@ export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
       throw new Error("browser verification failed: "+(browser.reason||browser.error||"browser checks did not pass"));
     }
 
+    stage(state,"ai-test-generation","RUNNING");
+    const scenarioPlan=compileScenarioPlan(project.blueprint);
+    stage(state,"ai-test-generation","COMPLETED",{scenarios:scenarioPlan.scenarios.length});
+    
     stage(state,"interaction-testing","RUNNING");
-    const interactions=await runInteractionTests(preview.url);
+    const interactions=await runInteractionTests(preview.url,{tests:scenarioPlan.scenarios});
     stage(state,"interaction-testing",interactions.status,{verified:interactions.verified,checks:interactions.checks?.length||0});
     if(interactions.status==="INTERACTION_FAILED"||interactions.status==="BROWSER_UNAVAILABLE"){
       await stopWorkspacePreview(preview);
@@ -80,7 +85,7 @@ export async function runAutonomousProject(command,{maxRepairAttempts=2}={}){
 
     state.status=delivery.result.status==="PROMOTED"?"PROMOTED":"NOT_PROMOTED";
     state.workspace=workspace;
-    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,interactions};
+    state.preview={url:preview.url,health:preview.health,status:preview.status,browser,scenarioPlan,interactions};
     state.stage="complete";state.finishedAt=new Date().toISOString();
     return {state,project,execution,verification,delivery};
   }catch(error){
