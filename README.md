@@ -81,3 +81,6 @@ Credentials are read from environment/configuration and are never embedded in ge
 
 
 <!-- Jora production source sync: 2026-09-21 -->
+
+
+<!-- 2026-09-23: production routing verification trigger after multilingual intent fix. -->
