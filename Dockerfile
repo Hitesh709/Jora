@@ -11,8 +11,8 @@ RUN npm install --omit=dev
 
 COPY . .
 
-# Prove the native Jora coding loop during every production image build.
-RUN npm run jora:acceptance
+# Production images are built from the same code that CI verifies.
+# Full acceptance remains a CI gate rather than a container startup/build gate.
 
 ENV NODE_ENV=production
 ENV JORA_BROWSER_EXECUTABLE=/usr/bin/chromium
