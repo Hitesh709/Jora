@@ -17,5 +17,5 @@ COPY . .
 ENV NODE_ENV=production
 ENV JORA_BROWSER_EXECUTABLE=/usr/bin/chromium
 
-# Railway source-sync verification marker: 2026-09-22-v3
+# Railway source-sync verification marker: 2026-09-23-api-runtime
 CMD ["node","src/api-cli.js"]
