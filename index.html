@@ -149,6 +149,32 @@ function removeLastMessage(who){
 }
 function restoreChat(){try{chatHistory=JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY)||"[]");if(!Array.isArray(chatHistory))chatHistory=[]}catch{chatHistory=[]}const box=document.getElementById("messages");box.innerHTML="";if(!chatHistory.length){renderMessage("Jora is ready. Ask me anything, or tell me what you want built.","system",false);return}chatHistory.slice(-200).forEach(x=>renderMessage(x.text,x.who,false))}
 function keySend(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendPrompt()}}
+function clientConversationIntent(text){
+  const original=String(text||"").trim();
+  const lower=original.toLowerCase();
+  const romanGujaratiBuild=/\b(?:banavvu|banavanu|banavvi|banavo|banavi|banav)\b/i.test(lower)
+    && /\b(?:app|application|website|web ?app|game|software|project|system|calculator|api)\b/i.test(lower);
+  if(!romanGujaratiBuild) return null;
+  let normalized=original
+    .replace(/\b(mare|mane|mari|maru|maro|ek|aa|aama|ema|che|chhe)\b/gi," ")
+    .replace(/\b(?:banavvu|banavanu|banavvi|banavo|banavi|banav)\b/gi," build ")
+    .replace(/\s+/g," ").trim();
+  if(!/\bbuild\b/i.test(normalized)) normalized="build "+normalized;
+  else normalized=normalized.replace(/^(.*)\s+build$/i,"build $1");
+  return {
+    version:"client-1.0",
+    intent:"engineering.build",
+    action:"build",
+    domain:/\b(game)\b/i.test(normalized)?"game":"software",
+    originalText:original,
+    normalizedText:normalized,
+    confidence:0.9,
+    context:{hasConversation:true,references:[]},
+    clarificationNeeded:false,
+    source:"client-roman-gujarati-fallback"
+  };
+}
+
 async function sendPrompt(){
   let command=promptInput.value.trim();if(!command)return;
   addMessage(command,"user");promptInput.value="";sendBtn.disabled=true;addMessage("Working…","system");
@@ -163,6 +189,10 @@ async function sendPrompt(){
       const ud=await u.json().catch(()=>({}));
       if(u.ok) understanding=ud.understanding||null;
     }catch{}
+    const clientUnderstanding=clientConversationIntent(command);
+    if(clientUnderstanding && (!understanding || !["build","modify","debug","test","deploy"].includes(understanding.action))){
+      understanding=clientUnderstanding;
+    }
     const modifyingExisting=workspaceFiles.length>0 && isExistingProjectChange(command);
     const engineeringBuild=(mode==="coding"||mode==="build"||(mode==="agent"&&isEngineeringRequest(command,understanding))||modifyingExisting);
     const executionCommand=understanding?.normalizedText && ["build","modify","debug","test","deploy"].includes(understanding.action)
