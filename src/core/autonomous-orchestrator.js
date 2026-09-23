@@ -370,7 +370,25 @@ export async function runAutonomousProject(command,{maxRepairAttempts=3}={}){
       await completeMission(workspace.root,verificationMission.id,{summary:"Workspace, browser, interaction, and repair verification completed."});
     }
     await transitionProjectLifecycle(workspace.root,"verifying",{command,contract:lifecycleContract,phase:"promotion",status:"VERIFYING",summary:"All engineering stages completed; promotion gates are being evaluated."});
-    const delivery=previewAndPromote(verification.generation,{...verification,browserVerification:browser,interactionTesting:interactions,browserRepair,codeReasoning,codeUnderstanding,architectureReasoning,architectureGeneration,featureEvolution,featureImplementation,featureIntegration},{});
+    // Promotion must evaluate the final verified workspace, not only the
+    // initial artifact-test snapshot. Later feature/architecture stages can
+    // change the workspace after the first test-repair pass.
+    const finalPromotionVerification={
+      ...verification,
+      status:workspaceTests?.passed===true?"PASSED":verification.status,
+      final:workspaceTests?.passed===true?workspaceTests:verification.final,
+      browserVerification:browser,
+      interactionTesting:interactions,
+      browserRepair,
+      codeReasoning,
+      codeUnderstanding,
+      architectureReasoning,
+      architectureGeneration,
+      featureEvolution,
+      featureImplementation,
+      featureIntegration
+    };
+    const delivery=previewAndPromote(verification.generation,finalPromotionVerification,{});
 
     delivery.preview.live=true;
     delivery.preview.url=preview.url;
