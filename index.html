@@ -21,7 +21,7 @@ main{min-width:0;display:flex;flex-direction:column;height:100vh}.top{height:62p
 .chat{min-height:0;flex:1;display:flex;flex-direction:column}
 .messages{min-height:0;overflow:auto;display:grid;gap:12px;align-content:start;padding-bottom:10px}
 .hero{text-align:center;padding:24px 0 16px;flex:0 0 auto}.hero h1{font-size:30px;letter-spacing:-.03em;margin:0 0 8px}.hero p{color:#8b94a5;margin:0}
-.chat{display:grid;gap:12px}.messages{display:grid;gap:12px}.msg{padding:13px 16px;border-radius:16px;white-space:pre-wrap;line-height:1.55;max-width:82%;background:transparent;border:0}.msg.user{background:#2b2f36;margin-left:auto;border-radius:18px 18px 5px 18px}.msg.assistant{margin-right:auto;padding-left:4px}.msg.system{font-size:12px;color:#9da7b6;max-width:100%;text-align:center}
+.chat{min-height:0;flex:1;display:flex;flex-direction:column;gap:12px}.messages{display:grid;gap:12px;flex:1;min-height:0;overflow:auto}.msg{padding:13px 16px;border-radius:16px;white-space:pre-wrap;line-height:1.55;max-width:82%;background:transparent;border:0}.msg.user{background:#2b2f36;margin-left:auto;border-radius:18px 18px 5px 18px}.msg.assistant{margin-right:auto;padding-left:4px}.msg.system{font-size:12px;color:#9da7b6;max-width:100%;text-align:center}
 .composer{border:1px solid #343b47;background:#11151c;border-radius:14px;padding:10px;flex:0 0 auto;box-shadow:0 10px 35px #0008}
 textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outline:0;background:transparent;color:#fff;padding:8px}.composeRow{display:flex;align-items:center;justify-content:space-between;gap:8px}.modes{display:flex;gap:5px;overflow:auto}.mode{border:1px solid #303744;background:#171b23;color:#aeb7c5;border-radius:7px;padding:6px 9px;cursor:pointer;font-size:12px}.mode.active{background:#26303d;color:#fff;border-color:#4b5668}.send{border:0;border-radius:8px;background:#fff;color:#111;padding:9px 15px;font-weight:700;cursor:pointer}.send:disabled{opacity:.5}
 .quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.quick button{border:1px solid #292f39;background:#12161d;color:#cdd3dd;border-radius:10px;padding:12px;text-align:left;cursor:pointer}.quick button:hover{background:#181d26}
@@ -113,7 +113,7 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
 <div class="actions"><button class="secondary" onclick="saveSettings()">Save &amp; connect</button><button class="secondary" onclick="resetApi()">Reset to production</button><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
 const defaultApi="https://jora-api-production-production.up.railway.app";
-const apiConfigVersion="2026-09-23-railway-production-api-1";
+const apiConfigVersion="2026-09-23-railway-production-api-2";
 const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
 if(localStorage.getItem("jora_api_config_version")!==apiConfigVersion){
   localStorage.setItem("jora_api_base",defaultApi);
@@ -281,7 +281,6 @@ async function sendPrompt(){
             workspaceProject=modifyingExisting?{...workspaceProject,requestId,createdAt:new Date().toISOString()}:{name:(command.replace(/^build\\s+/i,"").replace(/^create\\s+/i,"").replace(/^make\\s+/i,"").trim()||"jora-project").slice(0,80),requestId,createdAt:new Date().toISOString()};
             renderWorkspace();
             await saveWorkspace();
-            showWorkspacePreview();
             if(deviceDirectoryHandle){
               try{await writeWorkspaceToDirectory(deviceDirectoryHandle);}
               catch(e){addMessage("Jora completed the build, but could not save to the selected folder: "+e.message,"system");}
@@ -332,7 +331,7 @@ let deviceDirectoryName="";
 let workspacePreviewOpen=false;
 function isExistingProjectChange(text){
   const value=String(text||"");
-  return /\b(change|modify|update|add|remove|delete|fix|improve|adjust|replace|rename|redesign|restyle|turn|convert|increase|decrease|disable|enable)\b/i.test(value)
+  return /\b(change|modify|update|add|remove|delete|fix|improve|adjust|replace|rename|redesign|restyle|turn|convert|increase|decrease|disable|enable|broken|repair|not working|doesn.t work|does not work|not running)\b/i.test(value)
     || /\b(make|turn|convert|transform)\b[\s\S]*\b(card game|memory card|matching cards?|flip cards?)\b/i.test(value);
 }
 function previewFile(){
@@ -419,7 +418,7 @@ async function saveWorkspace(){
   if(!workspaceFiles.length){addMessage("There are no generated files to save yet.","system");return}
   try{
     const db=await idbOpen();
-    await new Promise((resolve,reject)=>{const tx=db.transaction("projects","readwrite");tx.objectStore("projects").put({id:"current",project:workspaceProject,files:workspaceFiles,savedAt:new Date().toISOString()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+    await new Promise((resolve,reject)=>{const tx=db.transaction("projects","readwrite");tx.objectStore("projects").put({id:"current",project:workspaceProject,files:workspaceFiles,directoryHandle:deviceDirectoryHandle||null,directoryName:deviceDirectoryName||"",savedAt:new Date().toISOString()});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
     const activity=document.getElementById("workspaceActivity");
     activity.innerHTML='<span class="pill">Saved</span> '+workspaceFiles.length+' files are stored locally on this device/browser.';
   }catch(e){addMessage("Could not save the workspace locally: "+e.message,"system")}
@@ -428,7 +427,10 @@ async function loadWorkspace(){
   try{
     const db=await idbOpen();
     const data=await new Promise((resolve,reject)=>{const tx=db.transaction("projects","readonly");const req=tx.objectStore("projects").get("current");req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
-    if(data?.files?.length){workspaceProject=data.project||workspaceProject;workspaceFiles=data.files;renderWorkspace();document.getElementById("workspaceActivity").innerHTML='<span class="pill">Restored</span> '+workspaceFiles.length+' files restored from this browser.'}
+    if(data){
+      if(data.directoryHandle){deviceDirectoryHandle=data.directoryHandle;deviceDirectoryName=data.directoryName||data.directoryHandle.name||""}
+      if(data.files?.length){workspaceProject=data.project||workspaceProject;workspaceFiles=data.files;renderWorkspace();document.getElementById("workspaceActivity").innerHTML='<span class="pill">Restored</span> '+workspaceFiles.length+' files restored from this browser.'}
+    }
   }catch{}
 }
 function exportWorkspace(){
@@ -446,22 +448,46 @@ function handleWorkspaceImport(event){
     workspaceProject=data.project||{name:"imported-project"};workspaceFiles=data.files;renderWorkspace();await saveWorkspace();
   }catch(e){addMessage("Import failed: "+e.message,"system")}finally{event.target.value=""}};reader.readAsText(file);
 }
+async async function persistDeviceDirectoryHandle(){
+  if(!deviceDirectoryHandle)return;
+  try{
+    const db=await idbOpen();
+    await new Promise((resolve,reject)=>{
+      const tx=db.transaction("projects","readwrite");
+      const store=tx.objectStore("projects");
+      const current=store.get("current");
+      current.onsuccess=()=>{const data=current.result||{id:"current"};data.directoryHandle=deviceDirectoryHandle;data.directoryName=deviceDirectoryName;store.put(data)};
+      current.onerror=()=>reject(current.error);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+    });
+  }catch{}
+}
 async function chooseDeviceFolderBeforeBuild(){
-  if(!window.showDirectoryPicker){
-    addMessage("This browser does not support direct folder saving. Jora will keep the completed files in the browser workspace; use Export to save them.","system");
-    return true;
+  if(!window.showDirectoryPicker)return true;
+  if(deviceDirectoryHandle){
+    try{
+      let permission=await deviceDirectoryHandle.queryPermission({mode:"readwrite"});
+      if(permission==="granted")return true;
+      if(permission==="prompt")permission=await deviceDirectoryHandle.requestPermission({mode:"readwrite"});
+      if(permission==="granted")return true;
+      addMessage("Folder permission was cancelled. Jora did not start the build.","system");
+      return false;
+    }catch{
+      deviceDirectoryHandle=null;
+      deviceDirectoryName="";
+    }
   }
   try{
     const dir=await window.showDirectoryPicker({mode:"readwrite"});
     deviceDirectoryHandle=dir;
     deviceDirectoryName=dir.name||"selected folder";
+    await persistDeviceDirectoryHandle();
     const system=document.querySelector("#messages .msg.system:last-child");
-    if(system)system.textContent="Folder selected: "+deviceDirectoryName+". Jora can now create the completed files there.";
+    if(system)system.textContent="Folder connected: "+deviceDirectoryName;
     return true;
   }catch(e){
     if(e.name==="AbortError"){
       removeLastMessage("system");
-      addMessage("Build cancelled. Select a folder first so Jora can save the completed project.","system");
+      addMessage("Build cancelled. Connect a project folder once to continue.","system");
       return false;
     }
     throw e;
@@ -584,24 +610,18 @@ function extractWorkspaceFiles(state){
 function formatAgentResult(d){
   const r=d?.result||{};
   const status=r.status||d?.status||"COMPLETED";
-  const model=d?.model||r.model||"Jora";
   const items=Array.isArray(r.results)?r.results:[];
   const latest=items.length?items[items.length-1]:null;
   const candidate=latest?.project?.project??latest?.project??r.project??r.candidate??r.champion??null;
   const files=Array.isArray(r.files)?r.files:(Array.isArray(candidate?.files)?candidate.files:[]);
-  const evaluation=candidate?.evaluation||latest?.project?.evaluation||latest?.promotion?.decision||r.evaluation||{};
-  const lines=["Jora completed the autonomous engineering task.","","Status: "+status,"Execution: "+(d?.requestId||"—"),"AI engine: "+model];
-  if(r.benchmarkScore!=null) lines.push("Benchmark: "+r.benchmarkScore); else if(evaluation.benchmarkScore!=null) lines.push("Benchmark: "+evaluation.benchmarkScore);
-  if(r.qualityScore!=null) lines.push("Quality: "+r.qualityScore); else if(evaluation.qualityScore!=null) lines.push("Quality: "+evaluation.qualityScore);
-  if(r.cycles!=null) lines.push("Cycles: "+r.cycles);
-  if(r.planning?.taskCount!=null) lines.push("Planned tasks: "+r.planning.taskCount);
+  if(status==="FAILED"||status==="BUILD_BLOCKED"||status==="SECURITY_BLOCKED"||status==="REJECTED"){
+    return "I couldn’t complete this build. "+(r.error||d?.error||"Please try the request again.");
+  }
+  const lines=[files.length?"Done — I built the project.":"Done — the task completed."];
   if(files.length){
-    lines.push("","Completed files ("+files.length+")");
-    files.slice(0,20).forEach(file=>lines.push("• "+file.path));
-  } else lines.push("","No completed files were returned for this run.");
-  const reason=evaluation.reasons?.join?.("; ")||latest?.promotion?.decision?.reasons?.join?.("; ");
-  if(reason) lines.push("","Verification: "+reason);
-  if(status==="NOT_PROMOTED"||status==="BUILD_BLOCKED"||status==="SECURITY_BLOCKED"||status==="REJECTED") lines.push("","Promotion result: "+status+". The generated candidate remains available above for inspection.");
+    lines.push("",...files.slice(0,30).map(file=>"• "+file.path));
+    if(files.length>30)lines.push("• … "+(files.length-30)+" more files");
+  }
   return lines.join("\n");
 }
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
@@ -659,6 +679,7 @@ async function refreshControl(){
   if(d.metrics)metrics.textContent=JSON.stringify(d.metrics,null,2);if(d.executions)recent.textContent=JSON.stringify(d.executions.executions,null,2);if(d.jobs)jobs.textContent=JSON.stringify(d.jobs.jobs,null,2);if(d.approvals)approvalList.textContent=JSON.stringify(d.approvals.approvals,null,2);if(d.incidents)incidents.textContent=JSON.stringify(d.incidents.incidents,null,2);
 }
 restoreChat();
+loadWorkspace();
 checkBackend();
 setInterval(checkBackend,15000);
 </script></body></html>
