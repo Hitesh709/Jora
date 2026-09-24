@@ -23,8 +23,9 @@ function normalizeMessages(messages=[]) {
 function detectResponseType(text, previousAssistant="") {
   const value=clean(text).toLowerCase();
   if (!value) return "empty";
-  const confirmations=new Set(["yes","yeah","yep","yup","ha","haa","ok","okay","sure","correct","right","do it","go ahead","continue","ચાલે","બરાબર","ઠીક","ठीक","हाँ","haan","han","હા","હાા"]);
-  if (value === "no" || value === "nope" || value === "nah" || value === "nahi" || value === "ના" || value === "નહીં" || value === "cancel" || value === "stop") return "negation";
+  const confirmations=new Set(["yes","yeah","yep","yup","ha","haa","haan","han","ok","okay","sure","correct","right","do it","go ahead","continue","ચાલે","બરાબર","ઠીક","ઠીક છે","ठीक","हाँ","હા","હાા","હા કરો","હા કરજો","barabar","barabar che","barabar chhe","thik","thik che","thik chhe","haan karo","haan karjo","haan barabar","ha barabar"]);
+  const negations=new Set(["no","nope","nah","na","naa","nahi","nahin","nathi","not","ના","નહીં","નહી","નથી","cancel","stop"]);
+  if (negations.has(value)) return "negation";
   if (confirmations.has(value)) return "confirmation";
   if (/^(don't|do not|not that)$/i.test(value)) return "negation";
   if (/\b(actually|instead|rather|wait|no,|not that|i meant|મારો મતલબ|એવું નહીં|નહીં,|लेकिन|लेकिन नहीं)\b/i.test(value)) return "correction";
@@ -44,11 +45,27 @@ function extractReferenceTokens(text) {
   return [...new Set(refs)];
 }
 
+function extractProjectFromText(text) {
+  const value=clean(text);
+  const english=value.match(/\b(?:build|create|make|develop|design)\s+(?:me\s+)?(?:a|an|the)\s+(.+?)(?:[.!?]|$)/i);
+  if (english?.[1]) return clean(english[1]).replace(/\b(?:please|for me)\b/gi,"").trim();
+
+  const romanGujarati=value.match(/(?:mara mate|mare|mane)\s+(.+?)\s+(?:banavo|banavi|banavvu|banavvi|banav|banao)\b/i);
+  if (romanGujarati?.[1]) return clean(romanGujarati[1]);
+
+  const generic=value.match(/\b((?:mini|simple|complete|full)?\s*(?:[a-z0-9-]+\s+){0,5}(?:game|app|application|website|web app|software|platform))\b/i);
+  if (generic?.[1]) return clean(generic[1]);
+
+  return null;
+}
+
 function findRecentProject(messages) {
   const all=messages.filter(x => x.role==="user" || x.role==="assistant");
-  const text=all.map(x=>x.content).join(" ");
-  const match=text.match(/\b(racing game|snake game|pong|tetris|sudoku|chess|calculator|loan app|dashboard|website|web app|mobile app|api|project|codebase|repository|repo)\b/i);
-  return match ? match[1] : null;
+  for (let i=all.length-1;i>=0;i--) {
+    const project=extractProjectFromText(all[i].content);
+    if (project) return project;
+  }
+  return null;
 }
 
 function findPreviousInstruction(messages) {
