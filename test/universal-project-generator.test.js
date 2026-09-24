@@ -44,6 +44,7 @@ test("Universal Builder selects game-specific mechanics instead of one generic g
     ["Build a racing game","racing",/Distance:/],
     ["Build a space shooter game","space-shooter",/shots/],
     ["Build a platformer game","platformer",/vy=-12/]
+    ,["Build a sudoku game","sudoku",/Sudoku/]
   ];
   for(const [command,type,marker] of cases){
     const project=generateUniversalProject(command);
