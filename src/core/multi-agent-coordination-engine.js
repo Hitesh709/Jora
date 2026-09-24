@@ -13,9 +13,13 @@ export class MultiAgentCoordinationEngine {
 
   plan({requirements=[],agents=[]}={}) {
     const selected=[];
+    const unassigned=[];
     const used=new Set();
     for(const requirement of requirements) {
-      if(selected.length>=this.maxAgents) break;
+      if(selected.length>=this.maxAgents) {
+        unassigned.push(requirement.task||requirement.capability||"task");
+        continue;
+      }
       const candidates=agents.filter(agent =>
         !used.has(agent.id) &&
         (agent.status==="available"||!agent.status) &&
@@ -30,9 +34,10 @@ export class MultiAgentCoordinationEngine {
           agentId:agent.id,
           score:Number(agent.score||0)
         });
+      } else {
+        unassigned.push(requirement.task||requirement.capability||"task");
       }
     }
-    const unassigned=requirements.slice(selected.length).map(x=>x.task||x.capability||"task");
     return {
       accepted:true,
       status:unassigned.length?"PARTIALLY_ASSIGNED":"ASSIGNED",
