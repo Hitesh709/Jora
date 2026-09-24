@@ -140,6 +140,55 @@ test("operator api exposes phase 5 evolution governance assessment",async()=>{
   } finally { await api.stop(); }
 });
 
+test("operator api exposes phase 8 collaborative review and quality gates",async()=>{
+  const reviewGraph={
+    create(input){ return {artifact:input.artifact,reviewers:["reviewer-1","reviewer-2"],challenger:"reviewer-1",decisions:[]}; },
+    decide(graph,input){ return {...graph,decisions:[...(graph.decisions||[]),{agentId:input.agentId,decision:input.decision}]}; },
+    approved(graph){ return graph.decisions?.every(x=>x.decision==="APPROVE")&&graph.decisions.length>0; }
+  };
+  const agentQualityGate={
+    evaluate(output,{requiredEvidence,minScore}){
+      const missing=requiredEvidence.filter(x=>!output.evidence?.[x]);
+      const score=Number(output.score||0);
+      return {passed:missing.length===0&&score>=minScore,score,missing};
+    }
+  };
+  const api=new OperatorApi({
+    runtime:{execute:async()=>({status:"PROMOTED"})},
+    executionStore:store(),
+    reviewGraph,
+    agentQualityGate,
+    authToken:"secret",
+    port:0
+  });
+  const address=await api.start();
+  try {
+    const created=await fetch(`http://${address.host}:${address.port}/v1/review/create`,{
+      method:"POST",headers:{authorization:"Bearer secret","content-type":"application/json"},
+      body:JSON.stringify({artifact:{name:"app.js"},reviewerCapabilities:["quality","security"]})
+    });
+    assert.equal(created.status,200);
+    const graph=await created.json();
+    assert.deepEqual(graph.reviewers,["reviewer-1","reviewer-2"]);
+
+    const decided=await fetch(`http://${address.host}:${address.port}/v1/review/decide`,{
+      method:"POST",headers:{authorization:"Bearer secret","content-type":"application/json"},
+      body:JSON.stringify({graph,agentId:"reviewer-1",decision:"APPROVE"})
+    });
+    assert.equal(decided.status,200);
+    assert.equal((await decided.json()).approved,true);
+
+    const gate=await fetch(`http://${address.host}:${address.port}/v1/agents/quality-gate`,{
+      method:"POST",headers:{authorization:"Bearer secret","content-type":"application/json"},
+      body:JSON.stringify({output:{score:.9,evidence:{tests:true,security:true}},requiredEvidence:["tests","security"],minScore:.8})
+    });
+    assert.equal(gate.status,200);
+    const gateBody=await gate.json();
+    assert.equal(gateBody.status,"QUALITY_GATE_PASSED");
+    assert.equal(gateBody.passed,true);
+  } finally { await api.stop(); }
+});
+
 test("operator api executes commands and returns runtime result",async()=>{
   let received=null;
   const api=new OperatorApi({
