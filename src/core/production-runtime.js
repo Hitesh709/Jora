@@ -1,3 +1,4 @@
+import {MultiAgentCoordinationEngine} from "./multi-agent-coordination-engine.js";
 import {EvolutionGovernanceEngine} from "./evolution-governance-engine.js";
 import {PersistentProjectStateStore} from "./persistent-project-state-store.js";
 import {AgentSpecPlanner} from "./agent-spec-planner.js";
@@ -190,6 +191,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
     : new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
   const projectStateStore=new PersistentProjectStateStore({store:new JsonStore({file:config.projectStateFile})});
   const evolutionGovernance=new EvolutionGovernanceEngine(config.evolutionGovernance);
+  const multiAgentCoordination=new MultiAgentCoordinationEngine(config.multiAgentCoordination);
   const lineageStore=new LineageStore({store:new JsonStore({file:config.lineageStateFile||"./.jora/lineage.json"})});
   await lineageStore.load();
   const codeIndex=new CodebaseIndex({repository});
@@ -693,6 +695,7 @@ Limit: ${limit}`}]});
         executionStore,
         projectStateStore,
         evolutionGovernance,
+        multiAgentCoordination,
         observability,
         metrics,
         worker,
@@ -723,6 +726,6 @@ Limit: ${limit}`}]});
     : null;
   return {
     runtime,repository,remoteRepository,ciGate,securityCouncil,sandbox,testRunner,benchmarkStore,autonomousArchitect,architectCore,agentRuntime,agentToolRegistry,architectureRegression,dependencyIntelligence,securityArchitect,policyDrivenAutonomy,incidentCommander,sloRecovery,evolutionController,capabilityRegistry,agentRouter,negotiationProtocol,parallelSpecialists,artifactWorkspace,reviewGraph,agentQualityGate,agentLifecycle,teamOptimizer,knowledgeIngestion,knowledgeIndex,evidenceRetriever,provenanceManager,conflictResolver,memoryConsolidation,failurePatterns,strategyModel,experiencePlanner,continuousLearning,architectureStore,taskDAGOptimizer,taskContractEngine,adaptiveExecutionPlanner,resourceScheduler,checkpointStore,idempotencyGuard,missionTransactions,
-    infrastructure,executionStore,projectStateStore,evolutionGovernance,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,platformQueue,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,autonomousEngineeringLoop,selfImprovingEngineeringCore,autonomousSoftwareFactory,executionPlatform,searchProvider,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
+    infrastructure,executionStore,projectStateStore,evolutionGovernance,multiAgentCoordination,championStore,lineageStore,agentRegistry,programManager,programDirector,agentMemory,knowledgeStore,knowledgeRetriever,sharedTeamMemory,population,mutationStrategy,evolutionScheduler,researchLoop,candidateRunner,experimentEngine,learningMemory,autonomousEvolution,codeMaster,roadmap,missionManager,missionRunner,codeIndex,architectureAnalyzer,refactorPlanner,impactAnalyzer,worker,leaseStore,queueStore,platformQueue,observability,metrics,auditLog,productUnderstanding,architecturePlanner,taskDAGGenerator,autonomousProductBuilder,autonomousCodingOrchestrator,autonomousEngineeringLoop,selfImprovingEngineeringCore,autonomousSoftwareFactory,executionPlatform,searchProvider,healthMonitor,healthTimer,sloTimer,recovery,incidentManager,deploymentController,api,modelGateway,config
   };
 }
