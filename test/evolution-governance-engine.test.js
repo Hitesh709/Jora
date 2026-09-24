@@ -12,14 +12,14 @@ test("Phase 5 blocks a candidate that fails required gates",()=>{
     tests:{passed:false}
   });
   assert.equal(result.status,"EVOLUTION_BLOCKED");
-  assert.deepEqual(result.failedGates,["tests","approval"]);
+  assert.deepEqual(result.failedGates,["improvement","tests","approval"]);
   assert.equal(result.productionReady,false);
 });
 
 test("Phase 5 requires explicit approval before promotion",()=>{
   const engine=new EvolutionGovernanceEngine({minimumBenchmarkScore:0.8,minimumDelta:0.02});
   const assessment=engine.assess({
-    baseline:{version:"v1",score:0.80},
+    baseline:null,
     candidate:{version:"v2",score:0.84},
     evaluation:{score:0.84},
     security:{passed:true},
