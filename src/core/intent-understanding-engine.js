@@ -143,7 +143,7 @@ function inferDomain(text) {
 
 function inferRequestScope(text, {action="answer", domain="general", references=[]}={}) {
   const lower = text.toLowerCase();
-  const whole = /\b(whole|complete|full|entire|all|everything|end[ -]?to[ -]?end|from scratch|production[ -]?ready|complete codebase|full codebase)\b/.test(lower);
+  const whole = /\b(whole|complete|full|entire|all|everything|end[ -]?to[ -]?end|from scratch|production[ -]?ready)\b/.test(lower);
   const codebase = /\b(codebase|code base|repository|repo|source code|complete codebase|full codebase)\b/.test(lower);
   const game = domain === "game" || /\b(game|gameplay|playable)\b/.test(lower);
   const app = domain === "software" || /\b(app|application|website|web app|software|platform|system)\b/.test(lower);
