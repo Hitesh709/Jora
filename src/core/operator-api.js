@@ -49,6 +49,7 @@ export class OperatorApi {
   constructor({
     runtime,
     executionStore,
+    projectStateStore=null,
     observability=null,
     metrics=null,
     worker=null,
@@ -80,6 +81,7 @@ export class OperatorApi {
     if(!runtime) throw new Error("runtime is required");
     this.runtime=runtime;
     this.executionStore=executionStore;
+    this.projectStateStore=projectStateStore;
     this.observability=observability;
     this.metrics=metrics;
     this.worker=worker;
@@ -120,6 +122,26 @@ export class OperatorApi {
     // per-run workspaces exist, autonomous executions must be serialized.
     this.maxBackgroundExecutions=1;
     this.asyncExecutionTimeoutMs=300000;
+  }
+
+  async _projectContext(context={}) {
+    const input=context&&typeof context==="object"?context:{};
+    if(!this.projectStateStore?.get) return input;
+    const projectId=String(input.projectId||input.projectState?.project||"").trim();
+    if(!projectId) return input;
+    try {
+      const persisted=await this.projectStateStore.get(projectId);
+      if(persisted?.state) return {...input,projectId:persisted.projectId,projectState:persisted.state};
+    } catch {}
+    return input;
+  }
+
+  async _persistProjectState(understanding,context={}) {
+    const state=understanding?.projectState;
+    if(!this.projectStateStore?.save || !state?.project) return null;
+    const projectId=String(context.projectId||state.project).trim();
+    if(!projectId) return null;
+    try { return await this.projectStateStore.save(projectId,state); } catch { return null; }
   }
 
   _rateLimited(req) {
@@ -347,15 +369,17 @@ export class OperatorApi {
               .slice(-24)
               .map(item=>({role:item.role,content:item.content.slice(0,12000)}))
           : [];
-        const understanding=this.conversationIntelligence?.understand({
-          input:body.message.trim(),
-          messages:conversation,
-          context:body.context||{}
-        }) || this.intentUnderstanding?.understand({
-          input:body.message.trim(),
-          messages:conversation,
-          context:body.context||{}
-        }) || null;
+        const projectContext=await this._projectContext(body.context||{});
+      const understanding=this.conversationIntelligence?.understand({
+        input:body.message.trim(),
+        messages:conversation,
+        context:projectContext
+      }) || this.intentUnderstanding?.understand({
+        input:body.message.trim(),
+        messages:conversation,
+        context:projectContext
+      }) || null;
+      await this._persistProjectState(understanding,projectContext);
         const languageName=understanding?.language?.name||"English";
         const normalizedIntent=understanding?.normalizedText||body.message.trim();
         const complete=()=>this.modelGateway.complete({
@@ -410,15 +434,17 @@ export class OperatorApi {
     if(method==="POST" && path==="/v1/understand") {
       const body=await readBody(req,this.maxBodyBytes);
       if(typeof body.input!=="string" || !body.input.trim()) return json(res,400,{error:"input is required"});
+      const projectContext=await this._projectContext(body.context||{});
       const understanding=this.conversationIntelligence?.understand({
         input:body.input.trim(),
         messages:Array.isArray(body.messages)?body.messages:[],
-        context:body.context||{}
+        context:projectContext
       }) || this.intentUnderstanding?.understand({
         input:body.input.trim(),
         messages:Array.isArray(body.messages)?body.messages:[],
-        context:body.context||{}
+        context:projectContext
       });
+      await this._persistProjectState(understanding,projectContext);
       let specification=null;
       if(this.productUnderstanding?.understand){
         try {
@@ -428,7 +454,7 @@ export class OperatorApi {
           });
         } catch {}
       }
-      return json(res,200,{accepted:true,status:"UNDERSTOOD",understanding,specification});
+      return json(res,200,{accepted:true,status:"UNDERSTOOD",projectId:understanding?.projectState?.project||projectContext.projectId||null,projectState:understanding?.projectState||null,understanding,specification});
     }
     if(method==="POST" && path==="/v1/architecture/plan") {
       if(!this.architecturePlanner) return json(res,503,{error:"architecture_planner_not_configured"});
