@@ -149,7 +149,7 @@ function inferRequestScope(text, {action="answer", domain="general", references=
   const app = domain === "software" || /\b(app|application|website|web app|software|platform|system)\b/.test(lower);
   const feature = action === "modify" || action === "debug" || action === "test" ||
     /\b(add|remove|change|update|modify|fix|repair|improve|upgrade|refactor|redesign|restyle)\b/.test(lower);
-  let scope = whole ? "whole-project" : codebase ? "codebase" : feature ? "feature-change" : (game ? "game" : app ? "application" : "conversation");
+  let scope = codebase ? "codebase" : whole ? "whole-project" : feature ? "feature-change" : (game ? "game" : app ? "application" : "conversation");
   if (references.length && feature) scope = "existing-project-change";
   return {
     scope,
