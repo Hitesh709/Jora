@@ -24,3 +24,16 @@ test("PersistentExecutionStore does not persist generated source files in execut
   const size=(await stat(file)).size;
   assert.ok(size<20000,"execution state unexpectedly large: "+size+" bytes");
 });
+
+
+test("PersistentExecutionStore restores an execution by request task id",async()=>{
+  const dir=await mkdtemp(join(tmpdir(),"jora-execution-store-task-"));
+  const file=join(dir,"executions.json");
+  const store=new PersistentExecutionStore({store:new JsonStore({file}),maxRecords:10});
+  const created=await store.create({taskId:"request-42",agentId:"jora-master",input:{command:"Build a racing game"}});
+  await store.finish(created.id,"COMPLETED",{status:"COMPLETED",version:"v1"});
+  const restored=await store.getByTaskId("request-42");
+  assert.equal(restored?.id,created.id);
+  assert.equal(restored?.taskId,"request-42");
+  assert.equal(restored?.status,"COMPLETED");
+});
