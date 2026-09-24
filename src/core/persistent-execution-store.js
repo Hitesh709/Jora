@@ -99,6 +99,12 @@ export class PersistentExecutionStore {
     return r?structuredClone(r):undefined;
   }
 
+  async getByTaskId(taskId) {
+    const db=await this._read();
+    const r=db.executions.find(x=>x.taskId===taskId);
+    return r?structuredClone(r):undefined;
+  }
+
   async list() {
     return (await this._read()).executions;
   }
