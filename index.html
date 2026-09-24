@@ -148,6 +148,8 @@ function isEngineeringRequest(text,understanding=null){
 function setMode(el){document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));el.classList.add("active");mode=el.dataset.mode;promptInput.placeholder={agent:"Ask Jora anything…",coding:"Describe the coding task you want Jora to implement…",build:"Describe the product you want built…"}[mode]}
 const CHAT_STORAGE_KEY="jora_chat_history_v2";
 let chatHistory=[];
+let clientProjectId=localStorage.getItem("JORA_PROJECT_ID")||"";
+
 function persistChat(){try{localStorage.setItem(CHAT_STORAGE_KEY,JSON.stringify(chatHistory.slice(-200)))}catch{}}
 function renderMessage(text,who,save=true){const d=document.createElement("div");d.className="msg "+who;d.textContent=text;document.getElementById("messages").appendChild(d);d.scrollIntoView({behavior:"smooth",block:"end"});if(save){chatHistory.push({text:String(text),who,at:Date.now()});persistChat()}}
 function addMessage(text,who){renderMessage(text,who,true)}
@@ -194,10 +196,13 @@ async function sendPrompt(){
       const u=await fetch(base()+"/v1/understand",{method:"POST",headers:headers(),body:JSON.stringify({
         input:command,
         messages:chatHistory.slice(-24).map(x=>({role:x.who==="user"?"user":"assistant",content:x.text})),
-        context:{mode}
+        context:{mode,projectId:clientProjectId||undefined,projectState:clientProjectId?undefined:undefined}
       })});
       const ud=await u.json().catch(()=>({}));
-      if(u.ok) understanding=ud.understanding||null;
+      if(u.ok) {
+        understanding=ud.understanding||null;
+        if(ud.projectId) { clientProjectId=String(ud.projectId); localStorage.setItem("JORA_PROJECT_ID",clientProjectId); }
+      }
     }catch{}
     const clientUnderstanding=clientConversationIntent(command);
     if(clientUnderstanding && (!understanding || !["build","modify","debug","test","deploy"].includes(understanding.action))){
@@ -225,7 +230,7 @@ async function sendPrompt(){
       try{
         const r=await fetch(base()+"/v1/chat",{method:"POST",headers:headers(),body:JSON.stringify({
           message:command,
-          context:{provider:"jora",mode,source:"browser",existingProject:workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null},
+          context:{provider:"jora",mode,source:"browser",projectId:clientProjectId||undefined,existingProject:workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null},
           messages:chatHistory.filter(x=>x.who==="user"||x.who==="assistant").slice(-24).map(x=>({role:x.who==="assistant"?"assistant":"user",content:x.text}))
         })});
         const data=await r.json().catch(()=>({error:"Invalid backend response"}));
@@ -244,7 +249,7 @@ async function sendPrompt(){
       const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
         command:executionCommand,
         messages:chatHistory.filter(x=>x.who==="user"||x.who==="assistant").slice(-24).map(x=>({role:x.who==="assistant"?"assistant":"user",content:x.text})),
-        context:{provider:"jora",mode,source:"browser",buildIntent:modifyingExisting?"modify":"new",freshProject:!modifyingExisting,preserveExistingProject:modifyingExisting,existingProject:modifyingExisting&&workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null,intentUnderstanding:understanding,intentScope:intentScope}
+        context:{provider:"jora",mode,source:"browser",projectId:clientProjectId||undefined,buildIntent:modifyingExisting?"modify":"new",freshProject:!modifyingExisting,preserveExistingProject:modifyingExisting,existingProject:modifyingExisting&&workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null,intentUnderstanding:understanding,intentScope:intentScope}
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       if(r.status===401) {
