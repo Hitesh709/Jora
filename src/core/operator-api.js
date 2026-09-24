@@ -53,6 +53,8 @@ export class OperatorApi {
     projectStateStore=null,
     evolutionGovernance=null,
     multiAgentCoordination=null,
+    reviewGraph=null,
+    agentQualityGate=null,
     observability=null,
     metrics=null,
     worker=null,
@@ -87,6 +89,8 @@ export class OperatorApi {
     this.projectStateStore=projectStateStore;
     this.evolutionGovernance=evolutionGovernance;
     this.multiAgentCoordination=multiAgentCoordination;
+    this.reviewGraph=reviewGraph;
+    this.agentQualityGate=agentQualityGate;
     this.observability=observability;
     this.metrics=metrics;
     this.worker=worker;
@@ -285,6 +289,46 @@ export class OperatorApi {
         return json(res,200,result);
       } catch(error) {
         return json(res,400,{accepted:false,status:"COORDINATION_FAILED",error:error.message});
+      }
+    }
+
+    if(method==="POST" && path==="/v1/review/create") {
+      if(!this.reviewGraph) return json(res,503,{error:"collaborative_review_graph_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        return json(res,200,this.reviewGraph.create({
+          artifact:body.artifact,
+          reviewerCapabilities:body.reviewerCapabilities||["quality","security"],
+          challenger:body.challenger!==false
+        }));
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"REVIEW_CREATE_FAILED",error:error.message});
+      }
+    }
+
+    if(method==="POST" && path==="/v1/review/decide") {
+      if(!this.reviewGraph) return json(res,503,{error:"collaborative_review_graph_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      if(!body.graph || !body.agentId || !body.decision) return json(res,400,{error:"graph, agentId and decision are required"});
+      try {
+        const graph=this.reviewGraph.decide(body.graph,{agentId:body.agentId,decision:body.decision,reason:body.reason||""});
+        return json(res,200,{graph,approved:this.reviewGraph.approved(graph)});
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"REVIEW_DECISION_FAILED",error:error.message});
+      }
+    }
+
+    if(method==="POST" && path==="/v1/agents/quality-gate") {
+      if(!this.agentQualityGate) return json(res,503,{error:"agent_quality_gate_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const result=this.agentQualityGate.evaluate(body.output||{},{
+          requiredEvidence:body.requiredEvidence||[],
+          minScore:body.minScore===undefined?.8:Number(body.minScore)
+        });
+        return json(res,200,{accepted:true,status:result.passed?"QUALITY_GATE_PASSED":"QUALITY_GATE_BLOCKED",...result});
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"QUALITY_GATE_FAILED",error:error.message});
       }
     }
 
