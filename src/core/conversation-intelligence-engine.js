@@ -163,9 +163,6 @@ export class ConversationIntelligenceEngine {
       previousUserMessage:previousUser || null
     };
 
-    const priorProjectState=context?.projectState || context?.project?.state || {};
-    const projectState=updateProjectState(priorProjectState,{input:original,understanding:{...current,action,scope}});
-
     const scope={...(current.scope||{})};
     if (pendingAction && scope.scope==="conversation") {
       scope.scope=pendingAction==="build" ? "whole-project" : "existing-project-change";
@@ -173,6 +170,8 @@ export class ConversationIntelligenceEngine {
       scope.wholeProject=pendingAction==="build";
     }
 
+    const priorProjectState=context?.projectState || context?.project?.state || {};
+    const projectState=updateProjectState(priorProjectState,{input:original,understanding:{...current,action,scope}});
     return {
       ...current,
       action,
