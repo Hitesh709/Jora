@@ -6,6 +6,7 @@ export function runtimeConfig(env=process.env){
     workspace:env.JORA_WORKSPACE||"./.jora/workspace",
     docker:{image:env.JORA_DOCKER_IMAGE||"node:20-bookworm-slim",network:env.JORA_DOCKER_NETWORK||"none"},
     persistence:env.JORA_STATE_FILE||"./.jora/executions.json",
+    projectStateFile:env.JORA_PROJECT_STATE_FILE||"./.jora/projects.json",
     championStateFile:env.JORA_CHAMPION_STATE_FILE||"./.jora/champion.json",
     benchmarkStateFile:env.JORA_BENCHMARK_STATE_FILE||"./.jora/benchmarks.json",
     lineageStateFile:env.JORA_LINEAGE_STATE_FILE||"./.jora/lineage.json",
