@@ -17,6 +17,7 @@ export function runtimeConfig(env=process.env){
     observabilityStateFile:env.JORA_OBSERVABILITY_STATE_FILE||"./.jora/observability.json",
     ci:{timeoutMs:Number(env.JORA_CI_TIMEOUT_MS||600000),pollMs:Number(env.JORA_CI_POLL_MS||5000)},
     autonomous:{maxCycles:Number(env.JORA_AUTONOMOUS_MAX_CYCLES||4)},
+    multiAgentCoordination:{maxAgents:Number(env.JORA_MULTI_AGENT_MAX_AGENTS||4),minQualityScore:Number(env.JORA_MULTI_AGENT_MIN_QUALITY||0.7)},
     evolutionGovernance:{minimumBenchmarkScore:Number(env.JORA_EVOLUTION_MIN_BENCHMARK_SCORE||0.8),minimumDelta:Number(env.JORA_EVOLUTION_MIN_DELTA||0),requireSecurity:env.JORA_EVOLUTION_REQUIRE_SECURITY!=="false",requireTests:env.JORA_EVOLUTION_REQUIRE_TESTS!=="false",requireApproval:env.JORA_EVOLUTION_REQUIRE_APPROVAL!=="false"},
     deployment:{
       enabled:env.JORA_DEPLOYMENT_ENABLED==="true",
