@@ -80,6 +80,40 @@ test("operator api restores async execution by request id from durable store",as
 });
 
 
+test("operator api persists and restores project memory",async()=>{
+  let saved=null;
+  const projectStateStore={
+    async get(id){ return id==="mini-car-racing-game" && saved ? {projectId:id,state:saved} : undefined; },
+    async save(id,state){ saved=state; return {projectId:id,state}; }
+  };
+  const api=new OperatorApi({
+    runtime:{execute:async()=>({status:"PROMOTED"})},
+    executionStore:store(),
+    projectStateStore,
+    port:0
+  });
+  const address=await api.start();
+  try {
+    const first=await fetch(`http://${address.host}:${address.port}/v1/understand`,{
+      method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({input:"Mara mate mini car racing game banavo"})
+    });
+    assert.equal(first.status,200);
+    const firstBody=await first.json();
+    assert.equal(firstBody.projectId,"mini-car-racing-game");
+    assert.equal(saved.project,"mini car racing game");
+
+    const second=await fetch(`http://${address.host}:${address.port}/v1/understand`,{
+      method:"POST",headers:{"content-type":"application/json"},
+      body:JSON.stringify({input:"Aa game ma score add karo",context:{projectId:"mini-car-racing-game"}})
+    });
+    assert.equal(second.status,200);
+    const secondBody=await second.json();
+    assert.equal(secondBody.projectState.project,"mini car racing game");
+    assert.equal(secondBody.projectState.lastAction,"modify");
+  } finally { await api.stop(); }
+});
+
 test("operator api executes commands and returns runtime result",async()=>{
   let received=null;
   const api=new OperatorApi({
