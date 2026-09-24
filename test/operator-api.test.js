@@ -47,6 +47,39 @@ test("operator api exposes health and authenticated status",async()=>{
   }
 });
 
+
+
+test("operator api restores async execution by request id from durable store",async()=>{
+  const persisted={
+    id:"exec_42",
+    taskId:"request-42",
+    agentId:"jora-master",
+    status:"COMPLETED",
+    createdAt:"2026-01-01T00:00:00.000Z",
+    updatedAt:"2026-01-01T00:00:01.000Z",
+    trace:[{type:"EXECUTION_ACCEPTED",status:"RUNNING"}],
+    result:{status:"COMPLETED",version:"v1"}
+  };
+  const durableStore={
+    async list(){return [persisted];},
+    async get(){return undefined;},
+    async getByTaskId(id){return id==="request-42"?persisted:undefined;}
+  };
+  const api=new OperatorApi({runtime:{execute:async()=>({status:"COMPLETED"})},executionStore:durableStore,port:0});
+  const address=await api.start();
+  try {
+    const response=await fetch(`http://${address.host}:${address.port}/v1/execute/async/request-42`);
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.equal(body.requestId,"request-42");
+    assert.equal(body.status,"COMPLETED");
+    assert.equal(body.result.version,"v1");
+  } finally {
+    await api.stop();
+  }
+});
+
+
 test("operator api executes commands and returns runtime result",async()=>{
   let received=null;
   const api=new OperatorApi({
