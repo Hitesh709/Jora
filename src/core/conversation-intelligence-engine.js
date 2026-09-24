@@ -23,7 +23,8 @@ function normalizeMessages(messages=[]) {
 function detectResponseType(text, previousAssistant="") {
   const value=clean(text).toLowerCase();
   if (!value) return "empty";
-  if (/^(yes|yeah|yep|yup|ha|haa|હા|હાા|ok|okay|sure|correct|right|do it|go ahead|continue|ચાલે|બરાબર|ठीक|हाँ|haan|han)$/i.test(value)) return "confirmation";
+  const confirmations=new Set(["yes","yeah","yep","yup","ha","haa","ok","okay","sure","correct","right","do it","go ahead","continue","ચાલે","બરાબર","ઠીક","ठीक","हाँ","haan","han","હા","હાા"]);
+  if (confirmations.has(value)) return "confirmation";
   if (/^(no|nope|nah|nahi|નહીં|ના|don't|do not|not that|cancel|stop)$/i.test(value)) return "negation";
   if (/\b(actually|instead|rather|wait|no,|not that|i meant|મારો મતલબ|એવું નહીં|નહીં,|लेकिन|लेकिन नहीं)\b/i.test(value)) return "correction";
   if (/\b(why|what|how|when|where|who|shu|kem|kevi rite|kai rite|kyaare|kya|kon)\b/i.test(value) || /\?$/.test(value)) return "question";
@@ -111,6 +112,10 @@ export class ConversationIntelligenceEngine {
 
     let action=current.action;
     let intent=current.intent;
+    if (references.length && responseType==="instruction" && action==="build") {
+      action="modify";
+      intent="engineering.modify";
+    }
     if(responseType==="confirmation" && pendingAction){
       action=pendingAction;
       intent="engineering."+pendingAction;
