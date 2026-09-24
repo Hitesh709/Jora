@@ -423,6 +423,8 @@ export class OperatorApi {
           message,
           model:response?.model??(requestedProvider||null),
           provider:useDefault ? (response?.model??gatewayStatus.defaultModel??null) : selectedProvider,
+          projectId:understanding?.projectState?.project||projectContext.projectId||null,
+          projectState:understanding?.projectState||null,
           understanding
         });
       } catch(error) {
