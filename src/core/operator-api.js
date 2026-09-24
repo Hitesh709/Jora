@@ -50,6 +50,7 @@ export class OperatorApi {
     runtime,
     executionStore,
     projectStateStore=null,
+    evolutionGovernance=null,
     observability=null,
     metrics=null,
     worker=null,
@@ -82,6 +83,7 @@ export class OperatorApi {
     this.runtime=runtime;
     this.executionStore=executionStore;
     this.projectStateStore=projectStateStore;
+    this.evolutionGovernance=evolutionGovernance;
     this.observability=observability;
     this.metrics=metrics;
     this.worker=worker;
@@ -268,6 +270,24 @@ export class OperatorApi {
       const incident=this.incidentManager?.get(incidentMatch[1]);
       if(!incident) return json(res,404,{error:"incident_not_found"});
       return json(res,200,{incident});
+    }
+
+    if(method==="POST" && path==="/v1/evolution/assess") {
+      if(!this.evolutionGovernance) return json(res,503,{error:"evolution_governance_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const assessment=this.evolutionGovernance.assess({
+          baseline:body.baseline,
+          candidate:body.candidate,
+          evaluation:body.evaluation,
+          security:body.security,
+          tests:body.tests,
+          approval:body.approval===true
+        });
+        return json(res,200,assessment);
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"EVOLUTION_ASSESSMENT_FAILED",error:error.message});
+      }
     }
 
     if(method==="GET" && path==="/v1/platform") {
