@@ -278,7 +278,7 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const experiencePlanner=new ExperienceGuidedPlanner({strategyModel,learningMemory});
   const continuousLearning=new ContinuousLearningLoop({learningMemory,knowledgeStore,consolidator:memoryConsolidation,observability});
   const populationEngine=new MultiGenerationEngine({delivery,population,maxCandidates:config.evolution?.populationSize??8});
-  const autonomousEvolution=new AutonomousEvolutionController({generationEngine:populationEngine,experimentEngine,learningMemory,scheduler:evolutionScheduler,selector:championSelector,maxGenerations:config.evolution?.maxGenerations??10});
+  const autonomousEvolution=new AutonomousEvolutionController({generationEngine:populationEngine,experimentEngine,learningMemory,scheduler:evolutionScheduler,selector:championSelector,governance:evolutionGovernance,maxGenerations:config.evolution?.maxGenerations??10});
 
   const promotion=new PromotionController({
     evaluator:new CandidateEvaluator(),
