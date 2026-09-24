@@ -1273,8 +1273,10 @@ export class OperatorApi {
     if(method==="GET" && path.startsWith("/v1/execute/async/")) {
       const requestId=decodeURIComponent(path.slice("/v1/execute/async/".length));
       let record=this.backgroundExecutions.get(requestId);
-      if(!record && this.executionStore?.get) {
-        const persisted=await this.executionStore.get(requestId);
+      if(!record && this.executionStore) {
+        const persisted=await (this.executionStore.getByTaskId
+          ? this.executionStore.getByTaskId(requestId)
+          : this.executionStore.get?.(requestId));
         if(persisted) {
           record={
             requestId,
