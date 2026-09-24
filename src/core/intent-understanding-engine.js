@@ -141,6 +141,25 @@ function inferDomain(text) {
   return "general";
 }
 
+function inferRequestScope(text, {action="answer", domain="general", references=[]}={}) {
+  const lower = text.toLowerCase();
+  const whole = /\b(whole|complete|full|entire|all|everything|end[ -]?to[ -]?end|from scratch|production[ -]?ready|complete codebase|full codebase)\b/.test(lower);
+  const codebase = /\b(codebase|code base|repository|repo|project|source code|all files|entire project)\b/.test(lower);
+  const game = domain === "game" || /\b(game|gameplay|playable)\b/.test(lower);
+  const app = domain === "software" || /\b(app|application|website|web app|software|platform|system)\b/.test(lower);
+  const feature = action === "modify" || action === "debug" || action === "test" ||
+    /\b(add|remove|change|update|modify|fix|repair|improve|upgrade|refactor|redesign|restyle)\b/.test(lower);
+  let scope = whole ? "whole-project" : codebase ? "codebase" : feature ? "feature-change" : (game ? "game" : app ? "application" : "conversation");
+  if (references.length && feature) scope = "existing-project-change";
+  return {
+    scope,
+    deliverable: game ? "game" : app ? "application" : codebase ? "codebase" : "answer",
+    wholeProject: whole || codebase || (action === "build" && (game || app)),
+    existingProject: references.length > 0 || scope === "existing-project-change",
+    buildMode: action === "build" ? (whole ? "complete" : "focused") : null
+  };
+}
+
 function confidenceFor({action,language,normalized,original}) {
   let score = 0.58;
   if (language.code !== "en") score += 0.04;
@@ -164,15 +183,16 @@ export class IntentUnderstandingEngine {
     if (/\b(this|that|it|aa|aama|ema|aavu|evu)\b/.test(lower)) references.push("previous-turn-object");
     if (/\b(same|again|continue|pachi|phir|then)\b/.test(lower)) references.push("previous-turn-action");
     if (/\b(as before|previous|earlier|last one|pehla)\b/.test(lower)) references.push("previous-turn-context");
+    const scope = inferRequestScope(normalizedText, {action,domain,references});
     const confidence = confidenceFor({action,language,normalized:normalizedText,original});
     const clarificationNeeded = confidence < 0.62 || (action !== "answer" && normalizedText.length < 8);
     return {
-      version:"1.0",
+      version:"1.1",
       intent:action === "answer" ? "conversation.answer" : "engineering."+action,
-      action,language,originalText:original,normalizedText,domain,confidence,
+      action,language,originalText:original,normalizedText,domain,confidence,scope,
       entities:{
         explicitPlatform:/\b(mobile|android|ios|web|website)\b/i.test(normalizedText) ? (normalizedText.match(/\b(mobile|android|ios|web|website)\b/i)?.[1]||null) : null,
-        gameType:domain === "game" ? (normalizedText.match(/\b(snake|pong|tetris|racing|racer|shooter|platformer|puzzle)\b/i)?.[1]||null) : null,
+        gameType:domain === "game" ? (normalizedText.match(/\b(snake|pong|tetris|racing|racer|shooter|platformer|sudoku|chess|puzzle)\b/i)?.[1]||null) : null,
         product:/\b(calculator|calendar|chat|todo|inventory|loan|ecommerce|shopping|dashboard|crm|blog|portfolio|website|app|application|game)\b/i.test(normalizedText)
           ? (normalizedText.match(/\b(calculator|calendar|chat|todo|inventory|loan|ecommerce|shopping|dashboard|crm|blog|portfolio|website|app|application|game)\b/i)?.[1]||null)
           : null
@@ -184,4 +204,4 @@ export class IntentUnderstandingEngine {
 }
 
 export function createIntentUnderstandingEngine(options) { return new IntentUnderstandingEngine(options); }
-export {detectLanguage,normalizeUserText,inferAction,inferDomain};
+export {detectLanguage,normalizeUserText,inferAction,inferDomain,inferRequestScope};
