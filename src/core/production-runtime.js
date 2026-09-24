@@ -696,6 +696,8 @@ Limit: ${limit}`}]});
         projectStateStore,
         evolutionGovernance,
         multiAgentCoordination,
+        reviewGraph,
+        agentQualityGate,
         observability,
         metrics,
         worker,
