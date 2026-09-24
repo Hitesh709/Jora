@@ -112,7 +112,7 @@ export class ConversationIntelligenceEngine {
 
     let action=current.action;
     let intent=current.intent;
-    if (references.length && responseType==="instruction" && action==="build") {
+    if (references.length && action==="build" && !/\b(from scratch|new|brand new|another)\b/i.test(original)) {
       action="modify";
       intent="engineering.modify";
     }
