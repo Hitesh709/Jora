@@ -331,7 +331,8 @@ let deviceDirectoryName="";
 let workspacePreviewOpen=false;
 function isExistingProjectChange(text){
   const value=String(text||"");
-  return /\b(change|modify|update|add|remove|delete|fix|improve|adjust|replace|rename|redesign|restyle|turn|convert|increase|decrease|disable|enable|broken|repair|not working|doesn.t work|does not work|not running|not work|working|error|bug|issue|problem)\b/i.test(value)\n    || /\b(?:game|app|application|website|calculator|software|project)\b[\s\S]*\b(?:not|isn.t|doesn.t|does not)\b[\s\S]*\b(?:work|working|run|running)\b/i.test(value)
+  return /\b(change|modify|update|add|remove|delete|fix|improve|adjust|replace|rename|redesign|restyle|turn|convert|increase|decrease|disable|enable|broken|repair|not working|doesn.t work|does not work|not running|not work|working|error|bug|issue|problem)\b/i.test(value)
+    || /\b(?:game|app|application|website|calculator|software|project)\b[\s\S]*\b(?:not|isn.t|doesn.t|does not)\b[\s\S]*\b(?:work|working|run|running)\b/i.test(value)
     || /\b(make|turn|convert|transform)\b[\s\S]*\b(card game|memory card|matching cards?|flip cards?)\b/i.test(value);
 }
 function previewFile(){
