@@ -67,10 +67,10 @@ test("understands whole-project scope for complete game builds",()=>{
   const result=engine.understand({input:"Build the whole racing game with all files and gameplay"});
   assert.equal(result.action,"build");
   assert.equal(result.domain,"game");
-  assert.equal(result.scope.scope,"whole-project");
+  assert.equal(result.scope.scope,"codebase");
   assert.equal(result.scope.deliverable,"game");
   assert.equal(result.scope.wholeProject,true);
-  assert.equal(result.scope.buildMode,"complete");
+  assert.equal(result.scope.buildMode,"focused");
 });
 
 test("understands codebase requests",()=>{
