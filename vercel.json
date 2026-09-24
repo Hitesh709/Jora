@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run jora:api",
+  "buildCommand": "npm install",
   "devCommand": "npm run jora:api",
   "installCommand": "npm install",
   "framework": "node",
