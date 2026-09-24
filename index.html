@@ -134,8 +134,8 @@ function isEngineeringRequest(text,understanding=null){
   // This is especially important for Roman Gujarati such as
   // "calculator app banavo" / "mare ek snake game banavvu che".
   const romanGujaratiBuild=/\b(?:app|application|website|web ?app|game|software|project)\s+(?:banavo|banavvu|banavi|banavvi|karo|karvu)\b/i.test(lower)
-    || /\b(?:banavo|banavvu|banavi|banavvi)\b[\s\S]*\b(?:app|application|website|web ?app|game|software|project)\b/i.test(lower)
-    || /\b(?:mare|mari|maro|maru)\b[\s\S]*\b(?:banavo|banavvu|banavi|banavvi)\b/i.test(lower);
+    || /\b(?:banavo|banavvu|banavi|banavvi|banao)\b[\s\S]*\b(?:app|application|website|web ?app|game|software|project|codebase|repo|repository)\b/i.test(lower)
+    || /\b(?:mare|mari|maro|maru|mane)\b[\s\S]*\b(?:banavo|banavvu|banavi|banavvi|banao)\b/i.test(lower);
   if(romanGujaratiBuild) return true;
 
   // Local fallback keeps chat conversational when the understanding endpoint is unavailable.
@@ -162,12 +162,12 @@ function keySend(e){if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendProm
 function clientConversationIntent(text){
   const original=String(text||"").trim();
   const lower=original.toLowerCase();
-  const romanGujaratiBuild=/\b(?:banavvu|banavanu|banavvi|banavo|banavi|banav)\b/i.test(lower)
-    && /\b(?:app|application|website|web ?app|game|software|project|system|calculator|api)\b/i.test(lower);
+  const romanGujaratiBuild=/\b(?:banavvu|banavanu|banavvi|banavo|banavi|banav|banao)\b/i.test(lower)
+    && /\b(?:app|application|website|web ?app|game|software|project|system|calculator|api|codebase|repo|repository)\b/i.test(lower);
   if(!romanGujaratiBuild) return null;
   let normalized=original
     .replace(/\b(mare|mane|mari|maru|maro|ek|aa|aama|ema|che|chhe)\b/gi," ")
-    .replace(/\b(?:banavvu|banavanu|banavvi|banavo|banavi|banav)\b/gi," build ")
+.replace(/\b(?:banavvu|banavanu|banavvi|banavo|banavi|banav|banao)\b/gi," build ")
     .replace(/\s+/g," ").trim();
   if(!/\bbuild\b/i.test(normalized)) normalized="build "+normalized;
   else normalized=normalized.replace(/^(.*)\s+build$/i,"build $1");
@@ -203,7 +203,9 @@ async function sendPrompt(){
     if(clientUnderstanding && (!understanding || !["build","modify","debug","test","deploy"].includes(understanding.action))){
       understanding=clientUnderstanding;
     }
-    const modifyingExisting=workspaceFiles.length>0 && isExistingProjectChange(command);
+    const intentScope=understanding?.scope||null;
+    const followUpExisting=workspaceFiles.length>0 && (understanding?.context?.references?.length>0 || /\b(it|this|that|the current (app|game|project|codebase))\b/i.test(command));
+    const modifyingExisting=workspaceFiles.length>0 && (isExistingProjectChange(command)||followUpExisting);
     const engineeringBuild=(mode==="coding"||mode==="build"||(mode==="agent"&&isEngineeringRequest(command,understanding))||modifyingExisting);
     const executionCommand=modifyingExisting
       ? (understanding?.normalizedText && ["modify","debug","test","deploy"].includes(understanding.action) ? understanding.normalizedText : "Fix the current project: "+command)
@@ -242,7 +244,7 @@ async function sendPrompt(){
       const r=await fetch(base()+"/v1/execute/async",{method:"POST",headers:headers(),body:JSON.stringify({
         command:executionCommand,
         messages:chatHistory.filter(x=>x.who==="user"||x.who==="assistant").slice(-24).map(x=>({role:x.who==="assistant"?"assistant":"user",content:x.text})),
-        context:{provider:"jora",mode,source:"browser",buildIntent:modifyingExisting?"modify":"new",freshProject:!modifyingExisting,preserveExistingProject:modifyingExisting,existingProject:modifyingExisting&&workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null}
+        context:{provider:"jora",mode,source:"browser",buildIntent:modifyingExisting?"modify":"new",freshProject:!modifyingExisting,preserveExistingProject:modifyingExisting,existingProject:modifyingExisting&&workspaceFiles.length?{project:workspaceProject,files:workspaceFiles}:null,intentUnderstanding:understanding,intentScope:intentScope}
       })});
       const data=await r.json().catch(()=>({error:"Invalid backend response"}));
       if(r.status===401) {
