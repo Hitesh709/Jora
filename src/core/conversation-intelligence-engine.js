@@ -48,7 +48,10 @@ function extractReferenceTokens(text) {
 function extractProjectFromText(text) {
   const value=clean(text);
   const english=value.match(/\b(?:build|create|make|develop|design)\s+(?:me\s+)?(?:a|an|the)\s+(.+?)(?:[.!?]|$)/i);
-  if (english?.[1]) return clean(english[1]).replace(/\b(?:please|for me)\b/gi,"").trim();
+  if (english?.[1]) {
+    const candidate=clean(english[1]).replace(/\b(?:please|for me)\b/gi,"").trim();
+    if (/\b(game|app|application|website|web app|software|platform|project|codebase|api|dashboard)\b/i.test(candidate)) return candidate;
+  }
 
   const built=value.match(/\b(?:built|created|made|developed|designed)\s+(?:me\s+)?(?:a|an|the)\s+(.+?)(?:[.!?]|$)/i);
   if (built?.[1]) return clean(built[1]).trim();
