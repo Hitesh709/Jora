@@ -10,7 +10,7 @@ const clean=(value="")=>String(value??"").replace(/\s+/g," ").trim();
 
 const ACTION_RE=/\b(build|create|make|develop|design|add|include|change|update|modify|edit|fix|repair|debug|improve|upgrade|remove|delete|replace|refactor|implement|test|deploy|publish|launch|banav|banavo|banavi|banavvu|karo|karvu|muko|mukvu)\b/i;
 
-function normalizeState(input={}) {
+export function normalizeProjectState(input={}) {
   const source=input&&typeof input==="object"?input:{};
   return {
     version:2,
@@ -61,7 +61,7 @@ function inferDomain(text) {
 }
 
 export function updateProjectState(previous={}, {input="", understanding=null}={}) {
-  const state=normalizeState(previous);
+  const state=normalizeProjectState(previous);
   const original=clean(input);
   const action=understanding?.action||classifyAction(original);
   const domain=understanding?.domain||inferDomain(original);
@@ -100,8 +100,8 @@ export function updateProjectState(previous={}, {input="", understanding=null}={
 }
 
 export function mergeProjectState(previous={}, patch={}) {
-  const base=normalizeState(previous);
-  const next=normalizeState(patch);
+  const base=normalizeProjectState(previous);
+  const next=normalizeProjectState(patch);
   return {
     version:2,
     project:next.project||base.project,
