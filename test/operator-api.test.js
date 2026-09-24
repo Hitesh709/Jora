@@ -114,6 +114,32 @@ test("operator api persists and restores project memory",async()=>{
   } finally { await api.stop(); }
 });
 
+test("operator api exposes phase 5 evolution governance assessment",async()=>{
+  const api=new OperatorApi({
+    runtime:{execute:async()=>({status:"PROMOTED"})},
+    executionStore:store(),
+    evolutionGovernance:{
+      assess(input){
+        assert.equal(input.evaluation.score,0.9);
+        return {accepted:true,status:"EVOLUTION_READY_FOR_APPROVAL",productionReady:false};
+      }
+    },
+    authToken:"secret",
+    port:0
+  });
+  const address=await api.start();
+  try {
+    const response=await fetch(`http://${address.host}:${address.port}/v1/evolution/assess`,{
+      method:"POST",
+      headers:{authorization:"Bearer secret","content-type":"application/json"},
+      body:JSON.stringify({evaluation:{score:0.9},security:{passed:true},tests:{passed:true}})
+    });
+    assert.equal(response.status,200);
+    const body=await response.json();
+    assert.equal(body.status,"EVOLUTION_READY_FOR_APPROVAL");
+  } finally { await api.stop(); }
+});
+
 test("operator api executes commands and returns runtime result",async()=>{
   let received=null;
   const api=new OperatorApi({
