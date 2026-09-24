@@ -62,3 +62,30 @@ test("understands direct Roman Gujarati product build requests",()=>{
   assert.match(result.normalizedText,/calculator app build/i);
   assert.equal(result.clarificationNeeded,false);
 });
+
+test("understands whole-project scope for complete game builds",()=>{
+  const result=engine.understand({input:"Build the whole racing game with all files and gameplay"});
+  assert.equal(result.action,"build");
+  assert.equal(result.domain,"game");
+  assert.equal(result.scope.scope,"whole-project");
+  assert.equal(result.scope.deliverable,"game");
+  assert.equal(result.scope.wholeProject,true);
+  assert.equal(result.scope.buildMode,"complete");
+});
+
+test("understands codebase requests",()=>{
+  const result=engine.understand({input:"Create the complete codebase for my web app"});
+  assert.equal(result.action,"build");
+  assert.equal(result.scope.scope,"codebase");
+  assert.equal(result.scope.deliverable,"application");
+});
+
+test("understands follow-up changes as existing-project work",()=>{
+  const result=engine.understand({
+    input:"add multiplayer to it",
+    messages:[{role:"user",content:"Build a racing game"},{role:"assistant",content:"Done"}]
+  });
+  assert.equal(result.action,"modify");
+  assert.equal(result.scope.scope,"existing-project-change");
+  assert.equal(result.scope.existingProject,true);
+});
