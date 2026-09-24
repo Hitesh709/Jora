@@ -52,7 +52,8 @@ test("Universal Builder selects game-specific mechanics instead of one generic g
     assert.equal(project.blueprint.gameType,type,command);
     const html=project.files.find(file=>file.path==="src/index.html").content;
     assert.match(html,marker,command);
-    assert.match(html,/canvas id="game"/,command);
+    if(type==="sudoku") assert.match(html,/class="board"/,command);
+    else assert.match(html,/canvas id="game"/,command);
   }
 });
 
