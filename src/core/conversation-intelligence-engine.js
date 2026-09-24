@@ -101,7 +101,10 @@ export class ConversationIntelligenceEngine {
     const history=normalizeMessages(messages);
     const current=this.intentEngine.understand({input:original,messages:history,context});
     const previousAssistant=last(history.filter(x=>x.role==="assistant"))?.content || "";
-    const previousUser=last(history.filter(x=>x.role==="user"))?.content || "";
+    const userMessages=history.filter(x=>x.role==="user");
+    const previousUser=userMessages.filter(x=>x.content!==original).at(-1)?.content
+      || userMessages.at(-2)?.content
+      || "";
     const responseType=detectResponseType(original,previousAssistant);
     const references=extractReferenceTokens(original);
     const pendingAction=inferConfirmationAction(previousAssistant,previousUser,current);
