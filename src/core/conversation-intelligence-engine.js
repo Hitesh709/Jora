@@ -24,8 +24,9 @@ function detectResponseType(text, previousAssistant="") {
   const value=clean(text).toLowerCase();
   if (!value) return "empty";
   const confirmations=new Set(["yes","yeah","yep","yup","ha","haa","ok","okay","sure","correct","right","do it","go ahead","continue","ચાલે","બરાબર","ઠીક","ठीक","हाँ","haan","han","હા","હાા"]);
+  if (value === "no" || value === "nope" || value === "nah" || value === "nahi" || value === "ના" || value === "નહીં" || value === "cancel" || value === "stop") return "negation";
   if (confirmations.has(value)) return "confirmation";
-  if (/^(no|nope|nah|nahi|નહીં|ના|don't|do not|not that|cancel|stop)$/i.test(value)) return "negation";
+  if (/^(don't|do not|not that)$/i.test(value)) return "negation";
   if (/\b(actually|instead|rather|wait|no,|not that|i meant|મારો મતલબ|એવું નહીં|નહીં,|लेकिन|लेकिन नहीं)\b/i.test(value)) return "correction";
   if (/\b(why|what|how|when|where|who|shu|kem|kevi rite|kai rite|kyaare|kya|kon)\b/i.test(value) || /\?$/.test(value)) return "question";
   if (/\b(thanks|thank you|thank|શુભ|આભાર|dhanyavaad|thanks)\b/i.test(value)) return "acknowledgement";
