@@ -196,7 +196,7 @@ async function sendPrompt(){
       const u=await fetch(base()+"/v1/understand",{method:"POST",headers:headers(),body:JSON.stringify({
         input:command,
         messages:chatHistory.slice(-24).map(x=>({role:x.who==="user"?"user":"assistant",content:x.text})),
-        context:{mode,projectId:clientProjectId||undefined,projectState:clientProjectId?undefined:undefined}
+        context:{mode,projectId:clientProjectId||undefined}
       })});
       const ud=await u.json().catch(()=>({}));
       if(u.ok) {
@@ -234,6 +234,7 @@ async function sendPrompt(){
           messages:chatHistory.filter(x=>x.who==="user"||x.who==="assistant").slice(-24).map(x=>({role:x.who==="assistant"?"assistant":"user",content:x.text}))
         })});
         const data=await r.json().catch(()=>({error:"Invalid backend response"}));
+        if(data.projectId) { clientProjectId=String(data.projectId); localStorage.setItem("JORA_PROJECT_ID",clientProjectId); }
         removeLastMessage("system");
         if(!r.ok) addMessage("Jora could not answer this request: "+(data.error||r.statusText),"system");
         else addMessage(data.message||"Jora did not return an answer.","assistant");
@@ -664,7 +665,7 @@ function toggleSidebar(){
   const btn=document.getElementById("sidebarToggle");
   if(btn){btn.textContent=expanded?"‹":"☰";btn.title=expanded?"Minimize sidebar":"Expand sidebar";btn.setAttribute("aria-label",btn.title)}
 })();
-function newChat(){chatHistory=[];persistChat();document.getElementById("messages").innerHTML='<div class="msg system">New Jora conversation. What would you like to solve?</div>';promptInput.focus()}
+function newChat(){chatHistory=[];clientProjectId="";localStorage.removeItem("JORA_PROJECT_ID");persistChat();document.getElementById("messages").innerHTML='<div class="msg system">New Jora conversation. What would you like to solve?</div>';promptInput.focus()}
 function showView(view){
   ["chat","projects","runs","control"].forEach(v=>document.getElementById(v+"View").style.display=v===view?"block":"none");
   document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
