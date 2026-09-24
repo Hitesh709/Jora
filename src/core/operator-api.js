@@ -324,7 +324,7 @@ export class OperatorApi {
       try {
         const result=this.agentQualityGate.evaluate(body.output||{},{
           requiredEvidence:body.requiredEvidence||[],
-          minScore:body.minScore===undefined?.8:Number(body.minScore)
+          minScore:body.minScore===undefined ? .8 : Number(body.minScore)
         });
         return json(res,200,{accepted:true,status:result.passed?"QUALITY_GATE_PASSED":"QUALITY_GATE_BLOCKED",...result});
       } catch(error) {
