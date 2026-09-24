@@ -69,3 +69,38 @@ test("handles Roman Gujarati follow-up language",()=>{
   assert.equal(result.action,"modify");
   assert.ok(result.context.references.includes("previous-turn-object"));
 });
+
+test("maintains a phase 2 project state across feature turns",()=>{
+  const first=engine.understand({
+    input:"Build a racing game",
+    messages:[]
+  });
+  assert.equal(first.projectState.project,"racing game");
+  assert.equal(first.projectState.domain,"game");
+
+  const second=engine.understand({
+    input:"Add 3 enemy cars",
+    messages:[
+      {role:"user",content:"Build a racing game"},
+      {role:"assistant",content:"Done — I built the racing game."}
+    ],
+    context:{projectState:first.projectState}
+  });
+  assert.equal(second.projectState.project,"racing game");
+  assert.equal(second.projectState.lastAction,"modify");
+  assert.equal(second.projectState.requirements.length,2);
+  assert.match(second.projectState.requirements.at(-1),/Add 3 enemy cars/i);
+});
+
+test("keeps project state when Roman Gujarati changes the existing game",()=>{
+  const result=engine.understand({
+    input:"Aa game ma score add karo",
+    messages:[
+      {role:"user",content:"Mara mate mini car racing game banavo"},
+      {role:"assistant",content:"Done"}
+    ]
+  });
+  assert.equal(result.projectState.domain,"game");
+  assert.equal(result.projectState.lastAction,"modify");
+  assert.match(result.projectState.project,/mini car racing game/i);
+});
