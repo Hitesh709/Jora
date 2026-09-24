@@ -8,6 +8,7 @@ import {AccessController} from "./access-controller.js";
 import {WebSearchProvider} from "./web-search-provider.js";
 import {withModelSelection} from "./multi-model-gateway.js";
 import {IntentUnderstandingEngine} from "./intent-understanding-engine.js";
+import {ConversationIntelligenceEngine} from "./conversation-intelligence-engine.js";
 
 function json(res,status,payload,headers={}) {
   const body=JSON.stringify(payload);
@@ -107,6 +108,7 @@ export class OperatorApi {
     this.searchProvider=searchProvider||new WebSearchProvider();
     this.modelGateway=modelGateway;
     this.intentUnderstanding=intentUnderstanding||new IntentUnderstandingEngine();
+    this.conversationIntelligence=new ConversationIntelligenceEngine({intentEngine:this.intentUnderstanding});
     const localOnly=["127.0.0.1","localhost","::1"].includes(this.host);
     if(!localOnly && !this.authToken && !this.accessController) throw new Error("authToken or accessController is required when operator api is not bound to localhost");
     this.server=null;
@@ -345,11 +347,15 @@ export class OperatorApi {
               .slice(-24)
               .map(item=>({role:item.role,content:item.content.slice(0,12000)}))
           : [];
-        const understanding=this.intentUnderstanding?.understand({
+        const understanding=this.conversationIntelligence?.understand({
           input:body.message.trim(),
           messages:conversation,
           context:body.context||{}
-        })||null;
+        }) || this.intentUnderstanding?.understand({
+          input:body.message.trim(),
+          messages:conversation,
+          context:body.context||{}
+        }) || null;
         const languageName=understanding?.language?.name||"English";
         const normalizedIntent=understanding?.normalizedText||body.message.trim();
         const complete=()=>this.modelGateway.complete({
@@ -401,7 +407,11 @@ export class OperatorApi {
     if(method==="POST" && path==="/v1/understand") {
       const body=await readBody(req,this.maxBodyBytes);
       if(typeof body.input!=="string" || !body.input.trim()) return json(res,400,{error:"input is required"});
-      const understanding=this.intentUnderstanding?.understand({
+      const understanding=this.conversationIntelligence?.understand({
+        input:body.input.trim(),
+        messages:Array.isArray(body.messages)?body.messages:[],
+        context:body.context||{}
+      }) || this.intentUnderstanding?.understand({
         input:body.input.trim(),
         messages:Array.isArray(body.messages)?body.messages:[],
         context:body.context||{}
@@ -1112,11 +1122,15 @@ export class OperatorApi {
         return json(res,400,{error:"command is required"});
       }
       const requestId=randomUUID();
-      const requestUnderstanding=this.intentUnderstanding?.understand({
+      const requestUnderstanding=this.conversationIntelligence?.understand({
         input:body.command.trim(),
         messages:Array.isArray(body.messages)?body.messages:[],
         context:body.context||{}
-      })||null;
+      }) || this.intentUnderstanding?.understand({
+        input:body.command.trim(),
+        messages:Array.isArray(body.messages)?body.messages:[],
+        context:body.context||{}
+      }) || null;
       const normalizedCommand=requestUnderstanding?.normalizedText||body.command.trim();
       const selectedProvider=typeof body.context?.provider==="string" ? body.context.provider.trim() : "jora";
       if(selectedProvider && selectedProvider!=="jora") {
