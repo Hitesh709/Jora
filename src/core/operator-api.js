@@ -52,6 +52,7 @@ export class OperatorApi {
     executionStore,
     projectStateStore=null,
     evolutionGovernance=null,
+    multiAgentCoordination=null,
     observability=null,
     metrics=null,
     worker=null,
@@ -85,6 +86,7 @@ export class OperatorApi {
     this.executionStore=executionStore;
     this.projectStateStore=projectStateStore;
     this.evolutionGovernance=evolutionGovernance;
+    this.multiAgentCoordination=multiAgentCoordination;
     this.observability=observability;
     this.metrics=metrics;
     this.worker=worker;
@@ -271,6 +273,19 @@ export class OperatorApi {
       const incident=this.incidentManager?.get(incidentMatch[1]);
       if(!incident) return json(res,404,{error:"incident_not_found"});
       return json(res,200,{incident});
+    }
+
+    if(method==="POST" && path==="/v1/agents/coordinate") {
+      if(!this.multiAgentCoordination) return json(res,503,{error:"multi_agent_coordination_not_configured"});
+      const body=await readBody(req,this.maxBodyBytes);
+      try {
+        const result=body.phase==="evaluate"
+          ? this.multiAgentCoordination.evaluate({assignments:body.assignments||[],results:body.results||[]})
+          : this.multiAgentCoordination.plan({requirements:body.requirements||[],agents:body.agents||[]});
+        return json(res,200,result);
+      } catch(error) {
+        return json(res,400,{accepted:false,status:"COORDINATION_FAILED",error:error.message});
+      }
     }
 
     if(method==="POST" && path==="/v1/evolution/assess") {
