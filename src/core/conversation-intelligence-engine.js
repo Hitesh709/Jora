@@ -9,6 +9,7 @@
  * - gives downstream routers a stable conversation contract
  */
 import {IntentUnderstandingEngine} from "./intent-understanding-engine.js";
+import {updateProjectState} from "./project-state-engine.js";
 
 const clean = (value="") => String(value ?? "").replace(/\s+/g, " ").trim();
 const last = (items=[]) => items.length ? items[items.length-1] : null;
@@ -162,6 +163,9 @@ export class ConversationIntelligenceEngine {
       previousUserMessage:previousUser || null
     };
 
+    const priorProjectState=context?.projectState || context?.project?.state || {};
+    const projectState=updateProjectState(priorProjectState,{input:original,understanding:{...current,action,scope}});
+
     const scope={...(current.scope||{})};
     if (pendingAction && scope.scope==="conversation") {
       scope.scope=pendingAction==="build" ? "whole-project" : "existing-project-change";
@@ -176,6 +180,7 @@ export class ConversationIntelligenceEngine {
       scope,
       context:mergedContext,
       goal,
+      projectState,
       conversation:{
         responseType,
         turnCount:history.filter(x=>x.role==="user").length,
