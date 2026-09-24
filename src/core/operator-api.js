@@ -1149,8 +1149,20 @@ export class OperatorApi {
         return json(res,429,{requestId,accepted:false,status:"ASYNC_CAPACITY_REACHED",error:"Jora is already processing an autonomous task. Retry after it finishes or stop the active task.",retryAfterSeconds:10,activeTasks:activeExecutions.length});
       }
 
-      const record={requestId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora",progress:{phase:"QUEUED",message:"Jora task accepted",events:[]}};
+      let executionId=null;
+      if(this.executionStore?.create) {
+        try {
+          const execution=await this.executionStore.create({
+            taskId:requestId,
+            agentId:"jora-core",
+            input:{command:normalizedCommand,tenantId}
+          });
+          executionId=execution?.id||null;
+        } catch {}
+      }
+      const record={requestId,executionId,status:"RUNNING",startedAt:Date.now(),updatedAt:Date.now(),provider:"jora",model:"jora",progress:{phase:"QUEUED",message:"Jora task accepted",events:[]}};
       this.backgroundExecutions.set(requestId,record);
+      await this.executionStore?.append?.(executionId,{type:"EXECUTION_ACCEPTED",status:"RUNNING",phase:"QUEUED",message:"Jora task accepted",taskId:requestId,agentId:"jora-core"}).catch?.(()=>{});
 
       // Do not run the autonomous engineering loop on the API event loop.
       // Promise callbacks are asynchronous in scheduling terms, but CPU-heavy
@@ -1190,14 +1202,20 @@ export class OperatorApi {
           if(safeEvent.file) safeEvent.file={path:safeEvent.file.path,bytes:safeEvent.file.bytes,truncated:Boolean(safeEvent.file.truncated)};
           record.progress.events=[...(record.progress.events||[]),safeEvent].slice(-40);
           record.updatedAt=Date.now();
+          if(record.executionId) this.executionStore?.append?.(record.executionId,{
+            type:"PROGRESS",status:safeEvent.status||"RUNNING",phase:safeEvent.phase||"RUNNING",
+            message:safeEvent.message||"",taskId:requestId,agentId:"jora-core"
+          }).catch?.(()=>{});
           return;
         }
         if(message?.ok) {
           record.status="COMPLETED";
           record.result=message.result;
+          if(record.executionId) this.executionStore?.finish?.(record.executionId,"COMPLETED",message.result).catch?.(()=>{});
         } else {
           record.status="FAILED";
           record.error=message?.error||"async worker failed";
+          if(record.executionId) this.executionStore?.finish?.(record.executionId,"FAILED",{status:"FAILED",error:record.error}).catch?.(()=>{});
         }
         if(record.timer) clearTimeout(record.timer);
         record.updatedAt=Date.now();
@@ -1206,6 +1224,7 @@ export class OperatorApi {
         if(record.status==="RUNNING") {
           record.status="FAILED";
           record.error=error?.message||String(error);
+          if(record.executionId) this.executionStore?.finish?.(record.executionId,"FAILED",{status:"FAILED",error:record.error}).catch?.(()=>{});
         }
         if(record.timer) clearTimeout(record.timer);
         record.updatedAt=Date.now();
@@ -1214,6 +1233,7 @@ export class OperatorApi {
         if(record.status==="RUNNING") {
           record.status="FAILED";
           record.error=signal ? "async worker terminated by "+signal : "async worker exited with code "+code;
+          if(record.executionId) this.executionStore?.finish?.(record.executionId,"FAILED",{status:"FAILED",error:record.error}).catch?.(()=>{});
         }
         if(record.timer) clearTimeout(record.timer);
         record.updatedAt=Date.now();
@@ -1224,6 +1244,7 @@ export class OperatorApi {
         record.status="TIMEOUT";
         record.error="Jora autonomous task exceeded the 5 minute execution safety limit";
         record.updatedAt=Date.now();
+        if(record.executionId) this.executionStore?.finish?.(record.executionId,"TIMEOUT",{status:"TIMEOUT",error:record.error}).catch?.(()=>{});
         try { child.kill("SIGTERM"); } catch {}
         setTimeout(()=>{ try { if(!child.killed) child.kill("SIGKILL"); } catch {} },5000).unref?.();
       },this.asyncExecutionTimeoutMs);
@@ -1243,6 +1264,7 @@ export class OperatorApi {
       record.error="Execution cancelled by user";
       record.updatedAt=Date.now();
       if(record.timer) clearTimeout(record.timer);
+      if(record.executionId) this.executionStore?.finish?.(record.executionId,"CANCELLED",{status:"CANCELLED",error:record.error}).catch?.(()=>{});
       try { record.child?.kill("SIGTERM"); } catch {}
       setTimeout(()=>{ try { if(record.child && !record.child.killed) record.child.kill("SIGKILL"); } catch {} },5000).unref?.();
       return json(res,200,{requestId,accepted:true,status:"CANCELLED"});
@@ -1250,7 +1272,25 @@ export class OperatorApi {
 
     if(method==="GET" && path.startsWith("/v1/execute/async/")) {
       const requestId=decodeURIComponent(path.slice("/v1/execute/async/".length));
-      const record=this.backgroundExecutions.get(requestId);
+      let record=this.backgroundExecutions.get(requestId);
+      if(!record && this.executionStore?.get) {
+        const persisted=await this.executionStore.get(requestId);
+        if(persisted) {
+          record={
+            requestId,
+            executionId:persisted.id,
+            status:persisted.status,
+            provider:"jora",
+            model:"jora",
+            startedAt:Date.parse(persisted.createdAt)||Date.now(),
+            updatedAt:Date.parse(persisted.updatedAt)||Date.now(),
+            trace:persisted.trace||[],
+            result:persisted.result?.status ? persisted.result : undefined,
+            error:persisted.result?.error||undefined,
+            progress:{phase:persisted.status==="RUNNING"?"RUNNING":persisted.status,message:persisted.status==="RUNNING"?"Execution state restored from durable store":"" ,events:persisted.trace||[]}
+          };
+        }
+      }
       if(!record) {
         return json(res,404,{requestId,accepted:false,status:"NOT_FOUND",error:"background execution not found"});
       }
@@ -1264,7 +1304,7 @@ export class OperatorApi {
         updatedAt:record.updatedAt,
         ...(record.progress ? {progress:record.progress} : {}),
         ...(record.status==="COMPLETED" ? {result:record.result} : {}),
-        ...(record.status==="FAILED" ? {error:record.error} : {})
+        ...(["FAILED","TIMEOUT","CANCELLED"].includes(record.status) ? {error:record.error||record.result?.error||null} : {})
       });
     }
 
