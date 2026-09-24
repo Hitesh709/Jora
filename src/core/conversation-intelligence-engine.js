@@ -171,7 +171,7 @@ export class ConversationIntelligenceEngine {
     }
 
     const priorProjectState=context?.projectState || context?.project?.state || {};
-    const projectState=updateProjectState(priorProjectState,{input:original,understanding:{...current,action,scope}});
+    const projectState=updateProjectState(priorProjectState,{input:original,understanding:{...current,action,scope,context:mergedContext}});
     return {
       ...current,
       action,
