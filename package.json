@@ -1,24 +1,13 @@
-{
-  "name": "jora-ai-evolution-os",
-  "version": "1.0.0",
-  "private": true,
-  "description": "AI software-production, agent-factory, and controlled self-evolution platform.",
-  "type": "module",
-  "scripts": {
+"scripts": {
     "test": "node --test",
     "check": "node --check src/core/*.js src/*.js test/*.js",
+    "build": "node src/api-cli.js",
+    "start": "node src/api-cli.js",
+    "dev": "node src/api-cli.js",
     "jora:self-build": "node src/bootstrap.js",
     "jora:command": "node src/cli.js",
     "jora:worker": "node src/worker-cli.js",
     "jora:api": "node src/api-cli.js",
     "jora:acceptance": "node scripts/jora-native-coding-acceptance.js",
     "test:ci": "node --test --test-force-exit --test-timeout=120000 --test-concurrency=4"
-  },
-  "engines": {
-    "node": ">=20"
-  },
-  "dependencies": {
-    "pg": "^8.16.3",
-    "playwright-core": "^1.55.0"
   }
-}
