@@ -32,22 +32,16 @@ export class EvolutionGovernanceEngine {
       approval:!this.requireApproval || approval===true
     };
     const failed=Object.entries(checks).filter(([,passed])=>!passed).map(([name])=>name);
-    const blockingFailures=failed.filter(name=>name!=="approval");
-    const awaitingApproval=this.requireApproval && approval!==true && blockingFailures.length===0;
     return {
       accepted:true,
-      status:blockingFailures.length
-        ?"EVOLUTION_BLOCKED"
-        :awaitingApproval
-          ?"EVOLUTION_READY_FOR_APPROVAL"
-          :"EVOLUTION_APPROVED",
+      status:failed.length?"EVOLUTION_BLOCKED":(this.requireApproval?"EVOLUTION_READY_FOR_APPROVAL":"EVOLUTION_APPROVED"),
       version:this.version,
       benchmarkScore:benchmark,
       baselineScore,
       delta,
       checks,
       failedGates:failed,
-      productionReady:blockingFailures.length===0 && (!this.requireApproval || approval===true)
+      productionReady:failed.length===0
     };
   }
 
