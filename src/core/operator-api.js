@@ -1,3 +1,4 @@
+import {projectStateKey} from "./persistent-project-state-store.js";
 import http from "node:http";
 import {randomUUID} from "node:crypto";
 import {URL} from "node:url";
@@ -443,7 +444,7 @@ export class OperatorApi {
           message,
           model:response?.model??(requestedProvider||null),
           provider:useDefault ? (response?.model??gatewayStatus.defaultModel??null) : selectedProvider,
-          projectId:understanding?.projectState?.project||projectContext.projectId||null,
+          projectId:projectContext.projectId||projectStateKey(understanding?.projectState?.project||"")||null,
           projectState:understanding?.projectState||null,
           understanding
         });
