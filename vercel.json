@@ -1,0 +1,16 @@
+{
+  "buildCommand": "npm run jora:api",
+  "devCommand": "npm run jora:api",
+  "installCommand": "npm install",
+  "framework": "nodejs",
+  "regions": ["iad1"],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "src/api-cli.js"
+    }
+  ]
+}
