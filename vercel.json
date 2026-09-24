@@ -1,13 +1,8 @@
 {
-  "buildCommand": "echo 'Jora frontend build'",
+  "buildCommand": "mkdir -p public && cp index.html public/index.html",
   "installCommand": "npm install",
   "framework": null,
+  "outputDirectory": "public",
   "cleanUrls": true,
-  "trailingSlash": false,
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ]
+  "trailingSlash": false
 }
