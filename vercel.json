@@ -1,20 +1,13 @@
 {
-  "buildCommand": "npm install",
-  "devCommand": "node src/api-cli.js",
+  "buildCommand": "echo 'Jora frontend build'",
   "installCommand": "npm install",
-  "framework": "node",
-  "regions": ["iad1"],
-  "env": {
-    "NODE_ENV": "production"
-  },
+  "framework": null,
+  "cleanUrls": true,
+  "trailingSlash": false,
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "src/vercel-handler.js"
-    },
-    {
       "src": "/(.*)",
-      "dest": "src/vercel-handler.js"
+      "dest": "/index.html"
     }
   ]
 }
