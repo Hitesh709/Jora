@@ -14,7 +14,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "src/api-cli.js"
     }
   ]
 }
