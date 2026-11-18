@@ -107,13 +107,13 @@ textarea{width:100%;resize:none;min-height:76px;max-height:180px;border:0;outlin
   </section>
 </div></main></div>
 <div class="overlay" id="githubConnect"><div class="modal"><h3>Connect GitHub</h3><p class="muted">GitHub credentials stay on the Jora backend. This browser never needs your personal token.</p><div id="githubStatus" class="panel">Checking GitHub connection…</div><div class="actions"><button class="secondary" onclick="checkGitHubConnection()">Check connection</button><button class="secondary" onclick="closeGitHubConnect()">Close</button></div></div></div><div class="overlay" id="settings"><div class="modal"><h3>Connect Jora backend</h3><div class="muted">The browser uses this API to execute commands. Never paste a permanent server secret into source code.</div>
-<label class="muted">Jora backend</label><input id="api" placeholder="https://your-jora-api.up.railway.app">
-<div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>🔓 Browser access enabled</strong><div class="muted" style="margin-top:5px">No Bearer token is required for normal Jora chat, research, code, or build requests. Server credentials remain on the Railway backend.</div></div>
+<label class="muted">Jora backend</label><input id="api" placeholder="Same Vercel domain (automatic)">
+<div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>🔓 Browser access enabled</strong><div class="muted" style="margin-top:5px">No Bearer token is required for normal Jora chat, research, code, or build requests. Server credentials remain in Vercel environment variables.</div></div>
 <div class="panel" style="margin:8px 0 14px;padding:12px;background:#10141a"><strong>✦ Jora AI</strong><div class="muted" style="margin-top:5px">Jora is the only AI interface. Model selection and third-party free-model controls have been removed from the browser.</div></div>
 <div class="actions"><button class="secondary" onclick="saveSettings()">Save &amp; connect</button><button class="secondary" onclick="resetApi()">Reset to production</button><button class="secondary" onclick="closeSettings()">Close</button></div></div></div>
 <script>
-const defaultApi="https://jora-api-production-production.up.railway.app";
-const apiConfigVersion="2026-09-23-railway-production-api-3";
+const defaultApi="";
+const apiConfigVersion="2026-11-18-vercel-native-api-1";
 const apiInput=document.getElementById("api"),promptInput=document.getElementById("prompt"),sendBtn=document.getElementById("send");
 if(localStorage.getItem("jora_api_config_version")!==apiConfigVersion){
   localStorage.setItem("jora_api_base",defaultApi);
@@ -570,7 +570,7 @@ async function pushWorkspaceToGitHub(){
   try{
     const s=await fetch(base()+"/v2/github",{method:"POST",headers:headers(),body:JSON.stringify({operation:"status",payload:{}})});
     const status=await s.json();
-    if(!s.ok||status.status==="GITHUB_NOT_CONNECTED"){activity.innerHTML='<span class="pill githubOff">GitHub not connected</span> Configure GITHUB_TOKEN, JORA_GITHUB_OWNER and JORA_GITHUB_REPO on the Railway backend.';return}
+    if(!s.ok||status.status==="GITHUB_NOT_CONNECTED"){activity.innerHTML='<span class="pill githubOff">GitHub not connected</span> Configure GITHUB_TOKEN, JORA_GITHUB_OWNER and JORA_GITHUB_REPO in Vercel environment variables.';return}
     const slug=(workspaceProject.name||"jora-project").toLowerCase().replace(/[^a-z0-9]+/g,"-").slice(0,36);
     const branch="jora/"+slug+"-"+Date.now();
     const pub=await fetch(base()+"/v2/github",{method:"POST",headers:headers(),body:JSON.stringify({operation:"publishCandidate",payload:{branch,targetBranch:status.result.branch||"main",files:workspaceFiles,message:"Jora: "+(workspaceProject.name||"generated project")}})});
@@ -636,7 +636,7 @@ function formatAgentResult(d){
 function formatResult(d){if(d?.result?.message)return d.result.message;if(typeof d?.result==="string")return d.result;return JSON.stringify(d,null,2)}
 function openGitHubConnect(){document.getElementById("githubConnect").style.display="flex";checkGitHubConnection()}
 function closeGitHubConnect(){document.getElementById("githubConnect").style.display="none"}
-async function checkGitHubConnection(){const el=document.getElementById("githubStatus");el.textContent="Checking…";try{const r=await fetch(base()+"/v2/github",{method:"POST",headers:headers(),body:JSON.stringify({operation:"status",payload:{}})});const d=await r.json().catch(()=>({}));if(!r.ok||d.status==="GITHUB_NOT_CONNECTED"){el.innerHTML='<strong>GitHub not connected</strong><div class="muted" style="margin-top:6px">Configure the GitHub integration on the Jora backend with GITHUB_TOKEN, GITHUB_OWNER and GITHUB_REPO. Jora can then publish verified builds and create pull requests.</div>';return}const repo=d.result?.repository||d.result?.repo||"configured repository";el.innerHTML='<strong>✓ GitHub connected</strong><div class="muted" style="margin-top:6px">'+escapeHtml(String(repo))+' · branch '+escapeHtml(String(d.result?.branch||"main"))+'</div>'}catch(e){el.innerHTML='<strong>GitHub connection unavailable</strong><div class="muted" style="margin-top:6px">'+escapeHtml(e.message)+'</div>'}}
+async function checkGitHubConnection(){const el=document.getElementById("githubStatus");el.textContent="Checking…";try{const r=await fetch(base()+"/v2/github",{method:"POST",headers:headers(),body:JSON.stringify({operation:"status",payload:{}})});const d=await r.json().catch(()=>({}));if(!r.ok||d.status==="GITHUB_NOT_CONNECTED"){el.innerHTML='<strong>GitHub not connected</strong><div class="muted" style="margin-top:6px">Configure the GitHub integration in Vercel environment variables with GITHUB_TOKEN, GITHUB_OWNER and GITHUB_REPO. Jora can then publish verified builds and create pull requests.</div>';return}const repo=d.result?.repository||d.result?.repo||"configured repository";el.innerHTML='<strong>✓ GitHub connected</strong><div class="muted" style="margin-top:6px">'+escapeHtml(String(repo))+' · branch '+escapeHtml(String(d.result?.branch||"main"))+'</div>'}catch(e){el.innerHTML='<strong>GitHub connection unavailable</strong><div class="muted" style="margin-top:6px">'+escapeHtml(e.message)+'</div>'}}
 function openSettings(){document.getElementById("settings").style.display="flex";apiInput.focus()}
 function closeSettings(){document.getElementById("settings").style.display="none"}
 function saveSettings(){
