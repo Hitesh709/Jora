@@ -1,6 +1,7 @@
 import {MultiAgentCoordinationEngine} from "./multi-agent-coordination-engine.js";
 import {EvolutionGovernanceEngine} from "./evolution-governance-engine.js";
 import {PersistentProjectStateStore} from "./persistent-project-state-store.js";
+import {createPostgresProjectStateStore} from "./postgres-project-state-store.js";
 import {AgentSpecPlanner} from "./agent-spec-planner.js";
 import {AgentRegistry} from "./agent-registry.js";
 import {ProjectFactory} from "./project-factory.js";
@@ -189,7 +190,9 @@ export async function createProductionJoraRuntime({config,modelGateway}={}) {
   const executionStore=distributedConfig.enabled
     ? await createPostgresExecutionStore({connectionString:distributedConfig.databaseUrl,namespace:distributedConfig.queueNamespace||"jora",maxConnections:distributedConfig.maxConnections})
     : new PersistentExecutionStore({store:new JsonStore({file:config.persistence})});
-  const projectStateStore=new PersistentProjectStateStore({store:new JsonStore({file:config.projectStateFile})});
+  const projectStateStore=config.distributed?.enabled && config.distributed?.databaseUrl
+    ? await createPostgresProjectStateStore({connectionString:config.distributed.databaseUrl,namespace:config.distributed.queueNamespace||"jora",maxConnections:config.distributed.maxConnections||5})
+    : new PersistentProjectStateStore({store:new JsonStore({file:config.projectStateFile})});
   const evolutionGovernance=new EvolutionGovernanceEngine(config.evolutionGovernance);
   const multiAgentCoordination=new MultiAgentCoordinationEngine(config.multiAgentCoordination);
   const lineageStore=new LineageStore({store:new JsonStore({file:config.lineageStateFile||"./.jora/lineage.json"})});
